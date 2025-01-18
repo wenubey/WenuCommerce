@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.presentation.ui.theme
+package com.wenubey.wenucommerce.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

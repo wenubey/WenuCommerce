@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">WenuCommerce</string>
+
+    <!--Home Tabs Name-->
+    <string name="home">Home</string>
+    <string name="cart">Cart</string>
+    <string name="profile">Profile</string>
 </resources>

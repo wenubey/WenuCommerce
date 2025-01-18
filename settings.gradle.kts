@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "WenuCommerce"
 include(":app")
- 
+include(":data")
+include(":domain")
