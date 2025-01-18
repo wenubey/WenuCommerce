@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.ui.theme
+package com.wenubey.wenucommerce.presentation.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
