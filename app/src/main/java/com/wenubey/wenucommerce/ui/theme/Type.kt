@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.presentation.ui.theme
+package com.wenubey.wenucommerce.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
