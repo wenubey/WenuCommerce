@@ -72,4 +72,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
 
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
 }
