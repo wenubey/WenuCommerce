@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     id("kotlinx-serialization")
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -67,4 +68,9 @@ dependencies {
     androidTestImplementation(libs.core.testing)
 
     implementation(libs.ktor.serialization)
+
+    //Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 }
