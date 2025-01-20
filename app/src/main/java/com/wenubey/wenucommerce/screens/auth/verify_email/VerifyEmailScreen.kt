@@ -1,19 +1,15 @@
-package com.wenubey.wenucommerce.screens.auth
+package com.wenubey.wenucommerce.screens.auth.verify_email
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier, navigateToTabScreen: () -> Unit) {
+fun VerifyEmailScreen(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Login Screen")
-        Button(onClick = navigateToTabScreen) {
-            Text("Navigate to Tab Screen")
-        }
+        Text("Verify Email")
     }
 }

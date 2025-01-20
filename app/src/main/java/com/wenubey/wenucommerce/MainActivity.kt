@@ -10,32 +10,34 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.wenubey.wenucommerce.navigation.Graph
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
+import com.wenubey.wenucommerce.screens.auth.AuthViewModel
 import com.wenubey.wenucommerce.ui.theme.WenuCommerceTheme
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.compose.KoinContext
 
 class MainActivity : ComponentActivity() {
     private lateinit var navController: NavHostController
+
+    private val authViewModel: AuthViewModel by viewModel()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            WenuCommerceTheme {
-               navController = rememberNavController()
+            KoinContext {
+                WenuCommerceTheme {
+                    navController = rememberNavController()
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    val isAuthenticated = false
-                    val startDestination = if (isAuthenticated) {
-                        Graph.TabGraph
-                    } else {
-                        Graph.AuthGraph
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        val startDestination = authViewModel.getStartDestination()
+                        RootNavigationGraph(navController = navController, startDestination = startDestination)
                     }
-                    RootNavigationGraph(navController = navController, startDestination = startDestination)
                 }
             }
         }
