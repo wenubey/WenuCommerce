@@ -31,7 +31,11 @@ fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
         )
     }
     composable<SignUp> {
-        SignUpScreen()
+        SignUpScreen(
+            navigateToVerifyEmail = { email ->
+                navController.navigate(VerifyEmail(email))
+            }
+        )
     }
     composable<VerifyEmail> { navBackStack ->
         val email = navBackStack.toRoute<VerifyEmail>().email

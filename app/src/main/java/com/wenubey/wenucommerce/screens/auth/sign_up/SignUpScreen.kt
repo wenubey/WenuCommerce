@@ -42,7 +42,8 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SignUpScreen(
     modifier: Modifier = Modifier,
-    ) {
+    navigateToVerifyEmail: (String) -> Unit,
+) {
     val viewModel = koinViewModel<SignUpViewModel>()
     val signUpState by viewModel.signUpState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -80,6 +81,7 @@ fun SignUpScreen(
                     onClick = {
                         keyboardController?.hide()
                         viewModel.createPasswordCredential()
+                        navigateToVerifyEmail(signUpState.email)
                     },
                     shape = ButtonDefaults.filledTonalShape,
                     enabled = signUpState.isEmailValid
