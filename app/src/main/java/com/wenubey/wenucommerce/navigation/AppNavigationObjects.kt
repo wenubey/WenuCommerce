@@ -3,7 +3,6 @@ package com.wenubey.wenucommerce.navigation
 import kotlinx.serialization.Serializable
 
 // Auth
-
 @Serializable
 data object SignIn
 
@@ -14,8 +13,9 @@ data object SignUp
 data object ForgotPassword
 
 @Serializable
-data object VerifyEmail
+data class VerifyEmail(val email: String)
 
+// Tab
 @Serializable
 data class Tab(val tabIndex: Int)
 

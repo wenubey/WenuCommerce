@@ -29,6 +29,8 @@ kotlinTest = "1.9.0"
 truth = "1.0.1"
 coreTesting = "1.1.1"
 logbackClassic = "1.5.16"
+playServicesAuth = "21.3.0"
+googleid = "1.1.1"
 
 
 [libraries]
@@ -88,6 +90,11 @@ room-testing = { group = "androidx.room", name = "room-testing", version.ref = "
 
 # Timber
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+
+# Play Services Auth
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+
+identity-googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

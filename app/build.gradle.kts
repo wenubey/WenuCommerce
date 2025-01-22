@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,6 +22,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val properties = Properties()
+        properties.load(project.rootProject.file("local.properties").inputStream())
+        buildConfigField("String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\"")
+        buildConfigField("String", "GOOGLE_ID_WEB_CLIENT", "\"${properties.getProperty("GOOGLE_ID_WEB_CLIENT")}\"")
     }
 
     buildTypes {
@@ -70,6 +77,10 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+
+    //Play Services Auth
+    implementation (libs.play.services.auth)
+    implementation(libs.identity.googleid)
 
     // Koin
     implementation(platform(libs.koin.bom))
