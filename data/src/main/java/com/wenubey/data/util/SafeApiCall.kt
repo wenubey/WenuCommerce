@@ -1,13 +1,15 @@
 package com.wenubey.data.util
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
-inline fun <T> safeApiCall(apiCall: () -> T): Result<T> {
-    return try {
-        Timber.d("safeApiCall:SUCCESS")
-        Result.success(apiCall())
-    } catch (e: Exception) {
-        Timber.e(e, "safeApiCall:ERROR: ")
-        Result.failure(exception = e)
+suspend fun <T> safeApiCall(dispatcher: CoroutineDispatcher, apiCall: suspend () -> T): Result<T> =
+    withContext(dispatcher) {
+        try {
+            Result.success(apiCall())
+        } catch (e: Exception) {
+            Timber.e("Error during API call: ${e.message}")
+            Result.failure(e)
+        }
     }
-}

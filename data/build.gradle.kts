@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -16,6 +18,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        val properties = Properties()
+        properties.load(project.rootProject.file("local.properties").inputStream())
+        buildConfigField("String", "GOOGLE_ID_WEB_CLIENT", "\"${properties.getProperty("GOOGLE_ID_WEB_CLIENT")}\"")
     }
 
     buildTypes {
@@ -37,6 +43,9 @@ android {
     room {
         schemaDirectory("$projectDir/schemas")
     }
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -45,6 +54,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+
+    //Play Services Auth
+    implementation (libs.play.services.auth)
 
     //Ktor
     implementation(libs.ktor.core)
@@ -86,5 +98,9 @@ dependencies {
     implementation(libs.timber)
 
     testRuntimeOnly(libs.logback.classic)
+
+    //Play Services Auth
+    implementation (libs.play.services.auth)
+    implementation(libs.identity.googleid)
 
 }
