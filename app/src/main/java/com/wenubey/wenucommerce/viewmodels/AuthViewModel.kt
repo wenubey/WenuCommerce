@@ -8,7 +8,7 @@ import com.wenubey.wenucommerce.navigation.SignUp
 import com.wenubey.wenucommerce.navigation.Tab
 import com.wenubey.wenucommerce.navigation.VerifyEmail
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -20,11 +20,8 @@ class AuthViewModel(
     private val mainDispatcher = dispatcherProvider.main()
     private val ioDispatcher = dispatcherProvider.io()
 
-    private val _authState = MutableStateFlow(AuthState())
-
-
     private val _startDestination = MutableStateFlow<Any>(SignUp)
-    val startDestination: StateFlow<Any> = _startDestination
+    val startDestination = _startDestination.asStateFlow()
 
     init {
         checkAuthState()
@@ -35,47 +32,22 @@ class AuthViewModel(
             authRepository.isUserAuthenticatedAndEmailVerified()
                 .onSuccess { authState ->
                     viewModelScope.launch(mainDispatcher) {
-                        _authState.update {
-                            it.copy(
-                                isAuthenticated = authState.isAuthenticated,
-                                isEmailVerified = authState.isEmailVerified,
-                                userEmail = authState.userEmail,
-                                errorMessage = null,
-                            )
-                        }
-                        updateStartDestination(authState.isAuthenticated, authState.isEmailVerified)
-                    }
-                }
-                .onFailure {
-                    viewModelScope.launch(mainDispatcher) {
-                        _authState.update {
-                            it.copy(
-                                errorMessage = it.errorMessage
-                            )
-                        }
+                        updateStartDestination(authState.isAuthenticated, authState.isEmailVerified, authState.userEmail ?: "")
                     }
                 }
         }
     }
 
-    private fun updateStartDestination(isAuthenticated: Boolean, isEmailVerified: Boolean) {
+    private fun updateStartDestination(isAuthenticated: Boolean, isEmailVerified: Boolean, userEmail: String) {
         viewModelScope.launch(mainDispatcher) {
             _startDestination.update {
                 when {
                     isAuthenticated && isEmailVerified -> Tab(0)
-                    isAuthenticated && !isEmailVerified -> VerifyEmail(_authState.value.userEmail ?: "")
+                    isAuthenticated && !isEmailVerified -> VerifyEmail(userEmail)
                     else -> SignUp
                 }
             }
         }
     }
 }
-
-
-data class AuthState(
-    val isAuthenticated: Boolean = false,
-    val isEmailVerified: Boolean = false,
-    val userEmail: String? = null,
-    val errorMessage: String? = null,
-)
 

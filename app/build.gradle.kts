@@ -126,4 +126,8 @@ dependencies {
     // Timber
     implementation(libs.timber)
 
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
+
+
 }
