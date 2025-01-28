@@ -1,9 +1,9 @@
 package com.wenubey.wenucommerce.di
 
-import com.wenubey.wenucommerce.viewmodels.SignInViewModel
-import com.wenubey.wenucommerce.viewmodels.SignUpViewModel
-import com.wenubey.wenucommerce.viewmodels.AuthViewModel
-import com.wenubey.wenucommerce.viewmodels.VerifyEmailViewModel
+import com.wenubey.wenucommerce.sign_in.SignInViewModel
+import com.wenubey.wenucommerce.sign_up.SignUpViewModel
+import com.wenubey.wenucommerce.AuthViewModel
+import com.wenubey.wenucommerce.verify_email.VerifyEmailViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 

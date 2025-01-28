@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.viewmodels
+package com.wenubey.wenucommerce
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,7 +6,6 @@ import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.wenucommerce.navigation.SignUp
 import com.wenubey.wenucommerce.navigation.Tab
-import com.wenubey.wenucommerce.navigation.VerifyEmail
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -29,23 +28,19 @@ class AuthViewModel(
 
     private fun checkAuthState() {
         viewModelScope.launch(ioDispatcher) {
-            authRepository.isUserAuthenticatedAndEmailVerified()
-                .onSuccess { authState ->
+            authRepository.isUserAuthenticated()
+                .onSuccess { isUserAuthenticated ->
                     viewModelScope.launch(mainDispatcher) {
-                        updateStartDestination(authState.isAuthenticated, authState.isEmailVerified, authState.userEmail ?: "")
+                        updateStartDestination(isUserAuthenticated)
                     }
                 }
         }
     }
 
-    private fun updateStartDestination(isAuthenticated: Boolean, isEmailVerified: Boolean, userEmail: String) {
+    private fun updateStartDestination(isAuthenticated: Boolean) {
         viewModelScope.launch(mainDispatcher) {
             _startDestination.update {
-                when {
-                    isAuthenticated && isEmailVerified -> Tab(0)
-                    isAuthenticated && !isEmailVerified -> VerifyEmail(userEmail)
-                    else -> SignUp
-                }
+                if (isAuthenticated) Tab(0) else SignUp
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.viewmodels
+package com.wenubey.wenucommerce.verify_email
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 class VerifyEmailViewModel(
     private val authRepository: AuthRepository,
@@ -26,7 +25,15 @@ class VerifyEmailViewModel(
     private var emailCheckJob: Job? = null
 
     init {
-        startEmailVerificationCheck()
+        onAction(VerifyEmailAction.CheckEmailVerification)
+    }
+
+    fun onAction(action: VerifyEmailAction) {
+        when(action) {
+            VerifyEmailAction.CheckEmailVerification -> startEmailVerificationCheck()
+            VerifyEmailAction.ResendVerificationEmail -> resendVerificationEmail()
+            VerifyEmailAction.StopVerificationCheck -> stopEmailVerificationCheck()
+        }
     }
 
     private fun startEmailVerificationCheck() {
@@ -39,12 +46,11 @@ class VerifyEmailViewModel(
     }
 
     private suspend fun checkEmailVerificationStatus() {
-        Timber.d("Checking email verification status: ${_verifyEmailState.value}")
-        authRepository.isUserAuthenticatedAndEmailVerified()
-            .onSuccess { authState ->
+        authRepository.isEmailVerified()
+            .onSuccess { isEmailVerified ->
                 viewModelScope.launch(mainDispatcher) {
                     _verifyEmailState.update {
-                        it.copy(isEmailVerified = authState.isEmailVerified)
+                        it.copy(isEmailVerified = isEmailVerified)
                     }
                 }
             }.onFailure { error ->
@@ -56,7 +62,7 @@ class VerifyEmailViewModel(
             }
     }
 
-    fun resendVerificationEmail() {
+    private fun resendVerificationEmail() {
         viewModelScope.launch(ioDispatcher) {
             authRepository.resendVerificationEmail()
                 .onSuccess {
@@ -89,10 +95,4 @@ class VerifyEmailViewModel(
     }
 
 }
-
-data class VerifyEmailState(
-    val isEmailVerified: Boolean = false,
-    val isVerificationEmailSent: Boolean = false,
-    val errorMessage: String? = null
-)
 

@@ -1,6 +1,7 @@
-package com.wenubey.wenucommerce.screens.auth.sign_up
+package com.wenubey.wenucommerce.sign_up
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -19,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -36,22 +38,21 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.wenubey.wenucommerce.viewmodels.SignUpViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SignUpScreen(
     modifier: Modifier = Modifier,
-    navigateToVerifyEmail: (String) -> Unit,
+    viewModel: SignUpViewModel = koinViewModel(),
+    navigateToTab: () -> Unit,
+    navigateToSignIn: () -> Unit,
 ) {
-    val viewModel = koinViewModel<SignUpViewModel>()
     val signUpState by viewModel.signUpState.collectAsStateWithLifecycle()
-    val keyboardController = LocalSoftwareKeyboardController.current
 
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(modifier = modifier.fillMaxSize()) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-
             Column(
                 modifier = Modifier
                     .wrapContentSize()
@@ -62,16 +63,30 @@ fun SignUpScreen(
                     email = signUpState.email,
                     isEmailValid = signUpState.isEmailValid,
                     updateEmail = { newValue ->
-                        viewModel.updateEmail(newValue)
+                        viewModel.onAction(SignUpAction.OnEmailChange(newValue))
                     }
                 )
 
                 PasswordField(
                     password = signUpState.password,
                     updatePassword = { newValue ->
-                        viewModel.updatePassword(newValue)
+                        viewModel.onAction(SignUpAction.OnPasswordChange(newValue))
                     }
                 )
+
+                Button(onClick = navigateToSignIn) {
+                    Text("Already user? Sign in")
+                }
+
+                Row {
+                    Text("Save credentials for future logins")
+                    Switch(
+                        checked = signUpState.saveCredentials,
+                        onCheckedChange = {
+                            viewModel.onAction(SignUpAction.OnToggleCredentials)
+                        }
+                    )
+                }
 
                 Button(
                     modifier = Modifier
@@ -80,8 +95,9 @@ fun SignUpScreen(
                         ),
                     onClick = {
                         keyboardController?.hide()
-                        viewModel.createPasswordCredential()
-                        navigateToVerifyEmail(signUpState.email)
+                        viewModel.onAction(SignUpAction.OnSignUpEmailPassword)
+                        navigateToTab()
+
                     },
                     shape = ButtonDefaults.filledTonalShape,
                     enabled = signUpState.isEmailValid
@@ -98,10 +114,8 @@ fun SignUpScreen(
                             top = 16.dp
                         ),
                     onClick = {
-                        viewModel.signIn(
-                            onFailure = {},
-                            onSuccess = {}
-                        )
+                        viewModel.onAction(SignUpAction.OnSignUpClicked)
+                        navigateToTab()
                     },
                     shape = ButtonDefaults.filledTonalShape,
                 ) {
@@ -109,9 +123,6 @@ fun SignUpScreen(
                         text = "Google"
                     )
                 }
-
-                Text(text = viewModel.signUpState.collectAsStateWithLifecycle().value.isEmailVerified.toString())
-
             }
         }
     }

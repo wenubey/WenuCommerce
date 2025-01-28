@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.components
+package com.wenubey.wenucommerce.screens.home.components
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
