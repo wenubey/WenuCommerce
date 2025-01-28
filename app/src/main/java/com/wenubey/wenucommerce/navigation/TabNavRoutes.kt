@@ -8,8 +8,8 @@ import com.wenubey.wenucommerce.screens.tab.TabScreen
 
 fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
     composable<Tab> {
-        val tabIndex = it.toRoute<Tab>().tabIndex
-        TabScreen(tabIndex)
+        val tabArgs = it.toRoute<Tab>()
+        TabScreen(tabIndex = tabArgs.tabIndex)
     }
 }
 

@@ -17,7 +17,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
 import com.wenubey.wenucommerce.ui.theme.WenuCommerceTheme
-import com.wenubey.wenucommerce.viewmodels.AuthViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.KoinContext
 

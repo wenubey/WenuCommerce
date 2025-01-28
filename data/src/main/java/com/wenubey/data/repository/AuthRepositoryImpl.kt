@@ -9,16 +9,22 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetPasswordOption
 import androidx.credentials.PasswordCredential
+import androidx.credentials.exceptions.CreateCredentialCancellationException
+import androidx.credentials.exceptions.CreateCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.wenubey.data.util.safeApiCall
-import com.wenubey.domain.model.AuthState
+import com.wenubey.domain.auth.SignInResult
+import com.wenubey.domain.auth.SignUpResult
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 class AuthRepositoryImpl(
@@ -31,6 +37,7 @@ class AuthRepositoryImpl(
 
     private val ioDispatcher = dispatcherProvider.io()
 
+    private val user = firebaseAuth.currentUser
     override suspend fun signIn(credentialResponse: GetCredentialResponse): Result<Unit> =
         safeApiCall(dispatcher = ioDispatcher) {
             when (val credential = credentialResponse.credential) {
@@ -77,40 +84,84 @@ class AuthRepositoryImpl(
             )
         }
 
-
-    override suspend fun signInWithEmailPassword(
+    override suspend fun signUpWithEmailPassword(
         email: String,
-        password: String
-    ): Result<Unit> = safeApiCall(ioDispatcher) {
-        val passwordRequest = CreatePasswordRequest(
-            id = email,
-            password = password
-        )
-
-        val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-        result.user?.let { user ->
-            credentialManager.createCredential(
-                context = context,
-                request = passwordRequest
-            )
-            sendEmailVerificationIfNeeded(user)
+        password: String,
+        saveCredentials: Boolean
+    ): SignUpResult = withContext(ioDispatcher) {
+        try {
+            if (saveCredentials){
+                val passwordRequest = CreatePasswordRequest(
+                    id = email,
+                    password = password
+                )
+                credentialManager.createCredential(
+                    context = context,
+                    request = passwordRequest
+                )
+            }
+            val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+            result.user?.let { user ->
+                sendEmailVerificationIfNeeded(user)
+            }
+            SignUpResult.Success
+        } catch (e: CreateCredentialCancellationException) {
+            Timber.e(e)
+            SignUpResult.Cancelled
+        } catch (e: CreateCredentialException) {
+            Timber.e(e)
+            SignUpResult.Failure(e.message)
+        } catch (e: FirebaseAuthException) {
+            Timber.e(e)
+            SignUpResult.Failure(e.message)
         }
     }
 
-    override suspend fun isUserAuthenticatedAndEmailVerified(): Result<AuthState> =
-        safeApiCall(ioDispatcher) {
-            val user = firebaseAuth.currentUser
-            user?.reload()?.await()
-            val isAuthenticated = user != null
-            val isEmailVerified = user?.isEmailVerified ?: false
-            AuthState(
-                isAuthenticated = isAuthenticated,
-                isEmailVerified = isEmailVerified,
-                userEmail = user?.email
-            )
+
+    override suspend fun signInWithEmailPassword(
+        email: String,
+        password: String,
+        saveCredentials: Boolean,
+    ): SignInResult = withContext(ioDispatcher) {
+        try {
+            if (saveCredentials){
+                val passwordRequest = CreatePasswordRequest(
+                    id = email,
+                    password = password
+                )
+                credentialManager.createCredential(
+                    context = context,
+                    request = passwordRequest
+                )
+            }
+
+            val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
+            result.user?.let { user ->
+                sendEmailVerificationIfNeeded(user)
+            }
+            SignInResult.Success
+        } catch (e: CreateCredentialCancellationException) {
+            Timber.e(e)
+            SignInResult.Cancelled
+        } catch (e: NoCredentialException) {
+            Timber.e(e)
+            SignInResult.NoCredentials
+        } catch (e: CreateCredentialException) {
+            Timber.e(e)
+            SignInResult.Failure(e.message)
+        } catch (e: FirebaseAuthException) {
+            Timber.e(e)
+            SignInResult.Failure(e.message)
         }
+    }
 
+    override suspend fun isUserAuthenticated(): Result<Boolean> = safeApiCall(ioDispatcher) {
+        user != null
+    }
 
+    override suspend fun isEmailVerified(): Result<Boolean> = safeApiCall(ioDispatcher) {
+        user?.isEmailVerified ?: false
+    }
 
     override suspend fun resendVerificationEmail(): Result<Unit> = safeApiCall(ioDispatcher) {
         val user =

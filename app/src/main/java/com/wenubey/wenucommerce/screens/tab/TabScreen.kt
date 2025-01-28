@@ -10,7 +10,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.wenubey.wenucommerce.components.Tabs
+import com.wenubey.wenucommerce.screens.home.components.Tabs
 import com.wenubey.wenucommerce.screens.cart.CartScreen
 import com.wenubey.wenucommerce.screens.home.HomeScreen
 import com.wenubey.wenucommerce.screens.home.components.HomeScreenTabRow
@@ -22,7 +22,6 @@ fun TabScreen(tabIndex: Int) {
     val pagerState =
         rememberPagerState(initialPage = tabIndex, pageCount = { Tabs.entries.size })
     val currentTabIndex by remember { derivedStateOf { pagerState.currentPage } }
-
     Scaffold(
         bottomBar = {
             HomeScreenTabRow(pagerState = pagerState, currentTabIndex = currentTabIndex)
@@ -38,12 +37,15 @@ fun TabScreen(tabIndex: Int) {
                 0 -> {
                     HomeScreen()
                 }
+
                 1 -> {
                     CartScreen()
                 }
+
                 2 -> {
                     ProfileScreen()
                 }
+
                 else -> {
                 }
             }
