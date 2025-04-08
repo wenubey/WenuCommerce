@@ -23,6 +23,7 @@ import com.wenubey.domain.auth.SignInResult
 import com.wenubey.domain.auth.SignUpResult
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
+import com.wenubey.domain.repository.FirestoreRepository
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -33,11 +34,15 @@ class AuthRepositoryImpl(
     private val context: Context,
     private val googleIdOption: GetGoogleIdOption,
     dispatcherProvider: DispatcherProvider,
+    private val firestoreRepository: FirestoreRepository,
 ) : AuthRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
 
     private val user = firebaseAuth.currentUser
+    override val currentUser: FirebaseUser? = user
+
+
     override suspend fun signIn(credentialResponse: GetCredentialResponse): Result<Unit> =
         safeApiCall(dispatcher = ioDispatcher) {
             when (val credential = credentialResponse.credential) {
@@ -46,6 +51,7 @@ class AuthRepositoryImpl(
                     val password = credential.password
                     val user = firebaseAuth.signInWithEmailAndPassword(email, password)
                         .await().user
+                    firestoreRepository.updateSignedDevice(user?.uid)
                     sendEmailVerificationIfNeeded(user)
                 }
 
@@ -58,6 +64,7 @@ class AuthRepositoryImpl(
                             GoogleAuthProvider.getCredential(idToken, null)
                         val user =
                             firebaseAuth.signInWithCredential(firebaseGoogleCredential).await().user
+                        firestoreRepository.updateSignedDevice(user?.uid)
                         sendEmailVerificationIfNeeded(user)
                     } else {
                         throw IllegalArgumentException("Unrecognized credential type")
@@ -90,7 +97,7 @@ class AuthRepositoryImpl(
         saveCredentials: Boolean
     ): SignUpResult = withContext(ioDispatcher) {
         try {
-            if (saveCredentials){
+            if (saveCredentials) {
                 val passwordRequest = CreatePasswordRequest(
                     id = email,
                     password = password
@@ -124,7 +131,7 @@ class AuthRepositoryImpl(
         saveCredentials: Boolean,
     ): SignInResult = withContext(ioDispatcher) {
         try {
-            if (saveCredentials){
+            if (saveCredentials) {
                 val passwordRequest = CreatePasswordRequest(
                     id = email,
                     password = password
@@ -138,6 +145,7 @@ class AuthRepositoryImpl(
             val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             result.user?.let { user ->
                 sendEmailVerificationIfNeeded(user)
+                firestoreRepository.updateSignedDevice(user.uid)
             }
             SignInResult.Success
         } catch (e: CreateCredentialCancellationException) {
@@ -153,6 +161,10 @@ class AuthRepositoryImpl(
             Timber.e(e)
             SignInResult.Failure(e.message)
         }
+    }
+
+    override suspend fun isPhoneNumberVerified(): Result<Boolean> = safeApiCall(ioDispatcher) {
+        user?.phoneNumber != null
     }
 
     override suspend fun isUserAuthenticated(): Result<Boolean> = safeApiCall(ioDispatcher) {

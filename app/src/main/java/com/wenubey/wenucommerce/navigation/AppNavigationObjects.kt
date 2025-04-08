@@ -15,6 +15,9 @@ data object ForgotPassword
 @Serializable
 data class VerifyEmail(val email: String)
 
+@Serializable
+data object Onboarding
+
 // Tab
 @Serializable
 data class Tab(val tabIndex: Int)
