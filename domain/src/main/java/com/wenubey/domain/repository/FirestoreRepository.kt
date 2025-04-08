@@ -1,7 +1,6 @@
 package com.wenubey.domain.repository
 
 import com.google.firebase.auth.FirebaseUser
-import com.wenubey.domain.model.Device
 import com.wenubey.domain.model.User
 import com.wenubey.domain.util.AuthProvider
 
