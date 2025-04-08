@@ -4,6 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.wenubey.wenucommerce.onboard.OnboardingScreen
 import com.wenubey.wenucommerce.verify_email.VerifyEmailScreen
 import com.wenubey.wenucommerce.sign_in.SignInScreen
 import com.wenubey.wenucommerce.sign_up.SignUpScreen
@@ -21,8 +22,8 @@ fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
     }
     composable<SignUp> {
         SignUpScreen(
-            navigateToTab = {
-                navController.navigate(Tab(0))
+            navigateToOnboarding = {
+                navController.navigate(Onboarding)
             },
             navigateToSignIn = {
                 navController.navigate(SignIn)
@@ -36,6 +37,14 @@ fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
             navigateToTab = {
                 navController.navigate(Tab(0))
             },
+        )
+    }
+
+    composable<Onboarding> { navBackStackEntry ->
+        OnboardingScreen(
+            onNavigateToTabScreen = {
+                navController.navigate(Tab(0))
+            }
         )
     }
 }

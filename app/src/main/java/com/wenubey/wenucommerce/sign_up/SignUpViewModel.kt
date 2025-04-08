@@ -3,6 +3,7 @@ package com.wenubey.wenucommerce.sign_up
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wenubey.domain.auth.SignUpResult
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
@@ -54,6 +55,11 @@ class SignUpViewModel(
             .onSuccess { credentialResponse ->
                 if (credentialResponse != null) {
                     authRepository.signIn(credentialResponse)
+                }
+                viewModelScope.launch(mainDispatcher) {
+                    _signUpState.update {
+                        it.copy(isUserSignedIn = true)
+                    }
                 }
             }.onFailure { error ->
                 viewModelScope.launch(mainDispatcher) {
