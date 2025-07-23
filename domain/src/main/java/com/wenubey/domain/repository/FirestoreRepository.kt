@@ -14,4 +14,6 @@ interface FirestoreRepository {
     suspend fun updateSignedDevice(userUid: String?): Result<Unit>
 
     suspend fun onboardingComplete(user: User): Result<Unit>
+
+    fun updateFcmToken(token: String): Result<Unit>
 }
