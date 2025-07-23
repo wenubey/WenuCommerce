@@ -6,4 +6,7 @@ val appModules = listOf(
     viewModelModule,
     dispatcherModule,
     googleIdOptionModule,
+    preferencesModule,
+    deviceInfoModule,
+    ktorModule
 )

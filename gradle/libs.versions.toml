@@ -66,6 +66,9 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCo
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx"}
+firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx"}
+firebase-functions-ktx = { module = "com.google.firebase:firebase-functions-ktx" }
 
 # ktor
 ktor-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
