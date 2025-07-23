@@ -54,6 +54,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage.ktx)
+    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.functions.ktx)
 
     //Play Services Auth
     implementation (libs.play.services.auth)
@@ -102,5 +105,11 @@ dependencies {
     //Play Services Auth
     implementation (libs.play.services.auth)
     implementation(libs.identity.googleid)
+
+    // Koin
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
 
 }

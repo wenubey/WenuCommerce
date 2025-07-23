@@ -55,6 +55,11 @@ class SignUpViewModel(
                 if (credentialResponse != null) {
                     authRepository.signIn(credentialResponse)
                 }
+                viewModelScope.launch(mainDispatcher) {
+                    _signUpState.update {
+                        it.copy(isUserSignedIn = true)
+                    }
+                }
             }.onFailure { error ->
                 viewModelScope.launch(mainDispatcher) {
                     _signUpState.update {

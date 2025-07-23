@@ -24,6 +24,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,12 +45,18 @@ import org.koin.androidx.compose.koinViewModel
 fun SignUpScreen(
     modifier: Modifier = Modifier,
     viewModel: SignUpViewModel = koinViewModel(),
-    navigateToTab: () -> Unit,
+    navigateToOnboarding: () -> Unit,
     navigateToSignIn: () -> Unit,
 ) {
     val signUpState by viewModel.signUpState.collectAsStateWithLifecycle()
 
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(key1 = signUpState.isUserSignedIn) {
+        if (signUpState.isUserSignedIn) {
+            navigateToOnboarding()
+        }
+    }
 
     Scaffold(modifier = modifier.fillMaxSize()) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
@@ -96,8 +103,6 @@ fun SignUpScreen(
                     onClick = {
                         keyboardController?.hide()
                         viewModel.onAction(SignUpAction.OnSignUpEmailPassword)
-                        navigateToTab()
-
                     },
                     shape = ButtonDefaults.filledTonalShape,
                     enabled = signUpState.isEmailValid
@@ -115,7 +120,6 @@ fun SignUpScreen(
                         ),
                     onClick = {
                         viewModel.onAction(SignUpAction.OnSignUpClicked)
-                        navigateToTab()
                     },
                     shape = ButtonDefaults.filledTonalShape,
                 ) {
