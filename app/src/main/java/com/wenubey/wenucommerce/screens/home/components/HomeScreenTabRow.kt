@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreenTabRow(
     pagerState: PagerState,
-    currentTabIndex: Int
+    currentTabIndex: Int,
 ) {
 
     val scope = rememberCoroutineScope()
