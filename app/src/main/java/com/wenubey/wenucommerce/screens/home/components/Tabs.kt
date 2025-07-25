@@ -16,17 +16,17 @@ enum class Tabs(
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
 ) {
-    Character(
+    Home(
         text = R.string.home,
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
     ),
-    Location(
+    Cart(
         text = R.string.cart,
         selectedIcon = Icons.Filled.ShoppingCart,
         unselectedIcon = Icons.Outlined.ShoppingCart,
     ),
-    Settings(
+    Profile(
         text = R.string.profile,
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.Person
