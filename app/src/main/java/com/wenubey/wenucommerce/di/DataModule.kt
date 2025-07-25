@@ -28,6 +28,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.security.SecureRandom
@@ -68,7 +69,7 @@ val googleIdOptionModule = module {
 }
 
 val deviceInfoModule = module {
-    single { DeviceIdProvider(get()) }
+    single { DeviceIdProvider(get(named("deviceId"))) }
     single { DeviceInfoProvider(get(), get(), get()) }
 }
 
