@@ -1,12 +1,12 @@
 package com.wenubey.domain.model
 
 data class Device(
-    val deviceId: String,
-    val deviceName: String,
-    val osVersion: String,
-    val timeStamp: String,
-    val location: String,
-    val fcmToken: String,
+    val deviceId: String = "",
+    val deviceName: String = "",
+    val osVersion: String = "",
+    val timeStamp: String = "",
+    val location: String = "",
+    val fcmToken: String = "",
 )
 
 fun Device.toMap(): Map<String, Any> = mapOf(
