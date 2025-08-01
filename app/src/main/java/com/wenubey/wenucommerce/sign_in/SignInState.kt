@@ -1,5 +1,7 @@
 package com.wenubey.wenucommerce.sign_in
 
+import com.wenubey.domain.model.user.UserRole
+
 data class SignInState(
     val email: String = "",
     val isEmailValid: Boolean = false,
@@ -9,4 +11,5 @@ data class SignInState(
     val errorMessage: String? = "",
     val isUserSignedIn: Boolean = false,
     val saveCredentials: Boolean = false,
+    val userRole: UserRole = UserRole.CUSTOMER,
 )

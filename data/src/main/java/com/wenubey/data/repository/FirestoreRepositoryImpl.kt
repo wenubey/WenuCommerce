@@ -7,13 +7,17 @@ import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
+import com.wenubey.data.util.AdminUtils
 import com.wenubey.data.util.DeviceInfoProvider
 import com.wenubey.data.util.safeApiCall
-import com.wenubey.domain.model.User
 import com.wenubey.domain.model.toMap
+import com.wenubey.domain.model.user.User
+import com.wenubey.domain.model.user.UserRole
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.util.AuthProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -24,7 +28,8 @@ class FirestoreRepositoryImpl(
     private val auth: FirebaseAuth,
     dispatcherProvider: DispatcherProvider,
     private val deviceInfoProvider: DeviceInfoProvider,
-    private val firebaseFunctions: FirebaseFunctions
+    private val firebaseFunctions: FirebaseFunctions,
+    //private val authRepository: AuthRepository,
 ) : FirestoreRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
@@ -55,21 +60,30 @@ class FirestoreRepositoryImpl(
             val userRef = firestore.collection(USER_COLLECTION).document(uuid)
             val photoDownloadUri = updateProfilePhoto(user.profilePhotoUri, user.uuid)
             Timber.d("Photo Download Uri: $photoDownloadUri")
-            val updatedUser = user.copy(profilePhotoUri = photoDownloadUri)
+            val userRole = if (AdminUtils.isAdminUser(user.email)) {
+                UserRole.ADMIN
+            } else {
+                user.role
+            }
+            val updatedUser = user.copy(profilePhotoUri = photoDownloadUri, role = userRole)
             Timber.d("Updated User: ${updatedUser.name}")
+
             userRef.set(updatedUser)
                 .addOnSuccessListener {
                     Timber.d("User added successfully to Firestore")
+                    // Notify AuthRepository that onboarding is complete
+                    CoroutineScope(ioDispatcher).launch {
+                        //authRepository.setCurrentUserAfterOnboarding(updatedUser)
+                    }
                 }.addOnFailureListener {
                     Timber.e(it, "Failed to add user to Firestore")
-                }
-        } ?: Result.failure<Unit>(Exception("User not found"))
-
+                }.await()
+        } ?: throw Exception("User UUID is null")
     }
 
     override fun updateFcmToken(token: String): Result<Unit> {
         val user = auth.currentUser
-         user?.uid?.let { uid ->
+        user?.uid?.let { uid ->
             firestore.collection(USER_COLLECTION).document(uid).update(
                 mapOf(
                     "fcmToken" to token
@@ -83,11 +97,20 @@ class FirestoreRepositoryImpl(
         return Result.success(Unit)
     }
 
+    override suspend fun getUser(uid: String): Result<User> = safeApiCall(ioDispatcher) {
+        val userDoc = firestore.collection(USER_COLLECTION).document(uid).get().await()
+        if (userDoc.exists()) {
+            userDoc.toObject(User::class.java) ?: throw Exception("Failed to parse user data")
+        } else {
+            throw Exception("User document not found")
+        }
+    }
+
     // TODO handle file not found exception
-    private suspend fun updateProfilePhoto(profilePhotoUri: Uri, userUid: String?): Uri =
+    private suspend fun updateProfilePhoto(profilePhotoUri: String, userUid: String?): String =
         withContext(ioDispatcher) {
             val photoUpdate = userProfileChangeRequest {
-                photoUri = profilePhotoUri
+                photoUri = Uri.parse(profilePhotoUri)
             }
 
             auth.currentUser?.updateProfile(photoUpdate)
@@ -99,7 +122,7 @@ class FirestoreRepositoryImpl(
 
             val imageFileName = userUid + IMAGE_FILE_SUFFIX
             val imageRef = storageRef.child("$PROFILE_IMAGES_FOLDER/$imageFileName")
-            val uploadTask = imageRef.putFile(profilePhotoUri)
+            val uploadTask = imageRef.putFile(Uri.parse(profilePhotoUri))
 
             uploadTask.addOnSuccessListener {
                 Timber.d("Image uploaded successfully")
@@ -107,7 +130,7 @@ class FirestoreRepositoryImpl(
                 Timber.e(it, "Image upload failed")
             }.await()
 
-            val downloadUrl = imageRef.downloadUrl.await()
+            val downloadUrl = imageRef.downloadUrl.await().toString()
 
             downloadUrl
         }
