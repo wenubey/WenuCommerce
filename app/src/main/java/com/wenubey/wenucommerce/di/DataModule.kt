@@ -48,6 +48,7 @@ val repositoryModule = module {
     singleOf(::AuthRepositoryImpl).bind<AuthRepository>()
     singleOf(::ProfileRepositoryImpl).bind<ProfileRepository>()
     singleOf(::LocationServiceImpl).bind<LocationService>()
+
 }
 
 val dispatcherModule = module {

@@ -9,9 +9,6 @@ fun RootNavigationGraph(navController: NavHostController, startDestination: Any)
     NavHost(navController = navController, startDestination = startDestination) {
         authNavRoutes(navController)
         tabNavRoutes(navController)
-        homeNavRoutes(navController)
-        cartNavRoutes(navController)
-        profileNavRoutes(navController)
     }
 }
 

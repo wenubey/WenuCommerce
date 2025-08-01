@@ -4,6 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.wenubey.domain.model.user.UserRole
 import com.wenubey.wenucommerce.onboard.OnboardingScreen
 import com.wenubey.wenucommerce.verify_email.VerifyEmailScreen
 import com.wenubey.wenucommerce.sign_in.SignInScreen
@@ -12,8 +13,12 @@ import com.wenubey.wenucommerce.sign_up.SignUpScreen
 fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
     composable<SignIn> {
         SignInScreen(
-            navigateToTab = {
-                navController.navigate(Tab(tabIndex = 0))
+            navigateToTab = { userRole ->
+                when (userRole) {
+                    UserRole.ADMIN -> navController.navigate(AdminTab(tabIndex = 0))
+                    UserRole.CUSTOMER -> navController.navigate(CustomerTab(tabIndex = 0))
+                    UserRole.SELLER -> navController.navigate(SellerTab(tabIndex = 0))
+                }
             },
             navigateToVerifyEmail = { email ->
                 navController.navigate(VerifyEmail(email))
@@ -35,15 +40,19 @@ fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
         VerifyEmailScreen(
             emailArg = email,
             navigateToTab = {
-                navController.navigate(Tab(0))
+                //navController.navigate(Tab(0))
             },
         )
     }
 
     composable<Onboarding> { navBackStackEntry ->
         OnboardingScreen(
-            onNavigateToTabScreen = {
-                navController.navigate(Tab(0))
+            onNavigateToTabScreen = { userRole ->
+                when (userRole) {
+                    UserRole.ADMIN -> navController.navigate(AdminTab(tabIndex = 0))
+                    UserRole.CUSTOMER -> navController.navigate(CustomerTab(tabIndex = 0))
+                    UserRole.SELLER -> navController.navigate(SellerTab(tabIndex = 0))
+                }
             }
         )
     }

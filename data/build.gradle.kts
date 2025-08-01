@@ -22,6 +22,7 @@ android {
         val properties = Properties()
         properties.load(project.rootProject.file("local.properties").inputStream())
         buildConfigField("String", "GOOGLE_ID_WEB_CLIENT", "\"${properties.getProperty("GOOGLE_ID_WEB_CLIENT")}\"")
+        buildConfigField("String", "ADMIN_EMAIL", "\"${properties.getProperty("ADMIN_EMAIL")}\"")
     }
 
     buildTypes {

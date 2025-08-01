@@ -4,6 +4,7 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wenubey.domain.auth.SignInResult
+import com.wenubey.domain.model.user.UserRole
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,10 +96,12 @@ class SignInViewModel(
             authRepository.signInWithEmailPassword(email, password, saveCredentials)) {
             is SignInResult.Success -> {
                 val isVerified = authRepository.isEmailVerified().getOrNull()
+                val userRole = authRepository.currentUser.value?.role ?: UserRole.CUSTOMER
                 _signInState.update { currentState ->
                     currentState.copy(
                         isEmailVerified = isVerified ?: false,
-                        isUserSignedIn = true
+                        isUserSignedIn = true,
+                        userRole = userRole
                     )
                 }
 
