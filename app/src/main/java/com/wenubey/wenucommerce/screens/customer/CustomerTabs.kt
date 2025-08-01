@@ -1,4 +1,4 @@
-package com.wenubey.wenucommerce.screens.home.components
+package com.wenubey.wenucommerce.screens.customer
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
@@ -11,7 +11,7 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.wenubey.wenucommerce.R
 
-enum class Tabs(
+enum class CustomerTabs(
     @StringRes val text: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,

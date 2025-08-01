@@ -23,7 +23,7 @@ class TabViewModel(
     }
 
     private val ioDispatcher = dispatcherProvider.io()
-
+    // TODO Move to Customer, Seller viewModels and test is it working
     private val _notificationBarState = MutableStateFlow(NotificationBarState())
     val notificationBarState: StateFlow<NotificationBarState> = _notificationBarState.asStateFlow()
 

@@ -12,6 +12,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +22,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
@@ -45,19 +50,28 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.rememberAsyncImagePainter
+import com.wenubey.domain.model.user.UserRole
 import com.wenubey.wenucommerce.onboard.components.DatePickerTextField
+import com.wenubey.wenucommerce.onboard.components.DocumentType
 import com.wenubey.wenucommerce.onboard.components.GenderDropdownMenu
 import com.wenubey.wenucommerce.onboard.components.OnboardingDatePicker
 import com.wenubey.wenucommerce.onboard.components.PhoneNumberTextField
+import com.wenubey.wenucommerce.onboard.components.RoleDropdownMenu
+import com.wenubey.wenucommerce.onboard.components.SellerFieldsSection
+import com.wenubey.wenucommerce.onboard.util.toDomainModel
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
 
+//TODO Refactor whole screen and extract components
 @Composable
-fun OnboardingScreen(onNavigateToTabScreen: () -> Unit) {
+fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
     val viewModel: OnboardingViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+
     var showDatePicker by remember { mutableStateOf(false) }
+    var currentDocumentType by remember { mutableStateOf<DocumentType?>(null) }
 
     val painter = rememberAsyncImagePainter(
         model = state.photoUrl,
@@ -69,14 +83,54 @@ fun OnboardingScreen(onNavigateToTabScreen: () -> Unit) {
         }
     )
 
+    // Document picker launcher
+    val documentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            uri?.let { documentUri ->
+                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(documentUri, flag)
+
+                when (currentDocumentType) {
+                    DocumentType.TAX_DOCUMENT -> {
+                        viewModel.onAction(OnboardingAction.OnTaxDocumentUpload(documentUri.toString()))
+                    }
+                    DocumentType.BUSINESS_LICENSE_DOCUMENT -> {
+                        viewModel.onAction(OnboardingAction.OnBusinessLicenseDocumentUpload(documentUri.toString()))
+                    }
+                    DocumentType.IDENTITY_DOCUMENT -> {
+                        viewModel.onAction(OnboardingAction.OnIdentityDocumentUpload(documentUri.toString()))
+                    }
+                    null -> {}
+                }
+                currentDocumentType = null
+            }
+        }
+    )
+
+    // Permission launcher for documents
+    val documentPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            val isGranted = permissions.values.all { it }
+            if (isGranted) {
+                documentLauncher.launch(arrayOf("application/pdf", "image/*"))
+            } else {
+                Timber.d("Document permissions NOT GRANTED: $permissions")
+            }
+        }
+    )
+
     Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)
         ) {
+            // Profile Image Section
             Box {
                 Image(
                     painter = painter,
@@ -84,36 +138,41 @@ fun OnboardingScreen(onNavigateToTabScreen: () -> Unit) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .clip(CircleShape)
-                        .size(100.dp)
+                        .size(120.dp)
                 )
                 ImagePicker(
                     modifier = Modifier.align(Alignment.BottomEnd),
                     onImageSelected = {
-                        viewModel.onAction(OnboardingAction.OnPhotoUrlChange(it))
+                        viewModel.onAction(OnboardingAction.OnPhotoUrlChange(it.toString()))
                     },
                 )
             }
+
+            // Basic Information Section
+            Text(
+                text = "Personal Information",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(top = 16.dp)
+            )
 
             OutlinedTextField(
                 value = state.name,
                 onValueChange = {
                     viewModel.onAction(OnboardingAction.OnNameChange(it))
                 },
-                label = {
-                    Text("Name")
-                },
+                label = { Text("Name *") },
                 isError = state.nameError
             )
+
             OutlinedTextField(
                 value = state.surname,
                 onValueChange = {
                     viewModel.onAction(OnboardingAction.OnSurnameChange(it))
                 },
-                label = {
-                    Text("Surname")
-                },
+                label = { Text("Surname *") },
                 isError = state.surnameError,
             )
+
             PhoneNumberTextField(
                 phoneNumber = state.phoneNumber,
                 onPhoneNumberChange = {
@@ -121,6 +180,7 @@ fun OnboardingScreen(onNavigateToTabScreen: () -> Unit) {
                 },
                 isError = state.phoneNumberError,
             )
+
             Column(horizontalAlignment = Alignment.Start) {
                 Text("Date Of Birth", style = MaterialTheme.typography.labelSmall)
                 DatePickerTextField(
@@ -137,31 +197,62 @@ fun OnboardingScreen(onNavigateToTabScreen: () -> Unit) {
                 onValueChange = {
                     viewModel.onAction(OnboardingAction.OnAddressChange(it))
                 },
-                label = {
-                    Text("Address")
-                },
+                label = { Text("Address") },
             )
 
             Column(horizontalAlignment = Alignment.Start) {
                 Text("Gender", style = MaterialTheme.typography.labelSmall)
                 GenderDropdownMenu(
                     onGenderSelected = {
-                        viewModel.onAction(
-                            OnboardingAction.OnGenderSelected(it)
-                        )
+                        viewModel.onAction(OnboardingAction.OnGenderSelected(it))
                     },
                 )
             }
 
+            // Role Selection
+            Column(horizontalAlignment = Alignment.Start) {
+                Text("Account Type", style = MaterialTheme.typography.labelSmall)
+                RoleDropdownMenu(
+                    onRoleSelected = {
+                        viewModel.onAction(OnboardingAction.OnRoleSelected(it))
+                    },
+                )
+            }
+
+            // Seller-specific fields (shown conditionally)
+            AnimatedVisibility(
+                visible = state.role.name == "Seller",
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                SellerFieldsSection(
+                    state = state,
+                    onAction = viewModel::onAction,
+                    onDocumentPicker = { documentType ->
+                        currentDocumentType = documentType
+                        checkAndRequestPermissions(
+                            launcher = documentPermissionLauncher,
+                            context = context,
+                            permissionGranted = {
+                                documentLauncher.launch(arrayOf("application/pdf", "image/*"))
+                            }
+                        )
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+
+            // Submit Button
             Button(
                 onClick = {
                     viewModel.onAction(OnboardingAction.OnOnboardingComplete)
-                    onNavigateToTabScreen()
+                    onNavigateToTabScreen(state.role.toDomainModel())
                 },
                 content = {
-                    Text("Next")
+                    Text("Complete Registration")
                 },
                 enabled = state.isNextButtonEnabled,
+                modifier = Modifier.padding(vertical = 16.dp)
             )
 
             if (showDatePicker) {
@@ -173,7 +264,6 @@ fun OnboardingScreen(onNavigateToTabScreen: () -> Unit) {
                 )
             }
         }
-
     }
 }
 
@@ -214,9 +304,7 @@ fun ImagePicker(modifier: Modifier = Modifier, onImageSelected: (Uri) -> Unit) {
                 launcher = launcherPermission,
                 context = context,
                 permissionGranted = {
-                    launcherImage.launch(
-                        arrayOf("image/*")
-                    )
+                    launcherImage.launch(arrayOf("image/*"))
                 },
             )
         },
