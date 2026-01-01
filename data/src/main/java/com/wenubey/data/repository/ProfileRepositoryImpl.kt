@@ -129,7 +129,8 @@ class ProfileRepositoryImpl(
         Timber.d("Profile Repo User Business Info: ${user.businessInfo}")
         Timber.d("Profile Repo Firebase User: $firebaseUser")
 
-        firestoreRepository.onboardingComplete(user)
+        val result = firestoreRepository.onboardingComplete(user)
+        result.getOrThrow() // Propagate any errors
     }
 
     /**
