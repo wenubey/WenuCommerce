@@ -58,26 +58,33 @@ class FirestoreRepositoryImpl(
     override suspend fun onboardingComplete(user: User): Result<Unit> = safeApiCall(ioDispatcher) {
         user.uuid?.let { uuid ->
             val userRef = firestore.collection(USER_COLLECTION).document(uuid)
-            val photoDownloadUri = updateProfilePhoto(user.profilePhotoUri, user.uuid)
-            Timber.d("Photo Download Uri: $photoDownloadUri")
+
+            // Upload photo with error handling - don't let photo upload failure block user save
+            val photoDownloadUri = try {
+                updateProfilePhoto(user.profilePhotoUri, user.uuid)
+            } catch (e: Exception) {
+                Timber.e(e, "Photo upload failed, continuing with empty photo URI")
+                "" // Continue even if photo upload fails
+            }
+
             val userRole = if (AdminUtils.isAdminUser(user.email)) {
                 UserRole.ADMIN
             } else {
                 user.role
             }
             val updatedUser = user.copy(profilePhotoUri = photoDownloadUri, role = userRole)
-            Timber.d("Updated User: ${updatedUser.name}")
 
-            userRef.set(updatedUser)
-                .addOnSuccessListener {
-                    Timber.d("User added successfully to Firestore")
-                    // Notify AuthRepository that onboarding is complete
-                    CoroutineScope(ioDispatcher).launch {
-                        //authRepository.setCurrentUserAfterOnboarding(updatedUser)
-                    }
-                }.addOnFailureListener {
-                    Timber.e(it, "Failed to add user to Firestore")
-                }.await()
+            try {
+                userRef.set(updatedUser).await()
+                Timber.d("User saved successfully to Firestore")
+                // Notify AuthRepository that onboarding is complete
+                CoroutineScope(ioDispatcher).launch {
+                    //authRepository.setCurrentUserAfterOnboarding(updatedUser)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to save user to Firestore")
+                throw e // Re-throw to ensure error is propagated
+            }
         } ?: throw Exception("User UUID is null")
     }
 
