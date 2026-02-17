@@ -1,16 +1,8 @@
 package com.wenubey.wenucommerce.onboard
 
-import android.Manifest.permission.READ_EXTERNAL_STORAGE
-import android.Manifest.permission.READ_MEDIA_IMAGES
-import android.Manifest.permission.READ_MEDIA_VIDEO
-import android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -20,8 +12,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -33,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,7 +43,6 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.rememberAsyncImagePainter
 import com.wenubey.domain.model.user.UserRole
@@ -115,19 +109,6 @@ fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
         }
     )
 
-    // Permission launcher for documents
-    val documentPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            val isGranted = permissions.values.all { it }
-            if (isGranted) {
-                documentLauncher.launch(arrayOf("application/pdf", "image/*"))
-            } else {
-                Timber.d("Document permissions NOT GRANTED: $permissions")
-            }
-        }
-    )
-
     Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
         Column(
             modifier = Modifier
@@ -188,7 +169,10 @@ fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
                 isError = state.phoneNumberError,
             )
 
-            Column(horizontalAlignment = Alignment.Start) {
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier.widthIn(max = OutlinedTextFieldDefaults.MinWidth)
+            ) {
                 Text("Date Of Birth", style = MaterialTheme.typography.labelSmall)
                 DatePickerTextField(
                     modifier = Modifier.padding(top = 4.dp),
@@ -197,6 +181,14 @@ fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
                         showDatePicker = true
                     },
                 )
+                if (state.dateOfBirthError) {
+                    Text(
+                        text = "You must be at least 18 years old to register as a seller",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                    )
+                }
             }
 
             OutlinedTextField(
@@ -217,14 +209,11 @@ fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
             }
 
             // Role Selection
-            Column(horizontalAlignment = Alignment.Start) {
-                Text("Account Type", style = MaterialTheme.typography.labelSmall)
-                RoleDropdownMenu(
-                    onRoleSelected = {
-                        viewModel.onAction(OnboardingAction.OnRoleSelected(it))
-                    },
-                )
-            }
+            RoleDropdownMenu(
+                onRoleSelected = {
+                    viewModel.onAction(OnboardingAction.OnRoleSelected(it))
+                },
+            )
 
             // Seller-specific fields (shown conditionally)
             AnimatedVisibility(
@@ -237,13 +226,7 @@ fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
                     onAction = viewModel::onAction,
                     onDocumentPicker = { documentType ->
                         currentDocumentType = documentType
-                        checkAndRequestPermissions(
-                            launcher = documentPermissionLauncher,
-                            context = context,
-                            permissionGranted = {
-                                documentLauncher.launch(arrayOf("application/pdf", "image/*"))
-                            }
-                        )
+                        documentLauncher.launch(arrayOf("application/pdf", "image/*"))
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -290,64 +273,15 @@ fun ImagePicker(modifier: Modifier = Modifier, onImageSelected: (Uri) -> Unit) {
         }
     )
 
-    val launcherPermission = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            val isGranted = permissions.values.all { it }
-            if (isGranted) {
-                launcherImage.launch(arrayOf("image/*"))
-            } else {
-                Timber.d("NOT GRANTED: $permissions")
-                // Handle denied permission (e.g., show a message)
-            }
-        }
-    )
-
     IconButton(
         modifier = modifier,
         onClick = {
-            checkAndRequestPermissions(
-                launcher = launcherPermission,
-                context = context,
-                permissionGranted = {
-                    launcherImage.launch(arrayOf("image/*"))
-                },
-            )
+            launcherImage.launch(arrayOf("image/*"))
         },
     ) {
         Icon(
             imageVector = Icons.Default.Add,
             contentDescription = "You can upload a new profile photo"
         )
-    }
-}
-
-fun checkAndRequestPermissions(
-    launcher: ActivityResultLauncher<Array<String>>,
-    context: Context,
-    permissionGranted: () -> Unit
-) {
-    val permissions = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-            arrayOf(READ_MEDIA_VISUAL_USER_SELECTED)
-        }
-
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-            arrayOf(READ_MEDIA_IMAGES, READ_MEDIA_VIDEO)
-        }
-
-        else -> {
-            arrayOf(READ_EXTERNAL_STORAGE)
-        }
-    }
-
-    val allGranted = permissions.all {
-        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-    }
-
-    if (allGranted) {
-        permissionGranted()
-    } else {
-        launcher.launch(permissions)
     }
 }

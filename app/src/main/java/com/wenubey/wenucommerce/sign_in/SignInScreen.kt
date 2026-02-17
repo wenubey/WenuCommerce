@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -15,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
@@ -26,6 +29,7 @@ fun SignInScreen(
     viewModel: SignInViewModel = koinViewModel(),
     navigateToTab: (user: User?) -> Unit,
     navigateToVerifyEmail: (String) -> Unit,
+    navigateToSignUp: () -> Unit,
 ) {
     val signInState by viewModel.signInState.collectAsStateWithLifecycle()
 
@@ -45,12 +49,28 @@ fun SignInScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TextField(value = signInState.email, onValueChange = {
-                viewModel.onAction(SignInAction.OnEmailChange(it))
-            })
-            TextField(value = signInState.password, onValueChange = {
-                viewModel.onAction(SignInAction.OnPasswordChange(it))
-            })
+            TextField(
+                value = signInState.email,
+                onValueChange = {
+                    viewModel.onAction(SignInAction.OnEmailChange(it))
+                },
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            )
+            TextField(
+                value = signInState.password,
+                onValueChange = {
+                    viewModel.onAction(SignInAction.OnPasswordChange(it))
+                },
+                label = { Text("Password") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            )
 
             Row {
                 Text("Save credentials for future logins")
@@ -79,6 +99,10 @@ fun SignInScreen(
                 }
             ) {
                 Text("Sign in with saved credentials.")
+            }
+
+            TextButton(onClick = navigateToSignUp) {
+                Text("Don't have an account? Sign Up")
             }
         }
     }

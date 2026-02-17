@@ -8,8 +8,10 @@ import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.wenucommerce.navigation.AdminTab
 import com.wenubey.wenucommerce.navigation.CustomerTab
+import com.wenubey.wenucommerce.navigation.Onboarding
 import com.wenubey.wenucommerce.navigation.SellerTab
 import com.wenubey.wenucommerce.navigation.SignUp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -32,6 +34,7 @@ class AuthViewModel(
 
     init {
         observeUserChanges()
+        startInitializationTimeout()
     }
 
     private fun observeUserChanges() {
@@ -59,6 +62,17 @@ class AuthViewModel(
         }
     }
 
+    private fun startInitializationTimeout() {
+        viewModelScope.launch {
+            delay(INIT_TIMEOUT_MS)
+            if (!_isInitialized.value) {
+                Timber.w("Initialization timeout - user authenticated but no profile found")
+                _startDestination.update { Onboarding }
+                _isInitialized.value = true
+            }
+        }
+    }
+
     private fun updateStartDestination(userRole: UserRole) {
         viewModelScope.launch(dispatcherProvider.main()) {
             _startDestination.update {
@@ -71,5 +85,7 @@ class AuthViewModel(
         }
     }
 
-
+    companion object {
+        private const val INIT_TIMEOUT_MS = 3000L
+    }
 }

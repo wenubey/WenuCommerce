@@ -23,6 +23,7 @@ sealed interface OnboardingAction {
     data class OnBusinessAddressChange(val businessAddress: String): OnboardingAction
     data class OnBusinessPhoneChange(val businessPhone: String): OnboardingAction
     data class OnBusinessEmailChange(val businessEmail: String): OnboardingAction
+    data class OnUseRegistrationEmailToggle(val checked: Boolean): OnboardingAction
     data class OnBankAccountNumberChange(val bankAccountNumber: String): OnboardingAction
     data class OnRoutingNumberChange(val routingNumber: String): OnboardingAction
     data class OnBusinessTypeChange(val businessType: BusinessType): OnboardingAction

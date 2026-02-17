@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProfileRepository
 import com.wenubey.domain.model.onboard.BusinessType
@@ -24,13 +25,16 @@ import kotlinx.coroutines.withContext
 
 class OnboardingViewModel(
     private val profileRepository: ProfileRepository,
+    private val authRepository: AuthRepository,
     dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
 
     private val ioDispatcher = dispatcherProvider.io()
     private val mainDispatcher = dispatcherProvider.main()
 
-    private val _state = MutableStateFlow(OnboardingState())
+    private val registrationEmail = authRepository.currentFirebaseUser?.email ?: ""
+
+    private val _state = MutableStateFlow(OnboardingState(registrationEmail = registrationEmail))
     val state = _state.asStateFlow()
 
     fun onAction(action: OnboardingAction) {
@@ -52,6 +56,7 @@ class OnboardingViewModel(
             is OnboardingAction.OnBusinessAddressChange -> businessAddressChange(action.businessAddress)
             is OnboardingAction.OnBusinessPhoneChange -> businessPhoneChange(action.businessPhone)
             is OnboardingAction.OnBusinessEmailChange -> businessEmailChange(action.businessEmail)
+            is OnboardingAction.OnUseRegistrationEmailToggle -> useRegistrationEmailToggle(action.checked)
             is OnboardingAction.OnBankAccountNumberChange -> bankAccountNumberChange(action.bankAccountNumber)
             is OnboardingAction.OnRoutingNumberChange -> routingNumberChange(action.routingNumber)
             is OnboardingAction.OnBusinessTypeChange -> businessTypeChange(action.businessType)
@@ -72,7 +77,23 @@ class OnboardingViewModel(
     }
 
     private fun dateOfBirthSelect(millis: Long?) = viewModelScope.launch(mainDispatcher) {
-        _state.update { it.copy(dateOfBirth = millis?.convertMillisToDate()) }
+        _state.update {
+            it.copy(
+                dateOfBirth = millis?.convertMillisToDate(),
+                dateOfBirthMillis = millis,
+                dateOfBirthError = it.role.name == "Seller" && millis != null && !isAtLeast18(millis)
+            )
+        }
+    }
+
+    private fun isAtLeast18(dobMillis: Long): Boolean {
+        val now = java.util.Calendar.getInstance()
+        val dob = java.util.Calendar.getInstance().apply { timeInMillis = dobMillis }
+        var age = now.get(java.util.Calendar.YEAR) - dob.get(java.util.Calendar.YEAR)
+        if (now.get(java.util.Calendar.DAY_OF_YEAR) < dob.get(java.util.Calendar.DAY_OF_YEAR)) {
+            age--
+        }
+        return age >= 18
     }
 
     private fun genderSelect(gender: GenderUiModel) = viewModelScope.launch(mainDispatcher) {
@@ -80,7 +101,12 @@ class OnboardingViewModel(
     }
 
     private fun roleSelect(role: UserRoleUiModel) = viewModelScope.launch(mainDispatcher) {
-        _state.update { it.copy(role = role) }
+        _state.update {
+            it.copy(
+                role = role,
+                dateOfBirthError = role.name == "Seller" && it.dateOfBirthMillis != null && !isAtLeast18(it.dateOfBirthMillis)
+            )
+        }
     }
 
     private fun nameChange(name: String) = viewModelScope.launch(mainDispatcher) {
@@ -152,6 +178,16 @@ class OnboardingViewModel(
             it.copy(
                 businessPhone = businessPhone,
                 businessPhoneError = businessPhone.isBlank() || !isValidPhoneNumber(businessPhone)
+            )
+        }
+    }
+
+    private fun useRegistrationEmailToggle(checked: Boolean) = viewModelScope.launch(mainDispatcher) {
+        _state.update {
+            it.copy(
+                useRegistrationEmail = checked,
+                businessEmail = if (checked) registrationEmail else "",
+                businessEmailError = false
             )
         }
     }
@@ -264,6 +300,7 @@ class OnboardingViewModel(
         val sellerFormValid = if (!isSeller) {
             true // If not a seller, seller validation passes
         } else {
+            !currentState.dateOfBirthError &&
             currentState.businessName.isNotBlank() &&
                     currentState.taxId.isNotBlank() &&
                     currentState.businessAddress.isNotBlank() &&

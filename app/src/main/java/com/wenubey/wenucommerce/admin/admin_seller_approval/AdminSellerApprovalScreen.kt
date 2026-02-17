@@ -118,7 +118,7 @@ fun AdminApprovalScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         ApprovalStatItem(
-                            label = state.selectedFilter.name,
+                            label = state.selectedFilter.displayName(),
                             count = state.sellers.size,
                             color = when (state.selectedFilter) {
                                 VerificationStatus.PENDING -> Color(0xFFFF9800)
@@ -209,7 +209,7 @@ fun AdminApprovalScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "No ${state.selectedFilter.name.lowercase()} applications",
+                            text = "No ${state.selectedFilter.displayName().lowercase()} applications",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -277,5 +277,14 @@ private fun ApprovalStatItem(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+private fun VerificationStatus.displayName(): String = when (this) {
+    VerificationStatus.PENDING -> "Pending"
+    VerificationStatus.APPROVED -> "Approved"
+    VerificationStatus.REJECTED -> "Rejected"
+    VerificationStatus.REQUEST_MORE_INFO -> "Request More Info"
+    VerificationStatus.RESUBMITTED -> "Resubmitted"
+    VerificationStatus.CANCELLED -> "Cancelled"
 }
 

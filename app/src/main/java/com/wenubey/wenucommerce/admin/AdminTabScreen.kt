@@ -24,6 +24,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +52,11 @@ fun AdminTabScreen(
 
     val emailBannerState by emailBannerVm.emailVerificationBannerState.collectAsStateWithLifecycle()
     val badgeCounts by badgeVm.badgeState.collectAsStateWithLifecycle()
+
+    LifecycleResumeEffect(Unit) {
+        emailBannerVm.recheckEmailVerification()
+        onPauseOrDispose { }
+    }
 
     val pagerState = rememberPagerState(
         initialPage = tabIndex,

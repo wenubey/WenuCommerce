@@ -1,6 +1,7 @@
 package com.wenubey.wenucommerce.onboard.components
 
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,7 +45,9 @@ fun BusinessTypeDropdownMenu(
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
-            modifier = Modifier.menuAnchor(type = MenuAnchorType.PrimaryEditable, true),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(type = MenuAnchorType.PrimaryEditable, true),
         )
 
         ExposedDropdownMenu(
