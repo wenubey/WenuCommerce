@@ -5,10 +5,12 @@
     <string name="home">Home</string>
     <string name="cart">Cart</string>
     <string name="profile">Profile</string>
+
     <!--Admin Tabs Name-->
     <string name="admin_users">Users</string>
     <string name="admin_analytics">Analytics</string>
     <string name="admin_settings">Settings</string>
+    <string name="admin_seller_approvals">Approvals</string>
 
     <!--Seller Tabs Name-->
     <string name="dashboard">Dashboard</string>

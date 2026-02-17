@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
 import org.koin.androidx.compose.koinViewModel
 
@@ -23,7 +24,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SignInScreen(
     modifier: Modifier = Modifier,
     viewModel: SignInViewModel = koinViewModel(),
-    navigateToTab: (userRole: UserRole) -> Unit,
+    navigateToTab: (user: User?) -> Unit,
     navigateToVerifyEmail: (String) -> Unit,
 ) {
     val signInState by viewModel.signInState.collectAsStateWithLifecycle()
@@ -33,7 +34,7 @@ fun SignInScreen(
             navigateToVerifyEmail(signInState.email)
         }
         if (signInState.isUserSignedIn) {
-            navigateToTab(signInState.userRole)
+            navigateToTab(signInState.user)
         }
     }
     Scaffold(modifier = modifier.fillMaxSize()) { paddingValues ->

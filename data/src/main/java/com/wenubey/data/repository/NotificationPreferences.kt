@@ -13,7 +13,7 @@ class NotificationPreferences(
         private val KEY_EMAIL_VERIFICATION_HIDDEN = booleanPreferencesKey("email_verification_hidden")
     }
 
-    suspend fun isEmailVerificationPermanentlyHiddenSync(): Boolean {
+    suspend fun isEmailVerificationPermanentlyHidden(): Boolean {
         return dataStore.data.first()[KEY_EMAIL_VERIFICATION_HIDDEN] ?: false
     }
 

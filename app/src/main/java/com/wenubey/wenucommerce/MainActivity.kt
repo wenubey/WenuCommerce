@@ -26,8 +26,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        enableEdgeToEdge()
+        // TODO research this topBar issue and fix it
+        //enableEdgeToEdge()
         handleSplashScreen()
         setContent {
             KoinContext {
@@ -35,15 +35,18 @@ class MainActivity : ComponentActivity() {
                     navController = rememberNavController()
 
                     val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
+                    val isInitialized by viewModel.isInitialized.collectAsStateWithLifecycle()
 
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        RootNavigationGraph(
-                            navController = navController,
-                            startDestination = startDestination
-                        )
+                        if (isInitialized) {
+                            RootNavigationGraph(
+                                navController = navController,
+                                startDestination = startDestination
+                            )
+                        }
                     }
                 }
             }
@@ -51,11 +54,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSplashScreen() {
-        var keepSplashOnScreen = true
-        val delay = 1500L
-
-        installSplashScreen().setKeepOnScreenCondition { keepSplashOnScreen }
-        Handler(Looper.getMainLooper()).postDelayed({ keepSplashOnScreen = false }, delay)
+        installSplashScreen().setKeepOnScreenCondition {
+            !viewModel.isInitialized.value
+        }
     }
 }
 

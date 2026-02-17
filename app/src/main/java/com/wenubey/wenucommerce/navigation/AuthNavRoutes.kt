@@ -6,18 +6,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.wenubey.domain.model.user.UserRole
 import com.wenubey.wenucommerce.onboard.OnboardingScreen
-import com.wenubey.wenucommerce.verify_email.VerifyEmailScreen
 import com.wenubey.wenucommerce.sign_in.SignInScreen
 import com.wenubey.wenucommerce.sign_up.SignUpScreen
+import com.wenubey.wenucommerce.verify_email.VerifyEmailScreen
 
 fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
     composable<SignIn> {
         SignInScreen(
-            navigateToTab = { userRole ->
+            navigateToTab = { user ->
+                val userRole = user?.role
                 when (userRole) {
                     UserRole.ADMIN -> navController.navigate(AdminTab(tabIndex = 0))
                     UserRole.CUSTOMER -> navController.navigate(CustomerTab(tabIndex = 0))
                     UserRole.SELLER -> navController.navigate(SellerTab(tabIndex = 0))
+                    else -> navController.navigate(SignIn)
                 }
             },
             navigateToVerifyEmail = { email ->

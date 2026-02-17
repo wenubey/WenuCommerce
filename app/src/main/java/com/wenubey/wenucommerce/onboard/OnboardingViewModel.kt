@@ -7,6 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProfileRepository
 import com.wenubey.domain.model.onboard.BusinessType
+import com.wenubey.wenucommerce.core.validators.isValidBankAccount
+import com.wenubey.wenucommerce.core.validators.isValidEmail
+import com.wenubey.wenucommerce.core.validators.isValidPhoneNumber
+import com.wenubey.wenucommerce.core.validators.isValidRoutingNumber
+import com.wenubey.wenucommerce.core.validators.isValidTaxId
 import com.wenubey.wenucommerce.onboard.util.GenderUiModel
 import com.wenubey.wenucommerce.onboard.util.UserRoleUiModel
 import com.wenubey.wenucommerce.onboard.util.convertMillisToDate
@@ -15,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class OnboardingViewModel(
     private val profileRepository: ProfileRepository,
@@ -204,7 +210,7 @@ class OnboardingViewModel(
     }
 
     private fun onBoardingComplete() = viewModelScope.launch(ioDispatcher) {
-        profileRepository.onboarding(
+        val result = profileRepository.onboarding(
             name = _state.value.name,
             surname = _state.value.surname,
             phoneNumber = _state.value.phoneNumber,
@@ -228,6 +234,21 @@ class OnboardingViewModel(
             businessLicenseDocumentUri = _state.value.businessLicenseDocumentUri,
             identityDocumentUri = _state.value.identityDocumentUri
         )
+        withContext(mainDispatcher) {
+            result.fold(
+                onSuccess = { user ->
+                    _state.update {
+                        it.copy(completedUser = user)
+                    }
+                },
+                onFailure = { error ->
+                    _state.update {
+                        it.copy(errorMessage = error.message)
+                    }
+                }
+            )
+
+        }
     }
 
     private fun validateForm() {
@@ -265,29 +286,5 @@ class OnboardingViewModel(
             it.copy(isNextButtonEnabled = basicFormValid && sellerFormValid)
         }
     }
-    // TODO change more complicated validation methods and send repo to validate externally if possible.
-    // Validation helper functions
-    private fun isValidEmail(email: String): Boolean {
-        return Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    }
 
-    private fun isValidPhoneNumber(phone: String): Boolean {
-        return phone.length >= 10 && phone.all { it.isDigit() || it in arrayOf(' ', '-', '(', ')') }
-    }
-
-    private fun isValidTaxId(taxId: String): Boolean {
-        // Basic validation - should be 9 digits (EIN format: XX-XXXXXXX)
-        val cleanTaxId = taxId.replace("-", "")
-        return cleanTaxId.length == 9 && cleanTaxId.all { it.isDigit() }
-    }
-
-    private fun isValidBankAccount(accountNumber: String): Boolean {
-        // Basic validation - should be 8-17 digits
-        return accountNumber.length in 8..17 && accountNumber.all { it.isDigit() }
-    }
-
-    private fun isValidRoutingNumber(routingNumber: String): Boolean {
-        // US routing numbers are 9 digits
-        return routingNumber.length == 9 && routingNumber.all { it.isDigit() }
-    }
 }

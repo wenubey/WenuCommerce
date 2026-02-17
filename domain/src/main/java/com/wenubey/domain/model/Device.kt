@@ -1,5 +1,8 @@
 package com.wenubey.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Device(
     val deviceId: String = "",
     val deviceName: String = "",

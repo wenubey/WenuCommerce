@@ -9,7 +9,11 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.util.AdminUtils
 import com.wenubey.data.util.DeviceInfoProvider
+import com.wenubey.data.util.IMAGE_FILE_SUFFIX
+import com.wenubey.data.util.PROFILE_IMAGES_FOLDER
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.util.safeApiCall
+import com.wenubey.domain.model.onboard.VerificationStatus
 import com.wenubey.domain.model.toMap
 import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
@@ -17,6 +21,9 @@ import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.util.AuthProvider
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -107,7 +114,12 @@ class FirestoreRepositoryImpl(
     override suspend fun getUser(uid: String): Result<User> = safeApiCall(ioDispatcher) {
         val userDoc = firestore.collection(USER_COLLECTION).document(uid).get().await()
         if (userDoc.exists()) {
-            userDoc.toObject(User::class.java) ?: throw Exception("Failed to parse user data")
+            try {
+                userDoc.toObject(User::class.java) ?: throw Exception("Failed to parse user data")
+            } catch (e: RuntimeException) {
+                Timber.e(e, "Failed to deserialize user document: $uid")
+                throw Exception("Failed to parse user data: ${e.message}")
+            }
         } else {
             throw Exception("User document not found")
         }
@@ -142,10 +154,103 @@ class FirestoreRepositoryImpl(
             downloadUrl
         }
 
-    companion object {
-        private const val USER_COLLECTION = "USERS"
-        const val IMAGE_FILE_SUFFIX = "_profile_image.jpeg"
-        const val PROFILE_IMAGES_FOLDER = "profile_images"
+
+    override suspend fun updateSellerApprovalStatus(
+        sellerId: String,
+        status: VerificationStatus,
+        notes: String
+    ): Result<Unit> = safeApiCall(ioDispatcher) {
+        val currentTime = System.currentTimeMillis().toString()
+        val isVerified = status == VerificationStatus.APPROVED
+
+        // Read current status to preserve as previousStatus
+        val currentDoc = firestore.collection(USER_COLLECTION)
+            .document(sellerId)
+            .get()
+            .await()
+        val currentStatusName = currentDoc.getString("businessInfo.verificationStatus")
+
+        val updates = mutableMapOf<String, Any>(
+            "businessInfo.verificationStatus" to status.name,
+            "businessInfo.verificationNotes" to notes,
+            "businessInfo.verificationDate" to currentTime,
+            "businessInfo.isVerified" to isVerified,
+            "updatedAt" to currentTime
+        )
+        if (currentStatusName != null) {
+            updates["businessInfo.previousStatus"] = currentStatusName
+        }
+
+        firestore.collection(USER_COLLECTION)
+            .document(sellerId)
+            .update(updates)
+            .addOnSuccessListener {
+                Timber.d("Seller approval status updated successfully for seller: $sellerId")
+            }
+            .addOnFailureListener {
+                Timber.e(
+                    it,
+                    "Seller approval status update failed for seller: $sellerId with error: ${it.message}"
+                )
+            }
+            .await()
+    }
+
+    override fun observeSellersByStatus(status: VerificationStatus): Flow<List<User>> =
+        callbackFlow {
+            val query = firestore.collection(USER_COLLECTION)
+                .whereEqualTo("role", UserRole.SELLER.name)
+                .whereEqualTo("businessInfo.verificationStatus", status.name)
+
+            val listener = query.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Error observing sellers by status: $status")
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                Timber.d("isFromCache: ${snapshot?.metadata?.isFromCache}")
+
+                val sellers = snapshot?.documents?.mapNotNull { doc ->
+                    try {
+                        doc.toObject(User::class.java)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to deserialize seller document: ${doc.id}")
+                        null
+                    }
+                } ?: emptyList()
+
+                Timber.d("Sellers updated for status $status: ${sellers.size} sellers")
+                trySend(sellers)
+            }
+
+            awaitClose {
+                Timber.d("Removing seller listener for status: $status")
+                listener.remove()
+            }
+        }
+
+    override fun observePendingResubmittedSellerCount(): Flow<Int> = callbackFlow {
+        val query = firestore.collection(USER_COLLECTION)
+            .whereEqualTo("role", UserRole.SELLER.name)
+            .whereIn(
+                "businessInfo.verificationStatus",
+                listOf(VerificationStatus.PENDING.name, VerificationStatus.RESUBMITTED.name)
+            )
+
+        val listener = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Timber.e(error, "Error observing pending resubmitted sellers")
+                close(error)
+                return@addSnapshotListener
+            }
+
+            val count = snapshot?.documents?.size ?: -1
+            Timber.d("Pending Resubmitted seller count updated: $count")
+            trySend(count)
+        }
+
+        awaitClose { listener.remove() }
 
     }
 }

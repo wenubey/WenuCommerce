@@ -4,7 +4,9 @@ import com.wenubey.domain.model.Device
 import com.wenubey.domain.model.Gender
 import com.wenubey.domain.model.Purchase
 import com.wenubey.domain.model.onboard.BusinessInfo
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class User(
     val uuid: String? = null,
     val role: UserRole = UserRole.CUSTOMER,
@@ -44,6 +46,7 @@ data class User(
             updatedAt = "",
             signedAt = "",
             signedDevices = emptyList(),
+            businessInfo = BusinessInfo()
         )
     }
 }

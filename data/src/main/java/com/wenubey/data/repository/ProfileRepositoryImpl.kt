@@ -4,18 +4,23 @@ import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.userProfileChangeRequest
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.util.DeviceInfoProvider
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.util.getCurrentDate
 import com.wenubey.data.util.safeApiCall
 import com.wenubey.domain.model.Gender
 import com.wenubey.domain.model.onboard.BusinessInfo
 import com.wenubey.domain.model.onboard.BusinessType
+import com.wenubey.domain.model.onboard.VerificationStatus
+import com.wenubey.domain.model.onboard.toMap
 import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.repository.ProfileRepository
+import com.wenubey.domain.util.DocumentType
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -29,7 +34,8 @@ class ProfileRepositoryImpl(
     private val storage: FirebaseStorage,
     dispatcherProvider: DispatcherProvider,
     private val deviceInfoProvider: DeviceInfoProvider,
-): ProfileRepository {
+    private val firestore: FirebaseFirestore,
+    ) : ProfileRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
     private val firebaseUser: FirebaseUser? = auth.currentUser
@@ -57,9 +63,10 @@ class ProfileRepositoryImpl(
         taxDocumentUri: Uri,
         businessLicenseDocumentUri: Uri,
         identityDocumentUri: Uri
-    ): Result<Unit> = safeApiCall(ioDispatcher) {
+    ): Result<User> = safeApiCall(ioDispatcher) {
 
-        val userUuid = firebaseUser?.uid ?: throw IllegalStateException("User must be authenticated")
+        val userUuid =
+            firebaseUser?.uid ?: throw IllegalStateException("User must be authenticated")
 
         // Upload profile photo first
         val uploadedProfilePhotoUrl = if (photoUrl != Uri.EMPTY) {
@@ -70,20 +77,24 @@ class ProfileRepositoryImpl(
         val businessInfo = if (role == UserRole.SELLER) {
             // Upload seller documents to organized folder structure
             val uploadedTaxDocumentUrl = if (taxDocumentUri != Uri.EMPTY) {
-                uploadSellerDocument(taxDocumentUri, userUuid, DOCUMENT_TYPE_TAX)
+                uploadSellerDocument(taxDocumentUri, userUuid, DocumentType.TAX_DOCUMENTS)
             } else ""
 
             val uploadedBusinessLicenseUrl = if (businessLicenseDocumentUri != Uri.EMPTY) {
-                uploadSellerDocument(businessLicenseDocumentUri, userUuid, DOCUMENT_TYPE_BUSINESS_LICENSE)
+                uploadSellerDocument(
+                    businessLicenseDocumentUri,
+                    userUuid,
+                    DocumentType.BUSINESS_LICENSE
+                )
             } else ""
 
             val uploadedIdentityDocumentUrl = if (identityDocumentUri != Uri.EMPTY) {
-                uploadSellerDocument(identityDocumentUri, userUuid, DOCUMENT_TYPE_IDENTITY)
+                uploadSellerDocument(identityDocumentUri, userUuid, DocumentType.IDENTITY_DOCUMENTS)
             } else ""
 
             BusinessInfo(
                 businessName = businessName,
-                businessType = businessType.name,
+                businessType = businessType,
                 businessDescription = businessDescription,
                 businessAddress = businessAddress,
                 businessPhone = businessPhone,
@@ -96,7 +107,7 @@ class ProfileRepositoryImpl(
                 businessLicenseDocumentUri = uploadedBusinessLicenseUrl,
                 identityDocumentUri = uploadedIdentityDocumentUrl,
                 isVerified = false, // Business verification pending
-                verificationStatus = "PENDING",
+                verificationStatus = VerificationStatus.PENDING,
                 verificationDate = null,
                 createdAt = getCurrentDate(),
                 updatedAt = getCurrentDate()
@@ -131,6 +142,7 @@ class ProfileRepositoryImpl(
 
         val result = firestoreRepository.onboardingComplete(user)
         result.getOrThrow() // Propagate any errors
+        user
     }
 
     /**
@@ -147,7 +159,8 @@ class ProfileRepositoryImpl(
                 auth.currentUser?.updateProfile(photoUpdate)?.await()
 
                 // Upload to Firebase Storage
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                val timestamp =
+                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val fileName = "profile_image_$timestamp.jpg"
                 val photoRef = storage.reference
                     .child(PROFILE_PHOTOS_FOLDER)
@@ -174,17 +187,17 @@ class ProfileRepositoryImpl(
     private suspend fun uploadSellerDocument(
         documentUri: Uri,
         userUuid: String,
-        documentType: String
+        documentType: DocumentType
     ): String = withContext(ioDispatcher) {
         try {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val fileExtension = getFileExtension(documentUri)
-            val fileName = "${documentType}_${timestamp}.$fileExtension"
+            val fileName = "${documentType.name.lowercase()}_${timestamp}.$fileExtension"
 
             val documentRef = storage.reference
                 .child(SELLER_INFO_FOLDER)
                 .child(userUuid)
-                .child(documentType)
+                .child(documentType.name.lowercase())
                 .child(fileName)
 
             documentRef.putFile(documentUri).await()
@@ -216,45 +229,48 @@ class ProfileRepositoryImpl(
     /**
      * Delete seller documents (useful for re-upload or account deletion)
      */
-    suspend fun deleteSellerDocuments(userUuid: String): Result<Unit> = safeApiCall(ioDispatcher) {
-        try {
-            val sellerFolderRef = storage.reference
-                .child(SELLER_INFO_FOLDER)
-                .child(userUuid)
+    override suspend fun deleteSellerData(userUid: String): Result<Unit> =
+        safeApiCall(ioDispatcher) {
+            try {
+                val sellerFolderRef = storage.reference
+                    .child(SELLER_INFO_FOLDER)
+                    .child(userUid)
 
-            // List all files in the seller's folder
-            val listResult = sellerFolderRef.listAll().await()
+                // List all files in the seller's folder
+                val listResult = sellerFolderRef.listAll().await()
 
-            // Delete each subfolder and its contents
-            listResult.prefixes.forEach { prefix ->
-                val subFolderFiles = prefix.listAll().await()
-                subFolderFiles.items.forEach { file ->
-                    file.delete().await()
-                    Timber.d("Deleted seller document: ${file.name}")
+                // Delete each subfolder and its contents
+                listResult.prefixes.forEach { prefix ->
+                    val subFolderFiles = prefix.listAll().await()
+                    subFolderFiles.items.forEach { file ->
+                        file.delete().await()
+                        Timber.d("Deleted seller document: ${file.name}")
+                    }
                 }
-            }
 
-            Timber.d("All seller documents deleted for user: $userUuid")
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to delete seller documents for user: $userUuid")
-            throw e
+                Timber.d("All seller documents deleted for user: $userUid")
+
+
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to delete seller documents for user: $userUid")
+                throw e
+            }
         }
-    }
 
     /**
      * Update specific seller document (for re-upload scenarios)
      */
-    suspend fun updateSellerDocument(
-        userUuid: String,
-        documentType: String,
+    override suspend fun updateSellerDocument(
+        userUid: String,
+        documentType: DocumentType,
         newDocumentUri: Uri
     ): Result<String> = safeApiCall(ioDispatcher) {
         try {
             // Delete old documents of this type first
             val documentTypeRef = storage.reference
                 .child(SELLER_INFO_FOLDER)
-                .child(userUuid)
-                .child(documentType)
+                .child(userUid)
+                .child(documentType.name.lowercase())
 
             val existingFiles = documentTypeRef.listAll().await()
             existingFiles.items.forEach { file ->
@@ -263,11 +279,12 @@ class ProfileRepositoryImpl(
             }
 
             // Upload new document
-            val newDownloadUrl = uploadSellerDocument(newDocumentUri, userUuid, documentType)
+            val newDownloadUrl =
+                uploadSellerDocument(newDocumentUri, userUid, documentType)
 
             // Update Firestore with new URL
             // This would require updating the FirestoreRepository to have an update method
-
+            updateSellerDocumentUri(userUid, newDownloadUrl, documentType)
             newDownloadUrl
         } catch (e: Exception) {
             Timber.e(e, "Failed to update seller document: $documentType")
@@ -275,16 +292,82 @@ class ProfileRepositoryImpl(
         }
     }
 
+    private suspend fun updateSellerDocumentUri(userUid: String, newDownloadUrl: String, documentType: DocumentType) =
+        withContext(ioDispatcher) {
+            val updates = mapOf(
+                "businessInfo.${documentType.name.lowercase()}" to newDownloadUrl
+            )
+            firestore
+                .collection(USER_COLLECTION)
+                .document(userUid)
+                .update(updates)
+                .addOnSuccessListener {
+                    Timber.d("Seller document updated successfully: $documentType")
+                }
+                .addOnFailureListener {
+                    Timber.e(it, "Seller document update failed: $documentType")
+                }
+                .await()
+        }
+
+    override suspend fun updateSellerBusinessInfo(
+        userUid: String,
+        businessInfo: BusinessInfo
+    ): Result<Unit> = safeApiCall(ioDispatcher) {
+        val updates = mapOf(
+            "businessInfo" to businessInfo
+        )
+
+        firestore.collection(USER_COLLECTION)
+            .document(userUid)
+            .update(updates)
+            .addOnSuccessListener {
+                Timber.d("Seller business info updated successfully")
+            }
+            .addOnFailureListener {
+                Timber.e(it, "Seller business info update failed: ${it.message}")
+                throw it
+            }
+            .await()
+
+    }
+
+    override suspend fun cancelSellerApplication(userUid: String): Result<Unit> =
+        safeApiCall(ioDispatcher) {
+            val currentTime = System.currentTimeMillis().toString()
+
+            // Read current status to preserve as previousStatus
+            val currentDoc = firestore.collection(USER_COLLECTION)
+                .document(userUid)
+                .get()
+                .await()
+            val currentStatusName = currentDoc.getString("businessInfo.verificationStatus")
+
+            val updates = mutableMapOf<String, Any>(
+                "businessInfo.verificationStatus" to VerificationStatus.CANCELLED.name,
+                "businessInfo.isVerified" to false,
+                "businessInfo.updatedAt" to currentTime,
+                "updatedAt" to currentTime
+            )
+            if (currentStatusName != null) {
+                updates["businessInfo.previousStatus"] = currentStatusName
+            }
+
+            firestore.collection(USER_COLLECTION)
+                .document(userUid)
+                .update(updates)
+                .addOnSuccessListener {
+                    Timber.d("Seller application cancelled successfully for user: $userUid")
+                }
+                .addOnFailureListener {
+                    Timber.e(it, "Failed to cancel seller application for user: $userUid")
+                }
+                .await()
+        }
+
     companion object {
         // Firebase Storage folder structure
         private const val PROFILE_PHOTOS_FOLDER = "profile_photos"
         private const val SELLER_INFO_FOLDER = "seller_info"
-
-        // Document types for organized storage
-        const val DOCUMENT_TYPE_TAX = "tax_documents"
-        const val DOCUMENT_TYPE_BUSINESS_LICENSE = "business_license"
-        const val DOCUMENT_TYPE_IDENTITY = "identity_documents"
-        const val DOCUMENT_TYPE_BANK_STATEMENTS = "bank_statements"
-        const val DOCUMENT_TYPE_ADDITIONAL = "additional_documents"
     }
 }

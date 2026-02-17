@@ -2,6 +2,7 @@ package com.wenubey.wenucommerce.onboard
 
 import android.net.Uri
 import com.wenubey.domain.model.onboard.BusinessType
+import com.wenubey.domain.model.user.User
 import com.wenubey.wenucommerce.onboard.util.GenderUiModel
 import com.wenubey.wenucommerce.onboard.util.UserRoleUiModel
 
@@ -46,4 +47,6 @@ data class OnboardingState(
     val taxDocumentUri: Uri = Uri.EMPTY,
     val businessLicenseDocumentUri: Uri = Uri.EMPTY,
     val identityDocumentUri: Uri = Uri.EMPTY,
+
+    val completedUser: User? = null,
     )
