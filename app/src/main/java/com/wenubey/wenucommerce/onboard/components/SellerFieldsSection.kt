@@ -8,15 +8,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.ContactMail
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,45 +46,19 @@ fun SellerFieldsSection(
     onDocumentPicker: (DocumentType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Business Details
+        SectionCard(
+            icon = Icons.Default.Business,
+            title = "Business Details"
         ) {
-            Text(
-                text = "Seller Information",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Business Information Section
-            Text(
-                text = "Business Details",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
             OutlinedTextField(
                 value = state.businessName,
                 onValueChange = { onAction(OnboardingAction.OnBusinessNameChange(it)) },
                 label = { Text("Business Name *") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Business,
-                        contentDescription = null
-                    )
-                },
                 isError = state.businessNameError,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -85,7 +67,8 @@ fun SellerFieldsSection(
                 selectedBusinessType = state.businessType,
                 onBusinessTypeSelected = {
                     onAction(OnboardingAction.OnBusinessTypeChange(it))
-                }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
@@ -103,24 +86,19 @@ fun SellerFieldsSection(
                 isError = state.businessAddressError,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
 
-            // Contact Information
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Business Contact",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
+        // Contact Information
+        SectionCard(
+            icon = Icons.Default.ContactMail,
+            title = "Contact Information"
+        ) {
             OutlinedTextField(
                 value = state.businessPhone,
                 onValueChange = { onAction(OnboardingAction.OnBusinessPhoneChange(it)) },
                 label = { Text("Business Phone *") },
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null
-                    )
+                    Icon(imageVector = Icons.Default.Phone, contentDescription = null)
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 isError = state.businessPhoneError,
@@ -132,24 +110,36 @@ fun SellerFieldsSection(
                 onValueChange = { onAction(OnboardingAction.OnBusinessEmailChange(it)) },
                 label = { Text("Business Email *") },
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null
-                    )
+                    Icon(imageVector = Icons.Default.Email, contentDescription = null)
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 isError = state.businessEmailError,
+                enabled = !state.useRegistrationEmail,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Tax and Legal Information
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Tax & Legal Information",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = state.useRegistrationEmail,
+                    onCheckedChange = {
+                        onAction(OnboardingAction.OnUseRegistrationEmailToggle(it))
+                    }
+                )
+                Text(
+                    text = "Same as registration email",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
 
+        // Tax & Legal
+        SectionCard(
+            icon = Icons.Default.Gavel,
+            title = "Tax & Legal"
+        ) {
             OutlinedTextField(
                 value = state.taxId,
                 onValueChange = { onAction(OnboardingAction.OnTaxIdChange(it)) },
@@ -166,15 +156,13 @@ fun SellerFieldsSection(
                 isError = state.businessLicenseError,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
 
-            // Banking Information
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Banking Information",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
+        // Banking
+        SectionCard(
+            icon = Icons.Default.AccountBalance,
+            title = "Banking Information"
+        ) {
             OutlinedTextField(
                 value = state.bankAccountNumber,
                 onValueChange = { onAction(OnboardingAction.OnBankAccountNumberChange(it)) },
@@ -192,20 +180,20 @@ fun SellerFieldsSection(
                 isError = state.routingNumberError,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
 
-            // Document Upload Section
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Required Documents",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
+        // Documents
+        SectionCard(
+            icon = Icons.Default.Description,
+            title = "Required Documents"
+        ) {
             DocumentUploadRow(
                 label = "Tax Document *",
                 hasDocument = state.taxDocumentUri != Uri.EMPTY,
                 onUpload = { onDocumentPicker(DocumentType.TAX_DOCUMENT) }
             )
+
+            HorizontalDivider()
 
             DocumentUploadRow(
                 label = "Identity Document *",
@@ -213,13 +201,54 @@ fun SellerFieldsSection(
                 onUpload = { onDocumentPicker(DocumentType.IDENTITY_DOCUMENT) }
             )
 
-            if (state.businessLicense.isNotBlank()) {
-                DocumentUploadRow(
-                    label = "Business License",
-                    hasDocument = state.businessLicenseDocumentUri != Uri.EMPTY,
-                    onUpload = { onDocumentPicker(DocumentType.BUSINESS_LICENSE_DOCUMENT) }
+            HorizontalDivider()
+
+            DocumentUploadRow(
+                label = "Business License",
+                hasDocument = state.businessLicenseDocumentUri != Uri.EMPTY,
+                onUpload = { onDocumentPicker(DocumentType.BUSINESS_LICENSE_DOCUMENT) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(
+    icon: ImageVector,
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
+
+            content()
         }
     }
 }
@@ -248,7 +277,7 @@ private fun DocumentUploadRow(
         ) {
             if (hasDocument) {
                 Text(
-                    text = "✓ Uploaded",
+                    text = "Uploaded",
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodySmall
                 )

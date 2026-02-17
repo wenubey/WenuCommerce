@@ -38,6 +38,10 @@ class EmailVerificationBannerViewModel(
         checkEmailVerificationStatus()
     }
 
+    fun recheckEmailVerification() {
+        checkEmailVerificationStatus()
+    }
+
     private fun checkEmailVerificationStatus() {
         viewModelScope.launch(ioDispatcher) {
             authRepository.isUserAuthenticated().fold(

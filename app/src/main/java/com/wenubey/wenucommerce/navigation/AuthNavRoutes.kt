@@ -25,6 +25,9 @@ fun NavGraphBuilder.authNavRoutes(navController: NavHostController) {
             navigateToVerifyEmail = { email ->
                 navController.navigate(VerifyEmail(email))
             },
+            navigateToSignUp = {
+                navController.navigate(SignUp)
+            },
         )
     }
     composable<SignUp> {

@@ -1,5 +1,6 @@
 package com.wenubey.wenucommerce.seller
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,6 +27,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wenubey.domain.model.onboard.VerificationStatus
 import com.wenubey.domain.model.user.User
 import com.wenubey.wenucommerce.AuthViewModel
+import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationBannerViewModel
+import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationNotificationBar
 import com.wenubey.wenucommerce.seller.seller_dashboard.SellerDashboardScreen
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -35,8 +39,16 @@ fun SellerTabScreen(
     tabIndex: Int,
     onNavigateToSellerVerification: (user: User?) -> Unit,
     authViewModel: AuthViewModel = koinViewModel(),
+    emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
 ) {
     val user by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val emailBannerState by emailBannerVm.emailVerificationBannerState.collectAsStateWithLifecycle()
+
+    LifecycleResumeEffect(Unit) {
+        emailBannerVm.recheckEmailVerification()
+        onPauseOrDispose { }
+    }
+
     val isApproved by remember(user) {
         derivedStateOf {
             user?.businessInfo?.verificationStatus == VerificationStatus.APPROVED
@@ -50,6 +62,13 @@ fun SellerTabScreen(
     val currentTabIndex by remember { derivedStateOf { pagerState.currentPage } }
 
     Scaffold(
+        topBar = {
+            AnimatedVisibility(visible = emailBannerState.isVisible) {
+                EmailVerificationNotificationBar(
+                    onNavigateToProfile = { /* TODO add navigation to Seller Profile */ },
+                )
+            }
+        },
         bottomBar = {
             SellerTabRow(pagerState = pagerState, currentTabIndex = currentTabIndex)
         }

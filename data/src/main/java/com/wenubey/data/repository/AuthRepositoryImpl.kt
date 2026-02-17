@@ -261,7 +261,17 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun isEmailVerified(): Result<Boolean> = safeApiCall(ioDispatcher) {
-        currentFirebaseUser?.isEmailVerified ?: false
+        val user = firebaseAuth.currentUser ?: return@safeApiCall false
+        user.reload().await()
+        val isVerified = user.isEmailVerified
+        if (isVerified) {
+            // Sync to Firestore so the User document stays up-to-date
+            firestore.collection(USER_COLLECTION)
+                .document(user.uid)
+                .update("isEmailVerified", true)
+                .await()
+        }
+        isVerified
     }
 
     override suspend fun resendVerificationEmail(): Result<Unit> = safeApiCall(ioDispatcher) {

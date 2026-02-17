@@ -3,8 +3,8 @@ package com.wenubey.wenucommerce.sign_up
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -140,7 +140,7 @@ private fun EmailField(
 ) {
     TextField(
         modifier = Modifier
-            .width(300.dp)
+            .fillMaxWidth()
             .padding(
                 bottom = 6.dp
             )
@@ -193,7 +193,7 @@ private fun PasswordField(
 
     TextField(
         modifier = Modifier
-            .width(300.dp)
+            .fillMaxWidth()
             .clip(
                 shape = ShapeDefaults.Small
             ),
