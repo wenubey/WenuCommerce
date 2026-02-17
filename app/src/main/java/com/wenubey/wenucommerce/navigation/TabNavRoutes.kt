@@ -4,9 +4,10 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import com.wenubey.wenucommerce.screens.admin.AdminTabScreen
-import com.wenubey.wenucommerce.screens.customer.CustomerTabScreen
-import com.wenubey.wenucommerce.screens.seller.SellerTabScreen
+import com.wenubey.wenucommerce.admin.AdminTabScreen
+import com.wenubey.wenucommerce.customer.CustomerTabScreen
+import com.wenubey.wenucommerce.seller.SellerTabScreen
+import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationStatusScreen
 
 fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
     composable<CustomerTab> {
@@ -19,7 +20,23 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
     }
     composable<SellerTab> {
         val tabArgs = it.toRoute<SellerTab>()
-        SellerTabScreen(tabIndex = tabArgs.tabIndex)
+        val tabIndex = tabArgs.tabIndex
+        SellerTabScreen(
+            tabIndex = tabIndex,
+            onNavigateToSellerVerification = { user ->
+                // TODO create SellerVerificationStatusScreen Object for navigation
+                navController.navigate(SellerVerificationStatusScreen)
+            }
+        )
+    }
+
+    composable<SellerVerificationStatusScreen> {
+        SellerVerificationStatusScreen(
+            onViewDashboardClick = { navController.navigate(SellerTab(tabIndex = 0)) },
+            onNavigateBack = {
+                navController.navigateUp()
+            }
+        )
     }
 }
 

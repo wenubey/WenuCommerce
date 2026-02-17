@@ -1,5 +1,6 @@
 package com.wenubey.wenucommerce.navigation
 
+import com.wenubey.domain.model.user.User
 import kotlinx.serialization.Serializable
 
 // Auth
@@ -40,13 +41,7 @@ data object CustomerProfile
 
 // Seller specific screens
 @Serializable
-data object SellerDashboard
-
-@Serializable
-data object SellerProducts
-
-@Serializable
-data object SellerOrders
+data object SellerVerificationStatusScreen
 
 @Serializable
 data object SellerProfile

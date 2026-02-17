@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,7 +59,6 @@ import com.wenubey.wenucommerce.onboard.components.OnboardingDatePicker
 import com.wenubey.wenucommerce.onboard.components.PhoneNumberTextField
 import com.wenubey.wenucommerce.onboard.components.RoleDropdownMenu
 import com.wenubey.wenucommerce.onboard.components.SellerFieldsSection
-import com.wenubey.wenucommerce.onboard.util.toDomainModel
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
 
@@ -67,6 +67,13 @@ import timber.log.Timber
 fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
     val viewModel: OnboardingViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+
+    LaunchedEffect(state.completedUser) {
+        state.completedUser?.let { user ->
+            onNavigateToTabScreen(user.role)
+        }
+    }
 
     val context = LocalContext.current
 
@@ -246,7 +253,6 @@ fun OnboardingScreen(onNavigateToTabScreen: (userRole: UserRole) -> Unit) {
             Button(
                 onClick = {
                     viewModel.onAction(OnboardingAction.OnOnboardingComplete)
-                    onNavigateToTabScreen(state.role.toDomainModel())
                 },
                 content = {
                     Text("Complete Registration")

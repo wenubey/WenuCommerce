@@ -96,12 +96,12 @@ class SignInViewModel(
             authRepository.signInWithEmailPassword(email, password, saveCredentials)) {
             is SignInResult.Success -> {
                 val isVerified = authRepository.isEmailVerified().getOrNull()
-                val userRole = authRepository.currentUser.value?.role ?: UserRole.CUSTOMER
+                val user = authRepository.currentUser.value
                 _signInState.update { currentState ->
                     currentState.copy(
                         isEmailVerified = isVerified ?: false,
                         isUserSignedIn = true,
-                        userRole = userRole
+                        user = user
                     )
                 }
 

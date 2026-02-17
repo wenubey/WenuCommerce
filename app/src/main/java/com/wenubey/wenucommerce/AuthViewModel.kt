@@ -2,12 +2,12 @@ package com.wenubey.wenucommerce
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.wenucommerce.navigation.AdminTab
 import com.wenubey.wenucommerce.navigation.CustomerTab
-import com.wenubey.wenucommerce.navigation.Onboarding
 import com.wenubey.wenucommerce.navigation.SellerTab
 import com.wenubey.wenucommerce.navigation.SignUp
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,80 +19,53 @@ import timber.log.Timber
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
-    dispatcherProvider: DispatcherProvider,
+    private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
-
-    private val mainDispatcher = dispatcherProvider.main()
-    private val ioDispatcher = dispatcherProvider.io()
 
     private val _startDestination = MutableStateFlow<Any>(SignUp)
     val startDestination = _startDestination.asStateFlow()
 
-    init {
-        checkAuthState()
-        observeUserChanges()
-    }
+    private val _isInitialized = MutableStateFlow(false)
+    val isInitialized = _isInitialized.asStateFlow()
 
-    private fun checkAuthState() {
-        viewModelScope.launch(ioDispatcher) {
-            authRepository.isUserAuthenticated()
-                .onSuccess { isUserAuthenticated ->
-                    if (isUserAuthenticated) {
-                        // Check if we have user data in currentUser StateFlow
-                        val currentUser = authRepository.currentUser.value
-                        viewModelScope.launch(mainDispatcher) {
-                            if (currentUser != null) {
-                                Timber.d("1.User Data: ${currentUser.role}")
-                                updateStartDestination(true, currentUser.role)
-                            } else {
-                                // User is authenticated but no user data - might need onboarding
-                                Timber.d("2.User Data Not Found")
-                                updateStartDestination(true, null)
-                            }
-                        }
-                    } else {
-                        viewModelScope.launch(mainDispatcher) {
-                            Timber.d("3.User Not Authenticated")
-                            updateStartDestination(false, null)
-                        }
-                    }
-                }
-                .onFailure {
-                    viewModelScope.launch(mainDispatcher) {
-                        Timber.e(it, "Error checking authentication state")
-                        updateStartDestination(false, null)
-                    }
-                }
-        }
+    val currentUser = authRepository.currentUser
+
+    init {
+        observeUserChanges()
     }
 
     private fun observeUserChanges() {
         viewModelScope.launch {
             authRepository.currentUser.collect { user ->
                 when {
-                    user == null -> {
-                        // User signed out or not authenticated
+                    user != null -> {
+                        // User data is available, determine destination based on role
+                        Timber.d("User Data Loaded: ${user.role}")
+                        updateStartDestination(user.role)
+                        _isInitialized.value = true
+                    }
+                    authRepository.currentFirebaseUser == null -> {
+                        // Not authenticated
+                        Timber.d("User Not Authenticated")
                         _startDestination.update { SignUp }
+                        _isInitialized.value = true
                     }
                     else -> {
-                        // User data is available, determine destination based on role
-                        updateStartDestination(true, user.role)
+                        // User is authenticated but data hasn't loaded yet - don't update destination
+                        Timber.d("Waiting for user data to load...")
                     }
                 }
             }
         }
     }
 
-    private fun updateStartDestination(isAuthenticated: Boolean, userRole: UserRole?) {
-        viewModelScope.launch(mainDispatcher) {
+    private fun updateStartDestination(userRole: UserRole) {
+        viewModelScope.launch(dispatcherProvider.main()) {
             _startDestination.update {
-                when {
-                    !isAuthenticated -> SignUp
-                    userRole == null -> Onboarding // User needs to complete onboarding
-                    userRole == UserRole.CUSTOMER -> CustomerTab(0)
-                    userRole == UserRole.SELLER -> SellerTab(0)
-                    userRole == UserRole.ADMIN -> AdminTab(0)
-                    else -> CustomerTab(0) // Default fallback
+                when (userRole) {
+                    UserRole.CUSTOMER -> CustomerTab(0)
+                    UserRole.SELLER -> SellerTab(0)
+                    UserRole.ADMIN -> AdminTab(0)
                 }
             }
         }

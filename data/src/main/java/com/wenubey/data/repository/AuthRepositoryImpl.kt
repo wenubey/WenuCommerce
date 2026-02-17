@@ -18,6 +18,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.ktx.Firebase
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.util.safeApiCall
 import com.wenubey.domain.auth.SignInResult
 import com.wenubey.domain.auth.SignUpResult
@@ -41,6 +45,7 @@ class AuthRepositoryImpl(
     private val googleIdOption: GetGoogleIdOption,
     dispatcherProvider: DispatcherProvider,
     private val firestoreRepository: FirestoreRepository,
+    private val firestore: FirebaseFirestore,
 ) : AuthRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
@@ -51,14 +56,48 @@ class AuthRepositoryImpl(
     private val _currentUser = MutableStateFlow<User?>(null)
     override val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
+    private var userListener: ListenerRegistration? = null
+
     init {
+        CoroutineScope(ioDispatcher).launch {
+
+        }
         initializeUserState()
         firebaseAuth.addAuthStateListener { auth ->
             if (auth.currentUser == null) {
                 Timber.d("CurrentUser is null")
+                stopUserListener()
                 _currentUser.value = null
+            } else {
+                startUserListener(auth.currentUser!!.uid)
             }
         }
+    }
+
+    private fun startUserListener(uid: String) {
+        userListener?.remove()
+
+        userListener = firestore.collection(USER_COLLECTION)
+            .document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Failed to load user data")
+                    return@addSnapshotListener
+                }
+
+                val user = try {
+                    snapshot?.toObject(User::class.java)
+                } catch (e: RuntimeException) {
+                    Timber.e(e, "Failed to deserialize current user document")
+                    null
+                }
+                _currentUser.value = user
+            }
+    }
+
+    private fun stopUserListener() {
+        userListener?.remove()
+        userListener = null
     }
 
     private fun initializeUserState() {
@@ -84,25 +123,9 @@ class AuthRepositoryImpl(
         }
     }
 
-    private suspend fun updateCurrentUser(firebaseUser: FirebaseUser): User? {
-        return try {
-            val userResult = firestoreRepository.getUser(firebaseUser.uid)
-            userResult.fold(
-                onSuccess = { user ->
-                    _currentUser.value = user
-                    user
-                },
-                onFailure = { exception ->
-                    Timber.e(exception, "Failed to fetch user data for UID: ${firebaseUser.uid}")
-                    _currentUser.value = null
-                    null
-                }
-            )
-        } catch (e: Exception) {
-            Timber.e(e, "Error updating current user")
-            _currentUser.value = null
-            null
-        }
+    private fun updateCurrentUser(firebaseUser: FirebaseUser): User? {
+        startUserListener(firebaseUser.uid)
+        return _currentUser.value
     }
 
     override suspend fun signIn(credentialResponse: GetCredentialResponse): Result<User> =
@@ -248,6 +271,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logOut(): Result<Unit> = safeApiCall(ioDispatcher) {
+        stopUserListener()
         firebaseAuth.signOut()
         _currentUser.value = null // Clear the current user
 
@@ -256,6 +280,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun deleteAccount(): Result<Unit> = safeApiCall(ioDispatcher) {
+        stopUserListener()
         firebaseAuth.currentUser?.delete()
         _currentUser.value = null // Clear the current user
 
