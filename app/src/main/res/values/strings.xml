@@ -11,6 +11,7 @@
     <string name="admin_analytics">Analytics</string>
     <string name="admin_settings">Settings</string>
     <string name="admin_seller_approvals">Approvals</string>
+    <string name="admin_categories">Categories</string>
 
     <!--Seller Tabs Name-->
     <string name="dashboard">Dashboard</string>

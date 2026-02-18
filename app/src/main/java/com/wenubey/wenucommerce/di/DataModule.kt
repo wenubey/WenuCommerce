@@ -11,6 +11,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.BuildConfig
 import com.wenubey.data.repository.AuthRepositoryImpl
+import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
 import com.wenubey.data.repository.LocationServiceImpl
@@ -18,6 +19,7 @@ import com.wenubey.data.repository.ProfileRepositoryImpl
 import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
 import com.wenubey.domain.repository.AuthRepository
+import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.repository.LocationService
@@ -48,6 +50,7 @@ val repositoryModule = module {
     singleOf(::AuthRepositoryImpl).bind<AuthRepository>()
     singleOf(::ProfileRepositoryImpl).bind<ProfileRepository>()
     singleOf(::LocationServiceImpl).bind<LocationService>()
+    singleOf(::CategoryRepositoryImpl).bind<CategoryRepository>()
 
 }
 

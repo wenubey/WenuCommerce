@@ -43,10 +43,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wenubey.domain.model.product.Category
+import com.wenubey.domain.model.product.Subcategory
+import com.wenubey.wenucommerce.admin.admin_categories.components.CreateCategoryDialog
+import com.wenubey.wenucommerce.seller.seller_categories.SellerCategoryAction
+import com.wenubey.wenucommerce.seller.seller_categories.SellerCategoryViewModel
+import com.wenubey.wenucommerce.seller.seller_categories.components.CategoryPickerBottomSheet
+import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
+import java.util.UUID
 
 @Composable
-fun SellerProductsScreen(modifier: Modifier = Modifier) {
-    var showAddProduct by remember { mutableStateOf(false) }
+fun SellerProductsScreen(
+    modifier: Modifier = Modifier,
+    categoryViewModel: SellerCategoryViewModel = koinViewModel(),
+) {
+    var showCategoryPicker by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    var selectedSubcategory by remember { mutableStateOf<Subcategory?>(null) }
+
+    val categoryState by categoryViewModel.categoryState.collectAsStateWithLifecycle()
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -66,7 +83,7 @@ fun SellerProductsScreen(modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Button(
-                        onClick = { showAddProduct = true }
+                        onClick = { showCategoryPicker = true }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -74,6 +91,33 @@ fun SellerProductsScreen(modifier: Modifier = Modifier) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Add Product")
+                    }
+                }
+            }
+
+            // Show selected category info if available
+            if (selectedCategory != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Selected: ${selectedCategory?.name ?: ""}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            selectedSubcategory?.let {
+                                Text(
+                                    text = "Subcategory: ${it.name}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -136,7 +180,7 @@ fun SellerProductsScreen(modifier: Modifier = Modifier) {
 
         // Add Product FAB
         FloatingActionButton(
-            onClick = { showAddProduct = true },
+            onClick = { showCategoryPicker = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -145,9 +189,63 @@ fun SellerProductsScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    // TODO Add Product Dialog/Sheet would go here
-    if (showAddProduct) {
-        // TODO Add product implementation
+    // Category Picker Bottom Sheet
+    if (showCategoryPicker) {
+        CategoryPickerBottomSheet(
+            state = categoryState,
+            onCategorySelected = { category ->
+                categoryViewModel.onAction(SellerCategoryAction.OnCategorySelected(category))
+            },
+            onSubcategorySelected = { subcategory ->
+                categoryViewModel.onAction(SellerCategoryAction.OnSubcategorySelected(subcategory))
+            },
+            onCreateNewCategory = {
+                categoryViewModel.onAction(SellerCategoryAction.OnShowCreateCategoryDialog)
+            },
+            onCreateNewSubcategory = {
+                categoryViewModel.onAction(SellerCategoryAction.OnShowCreateSubcategoryDialog)
+            },
+            onConfirm = { category, subcategory ->
+                selectedCategory = category
+                selectedSubcategory = subcategory
+                showCategoryPicker = false
+                Timber.d("Category selected: ${category.name}, Subcategory: ${subcategory?.name}")
+                // TODO Phase 2: Navigate to Add Product form with selected category/subcategory
+            },
+            onDismiss = {
+                showCategoryPicker = false
+                categoryViewModel.onAction(SellerCategoryAction.OnDismissDialog)
+            },
+        )
+    }
+
+    // Create Category Dialog (shown from bottom sheet)
+    if (categoryState.showCreateCategoryDialog) {
+        CreateCategoryDialog(
+            onDismiss = { categoryViewModel.onAction(SellerCategoryAction.OnDismissDialog) },
+            onCreate = { name, description, _ ->
+                categoryViewModel.onAction(SellerCategoryAction.OnCreateNewCategory(name, description))
+            },
+        )
+    }
+
+    // Create Subcategory Dialog (shown from bottom sheet)
+    if (categoryState.showCreateSubcategoryDialog && categoryState.selectedCategory != null) {
+        CreateCategoryDialog(
+            onDismiss = { categoryViewModel.onAction(SellerCategoryAction.OnDismissDialog) },
+            onCreate = { name, _, _ ->
+                val subcategory = Subcategory(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                )
+                categoryViewModel.onAction(
+                    SellerCategoryAction.OnCreateNewSubcategory(
+                        categoryId = categoryState.selectedCategory!!.id,
+                        subcategory = subcategory,
+                    )
+                )
+            },
+        )
     }
 }
 
