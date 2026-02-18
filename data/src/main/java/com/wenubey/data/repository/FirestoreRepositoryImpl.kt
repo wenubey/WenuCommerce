@@ -125,11 +125,19 @@ class FirestoreRepositoryImpl(
         }
     }
 
-    // TODO handle file not found exception
     private suspend fun updateProfilePhoto(profilePhotoUri: String, userUid: String?): String =
         withContext(ioDispatcher) {
+            val uri = Uri.parse(profilePhotoUri)
+
+            // If the URI is already a remote URL, no need to upload again
+            val scheme = uri.scheme
+            if (scheme == "http" || scheme == "https") {
+                Timber.d("Profile photo is already a remote URL, skipping upload")
+                return@withContext profilePhotoUri
+            }
+
             val photoUpdate = userProfileChangeRequest {
-                photoUri = Uri.parse(profilePhotoUri)
+                photoUri = uri
             }
 
             auth.currentUser?.updateProfile(photoUpdate)
@@ -141,7 +149,7 @@ class FirestoreRepositoryImpl(
 
             val imageFileName = userUid + IMAGE_FILE_SUFFIX
             val imageRef = storageRef.child("$PROFILE_IMAGES_FOLDER/$imageFileName")
-            val uploadTask = imageRef.putFile(Uri.parse(profilePhotoUri))
+            val uploadTask = imageRef.putFile(uri)
 
             uploadTask.addOnSuccessListener {
                 Timber.d("Image uploaded successfully")

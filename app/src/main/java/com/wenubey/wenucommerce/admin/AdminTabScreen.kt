@@ -15,8 +15,8 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wenubey.wenucommerce.admin.admin_analytics.AdminAnalyticsScreen
 import com.wenubey.wenucommerce.admin.admin_dashboard.AdminDashboardScreen
+import com.wenubey.wenucommerce.admin.admin_categories.AdminCategoryScreen
 import com.wenubey.wenucommerce.admin.admin_seller_approval.AdminApprovalScreen
 import com.wenubey.wenucommerce.admin.admin_settings.AdminSettingsScreen
 import com.wenubey.wenucommerce.admin.admin_users.AdminUsersScreen
@@ -121,6 +122,10 @@ fun AdminTabScreen(
                 }
 
                 4 -> {
+                    AdminCategoryScreen()
+                }
+
+                5 -> {
                     AdminSettingsScreen()
                 }
 
@@ -141,8 +146,9 @@ fun AdminTabRow(
 ) {
     val scope = rememberCoroutineScope()
 
-    TabRow(
+    ScrollableTabRow(
         selectedTabIndex = currentTabIndex,
+        edgePadding = 0.dp,
     ) {
         AdminTabs.entries.forEachIndexed { index, tab ->
             val isSelected = currentTabIndex == index

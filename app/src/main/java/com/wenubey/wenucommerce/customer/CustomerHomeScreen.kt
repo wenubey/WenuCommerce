@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
@@ -25,15 +26,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wenubey.wenucommerce.customer.customer_home.CustomerHomeAction
+import com.wenubey.wenucommerce.customer.customer_home.CustomerHomeViewModel
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun CustomerHomeScreen(modifier: Modifier = Modifier) {
+fun CustomerHomeScreen(
+    modifier: Modifier = Modifier,
+    viewModel: CustomerHomeViewModel = koinViewModel(),
+) {
+    val state by viewModel.homeState.collectAsStateWithLifecycle()
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -87,10 +97,13 @@ fun CustomerHomeScreen(modifier: Modifier = Modifier) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(5) { index ->
+                items(state.categories) { category ->
                     CategoryCard(
-                        title = "Category ${index + 1}",
-                        icon = Icons.Default.Category
+                        title = category.name,
+                        isSelected = state.selectedCategoryId == category.id,
+                        onClick = {
+                            viewModel.onAction(CustomerHomeAction.OnCategorySelected(category.id))
+                        },
                     )
                 }
             }
@@ -118,10 +131,22 @@ fun CustomerHomeScreen(modifier: Modifier = Modifier) {
 
 // TODO Refactor Later
 @Composable
-fun CategoryCard(title: String, icon: ImageVector) {
+fun CategoryCard(
+    title: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {},
+) {
     Card(
         modifier = Modifier.size(100.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        onClick = onClick,
     ) {
         Column(
             modifier = Modifier
@@ -131,16 +156,25 @@ fun CategoryCard(title: String, icon: ImageVector) {
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = Icons.Default.Category,
                 contentDescription = title,
                 modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
             )
         }
     }

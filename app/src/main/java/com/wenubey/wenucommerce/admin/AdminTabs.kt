@@ -6,8 +6,10 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.People
@@ -39,6 +41,11 @@ enum class AdminTabs(
         text = R.string.admin_seller_approvals,
         selectedIcon = Icons.Filled.CheckCircle,
         unselectedIcon = Icons.Outlined.CheckCircle
+    ),
+    Categories(
+        text = R.string.admin_categories,
+        selectedIcon = Icons.Filled.Category,
+        unselectedIcon = Icons.Outlined.Category
     ),
     Settings(
         text = R.string.admin_settings,
