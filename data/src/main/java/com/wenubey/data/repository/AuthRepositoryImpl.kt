@@ -20,7 +20,9 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.ktx.Firebase
+import com.wenubey.data.local.dao.UserDao
+import com.wenubey.data.local.mapper.toDomain
+import com.wenubey.data.local.mapper.toEntity
 import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.util.safeApiCall
 import com.wenubey.domain.auth.SignInResult
@@ -46,6 +48,7 @@ class AuthRepositoryImpl(
     dispatcherProvider: DispatcherProvider,
     private val firestoreRepository: FirestoreRepository,
     private val firestore: FirebaseFirestore,
+    private val userDao: UserDao,
 ) : AuthRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
@@ -60,7 +63,11 @@ class AuthRepositoryImpl(
 
     init {
         CoroutineScope(ioDispatcher).launch {
-
+            // Load cached user from Room for immediate offline availability on cold start
+            val cachedUser = userDao.getCurrentUser()?.toDomain()
+            if (cachedUser != null && _currentUser.value == null) {
+                _currentUser.value = cachedUser
+            }
         }
         initializeUserState()
         firebaseAuth.addAuthStateListener { auth ->
@@ -68,6 +75,10 @@ class AuthRepositoryImpl(
                 Timber.d("CurrentUser is null")
                 stopUserListener()
                 _currentUser.value = null
+                // Clear Room user cache on sign-out (auth state cleared)
+                CoroutineScope(ioDispatcher).launch {
+                    userDao.clearAll()
+                }
             } else {
                 startUserListener(auth.currentUser!!.uid)
             }
@@ -92,6 +103,12 @@ class AuthRepositoryImpl(
                     null
                 }
                 _currentUser.value = user
+                // Cache user in Room whenever Firestore delivers an update
+                if (user != null) {
+                    CoroutineScope(ioDispatcher).launch {
+                        userDao.upsert(user.toEntity())
+                    }
+                }
             }
     }
 
@@ -109,6 +126,7 @@ class AuthRepositoryImpl(
                         onSuccess = { user ->
                             Timber.d("CurrentUser is : ${user.name}")
                             _currentUser.value = user
+                            userDao.upsert(user.toEntity())
                         },
                         onFailure = {
                             Timber.w("Failed to load user data on initialization: ${it.message}")
@@ -284,6 +302,7 @@ class AuthRepositoryImpl(
         stopUserListener()
         firebaseAuth.signOut()
         _currentUser.value = null // Clear the current user
+        userDao.clearAll() // Clear Room user cache on logout
 
         val clearCredentialRequest = ClearCredentialStateRequest()
         credentialManager.clearCredentialState(clearCredentialRequest)
@@ -293,6 +312,7 @@ class AuthRepositoryImpl(
         stopUserListener()
         firebaseAuth.currentUser?.delete()
         _currentUser.value = null // Clear the current user
+        userDao.clearAll() // Clear Room user cache on account deletion
 
         val clearCredentialRequest = ClearCredentialStateRequest()
         credentialManager.clearCredentialState(clearCredentialRequest)
@@ -305,7 +325,12 @@ class AuthRepositoryImpl(
     override suspend fun refreshCurrentUser(): Result<User?> = safeApiCall(ioDispatcher) {
         val firebaseUser = currentFirebaseUser
         if (firebaseUser != null) {
-            updateCurrentUser(firebaseUser)
+            val user = updateCurrentUser(firebaseUser)
+            // Persist the refreshed user to Room if available
+            if (user != null) {
+                userDao.upsert(user.toEntity())
+            }
+            user
         } else {
             _currentUser.value = null
             null
@@ -318,6 +343,7 @@ class AuthRepositoryImpl(
      */
     override suspend fun setCurrentUserAfterOnboarding(user: User) {
         _currentUser.value = user
+        userDao.upsert(user.toEntity()) // Cache onboarding user in Room
     }
 
     private suspend fun sendEmailVerificationIfNeeded(user: FirebaseUser?) {
