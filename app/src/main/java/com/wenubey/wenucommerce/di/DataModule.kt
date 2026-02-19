@@ -11,6 +11,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.BuildConfig
+import com.wenubey.data.connectivity.ConnectivityObserver
 import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.repository.AuthRepositoryImpl
@@ -121,4 +122,8 @@ val databaseModule = module {
 
 val syncModule = module {
     single { SyncManager(get(), get(), get(), get()) }
+}
+
+val connectivityModule = module {
+    single { ConnectivityObserver(get()) }
 }
