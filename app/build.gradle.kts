@@ -121,6 +121,10 @@ dependencies {
     implementation(libs.paging.runtime)
     implementation(libs.paging.compose)
 
+    // Room runtime (no KSP/compiler — annotation processing runs only in :data module)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+
     // Timber
     implementation(libs.timber)
 

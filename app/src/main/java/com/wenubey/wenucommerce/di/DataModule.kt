@@ -2,6 +2,7 @@ package com.wenubey.wenucommerce.di
 
 import android.util.Base64
 import androidx.credentials.CredentialManager
+import androidx.room.Room
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
@@ -10,12 +11,16 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.BuildConfig
+import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.repository.AuthRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
 import com.wenubey.data.repository.LocationServiceImpl
+import com.wenubey.data.repository.ProductRepositoryImpl
+import com.wenubey.data.repository.ProductReviewRepositoryImpl
 import com.wenubey.data.repository.ProfileRepositoryImpl
+import com.wenubey.data.repository.TagRepositoryImpl
 import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
 import com.wenubey.domain.repository.AuthRepository
@@ -23,7 +28,10 @@ import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.repository.LocationService
+import com.wenubey.domain.repository.ProductRepository
+import com.wenubey.domain.repository.ProductReviewRepository
 import com.wenubey.domain.repository.ProfileRepository
+import com.wenubey.domain.repository.TagRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -51,7 +59,9 @@ val repositoryModule = module {
     singleOf(::ProfileRepositoryImpl).bind<ProfileRepository>()
     singleOf(::LocationServiceImpl).bind<LocationService>()
     singleOf(::CategoryRepositoryImpl).bind<CategoryRepository>()
-
+    singleOf(::ProductRepositoryImpl).bind<ProductRepository>()
+    singleOf(::ProductReviewRepositoryImpl).bind<ProductReviewRepository>()
+    singleOf(::TagRepositoryImpl).bind<TagRepository>()
 }
 
 val dispatcherModule = module {
@@ -89,4 +99,21 @@ val ktorModule = module {
             }
         }
     }
+}
+
+val databaseModule = module {
+    single {
+        Room.databaseBuilder(
+            get(),
+            WenuCommerceDatabase::class.java,
+            "wenu_commerce_database"
+        ).apply {
+            if (BuildConfig.DEBUG) {
+                fallbackToDestructiveMigration()
+            }
+        }.build()
+    }
+    single { get<WenuCommerceDatabase>().productDao() }
+    single { get<WenuCommerceDatabase>().categoryDao() }
+    single { get<WenuCommerceDatabase>().userDao() }
 }
