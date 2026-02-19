@@ -12,9 +12,14 @@
     <string name="admin_settings">Settings</string>
     <string name="admin_seller_approvals">Approvals</string>
     <string name="admin_categories">Categories</string>
+    <string name="admin_products">Products</string>
+    <string name="admin_product_search">Search</string>
 
     <!--Seller Tabs Name-->
     <string name="dashboard">Dashboard</string>
     <string name="products">Products</string>
     <string name="orders">Orders</string>
+
+    <!--Connectivity-->
+    <string name="no_internet_connection">No internet connection</string>
 </resources>

@@ -1,22 +1,27 @@
 package com.wenubey.wenucommerce
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.wenubey.wenucommerce.core.connectivity.ConnectivityViewModel
+import com.wenubey.wenucommerce.core.connectivity.OfflineConnectivityBanner
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
 import com.wenubey.wenucommerce.ui.theme.WenuCommerceTheme
+import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.KoinContext
 
@@ -37,15 +42,34 @@ class MainActivity : ComponentActivity() {
                     val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
                     val isInitialized by viewModel.isInitialized.collectAsStateWithLifecycle()
 
+                    // Connectivity banner
+                    val connectivityVm: ConnectivityViewModel = koinViewModel()
+                    val isOnline by connectivityVm.isOnline.collectAsStateWithLifecycle()
+
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        if (isInitialized) {
-                            RootNavigationGraph(
-                                navController = navController,
-                                startDestination = startDestination
-                            )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            if (isInitialized) {
+                                RootNavigationGraph(
+                                    navController = navController,
+                                    startDestination = startDestination
+                                )
+                            }
+
+                            // Global connectivity banner overlay — per user decision:
+                            // "Top banner, visible on every screen", "Overlays on top of content (no layout shift)"
+                            // "Animates in (slide down) and out (slide up)"
+                            // "Auto-dismisses immediately when connectivity returns"
+                            AnimatedVisibility(
+                                visible = !isOnline,
+                                modifier = Modifier.align(Alignment.TopCenter),
+                                enter = slideInVertically(initialOffsetY = { -it }),
+                                exit = slideOutVertically(targetOffsetY = { -it }),
+                            ) {
+                                OfflineConnectivityBanner()
+                            }
                         }
                     }
                 }
