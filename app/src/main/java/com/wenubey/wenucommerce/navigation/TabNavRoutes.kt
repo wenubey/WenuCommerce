@@ -6,13 +6,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.wenubey.wenucommerce.admin.AdminTabScreen
 import com.wenubey.wenucommerce.customer.CustomerTabScreen
+import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailScreen
 import com.wenubey.wenucommerce.seller.SellerTabScreen
+import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
+import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditScreen
+import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontScreen
 import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationStatusScreen
 
 fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
     composable<CustomerTab> {
         val tabArgs = it.toRoute<CustomerTab>()
-        CustomerTabScreen(tabIndex = tabArgs.tabIndex)
+        CustomerTabScreen(
+            tabIndex = tabArgs.tabIndex,
+            onProductClick = { productId ->
+                navController.navigate(CustomerProductDetail(productId))
+            },
+        )
     }
     composable<AdminTab> {
         val tabArgs = it.toRoute<AdminTab>()
@@ -24,9 +33,14 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
         SellerTabScreen(
             tabIndex = tabIndex,
             onNavigateToSellerVerification = { user ->
-                // TODO create SellerVerificationStatusScreen Object for navigation
                 navController.navigate(SellerVerificationStatusScreen)
-            }
+            },
+            onNavigateToCreateProduct = {
+                navController.navigate(SellerProductCreate)
+            },
+            onNavigateToEditProduct = { productId ->
+                navController.navigate(SellerProductEdit(productId))
+            },
         )
     }
 
@@ -38,7 +52,40 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             }
         )
     }
+
+    // Product screens
+    composable<SellerProductCreate> {
+        SellerProductCreateScreen(
+            onProductSaved = { productId ->
+                navController.navigateUp()
+            },
+            onNavigateBack = {
+                navController.navigateUp()
+            },
+        )
+    }
+
+    composable<SellerProductEdit> {
+        SellerProductEditScreen(
+            onNavigateBack = {
+                navController.navigateUp()
+            },
+        )
+    }
+
+    composable<CustomerProductDetail> {
+        CustomerProductDetailScreen(
+            onNavigateBack = {
+                navController.navigateUp()
+            },
+        )
+    }
+
+    composable<SellerStorefront> {
+        SellerStorefrontScreen(
+            onProductClick = { productId ->
+                navController.navigate(CustomerProductDetail(productId))
+            },
+        )
+    }
 }
-
-
-

@@ -1,0 +1,21 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="app" type="AndroidRunConfigurationType" factoryName="Android App">
+    <module name="WenuCommerce.app.main" />
+    <option name="DEPLOY" value="DEFAULT_APK" />
+    <option name="DEPLOY_AS_INSTANT" value="false" />
+    <option name="ARTIFACT_NAME" value="" />
+    <option name="PM_INSTALL_OPTIONS" value="" />
+    <option name="ALL_USERS" value="false" />
+    <option name="ALWAYS_INSTALL" value="false" />
+    <option name="CLEAR_APP_STORAGE" value="false" />
+    <option name="DYNAMIC_FEATURES_DISABLED_LIST" value="" />
+    <option name="ACTIVITY_EXTRA_FLAGS" value="" />
+    <option name="MODE" value="default_activity" />
+    <option name="CLEAR_LOGCAT" value="false" />
+    <option name="SHOW_LOGCAT_AUTOMATICALLY" value="true" />
+    <option name="INSPECTION_WITHOUT_ACTIVITY_RESTART" value="false" />
+    <Profilers>
+      <option name="ADVANCED_PROFILING_ENABLED" value="false" />
+    </Profilers>
+  </configuration>
+</component>

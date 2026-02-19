@@ -1,6 +1,7 @@
 package com.wenubey.wenucommerce.seller
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -38,6 +39,8 @@ import org.koin.androidx.compose.koinViewModel
 fun SellerTabScreen(
     tabIndex: Int,
     onNavigateToSellerVerification: (user: User?) -> Unit,
+    onNavigateToCreateProduct: () -> Unit = {},
+    onNavigateToEditProduct: (String) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel(),
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
 ) {
@@ -77,16 +80,24 @@ fun SellerTabScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            state = pagerState
+            state = pagerState,
+            verticalAlignment = Alignment.Top,
+            pageSize = androidx.compose.foundation.pager.PageSize.Fill,
         ) { page ->
-            when (page) {
-                0 -> SellerDashboardScreen(
-                    isApproved = isApproved,
-                    onNavigateToSellerVerification = onNavigateToSellerVerification
-                )
-                1 -> SellerProductsScreen()
-                2 -> SellerOrdersScreen()
-                3 -> SellerProfileScreen(user = user)
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (page) {
+                    0 -> SellerDashboardScreen(
+                        isApproved = isApproved,
+                        onNavigateToSellerVerification = onNavigateToSellerVerification
+                    )
+                    1 -> SellerProductsScreen(
+                        modifier = Modifier.fillMaxSize(),
+                        onAddProduct = onNavigateToCreateProduct,
+                        onEditProduct = onNavigateToEditProduct,
+                    )
+                    2 -> SellerOrdersScreen()
+                    3 -> SellerProfileScreen(user = user)
+                }
             }
         }
     }

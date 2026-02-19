@@ -7,12 +7,16 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.wenubey.wenucommerce.R
@@ -46,6 +50,16 @@ enum class AdminTabs(
         text = R.string.admin_categories,
         selectedIcon = Icons.Filled.Category,
         unselectedIcon = Icons.Outlined.Category
+    ),
+    Products(
+        text = R.string.admin_products,
+        selectedIcon = Icons.Filled.Inventory2,
+        unselectedIcon = Icons.Outlined.Inventory2
+    ),
+    ProductSearch(
+        text = R.string.admin_product_search,
+        selectedIcon = Icons.Filled.Search,
+        unselectedIcon = Icons.Outlined.Search
     ),
     Settings(
         text = R.string.admin_settings,
