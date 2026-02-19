@@ -64,6 +64,7 @@ Recent decisions affecting current work:
 - [01-04]: isOnline StateFlow exposed directly on CustomerHomeViewModel (SharingStarted.WhileSubscribed 5000) — not passed as composable parameter
 - [01-04]: Scaffold added to MainActivity solely for SnackbarHost; padding lambda uses _ (ignored) to prevent layout shift to existing Box overlay
 - [01-04]: SyncEvent sealed interface is top-level in SyncManager.kt — imported as com.wenubey.data.local.SyncEvent (not SyncManager.SyncEvent)
+- [quick-1]: Source.SERVER used in manualSync() one-shot fetches only — startSync() real-time listeners unchanged; emit() replaces tryEmit() in manualSync() catch for guaranteed SharedFlow delivery in suspend context
 
 ### Pending Todos
 
@@ -80,5 +81,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 01-04-PLAN.md (shimmer skeleton placeholders, pull-to-refresh, EmptyNetworkState, sync failure snackbar) — Phase 01 COMPLETE
+Stopped at: Completed quick-1-PLAN.md (fix sync failure snackbar — Source.SERVER + suspending emit) — Phase 01 still COMPLETE
 Resume file: .planning/phases/02-*/02-01-PLAN.md (next phase)
