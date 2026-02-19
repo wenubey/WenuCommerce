@@ -96,6 +96,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     //Ktor
     implementation(libs.ktor.core)
@@ -119,12 +120,6 @@ dependencies {
     // Paging Compose
     implementation(libs.paging.runtime)
     implementation(libs.paging.compose)
-
-    // Room
-    ksp(libs.room.compiler)
-    implementation(libs.room.runtime)
-    implementation(libs.room.paging)
-    implementation(libs.room.ktx)
 
     // Timber
     implementation(libs.timber)
