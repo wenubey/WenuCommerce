@@ -11,6 +11,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.BuildConfig
+import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.repository.AuthRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
@@ -116,4 +117,8 @@ val databaseModule = module {
     single { get<WenuCommerceDatabase>().productDao() }
     single { get<WenuCommerceDatabase>().categoryDao() }
     single { get<WenuCommerceDatabase>().userDao() }
+}
+
+val syncModule = module {
+    single { SyncManager(get(), get(), get(), get()) }
 }
