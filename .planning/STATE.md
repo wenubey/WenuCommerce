@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 1 of 11 (Room Foundation)
-Plan: 2 of 3 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-19 — Completed plan 01-02 (Room-first repositories, SyncManager, Firestore-to-Room sync listeners)
+Last activity: 2026-02-19 — Completed plan 01-03 (ConnectivityObserver, global offline banner, AuthRepositoryImpl Room caching)
 
-Progress: [█░░░░░░░░░] 6%
+Progress: [█░░░░░░░░░] 8%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 4.5 min
-- Total execution time: 0.15 hours
+- Total plans completed: 3
+- Average duration: 4.3 min
+- Total execution time: 0.22 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-room-foundation | 2/3 complete | 9 min | 4.5 min |
+| 01-room-foundation | 3/4 complete | 13 min | 4.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6 min), 01-02 (3 min)
-- Trend: improving
+- Last 5 plans: 01-01 (6 min), 01-02 (3 min), 01-03 (4 min)
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -55,6 +55,10 @@ Recent decisions affecting current work:
 - [01-02]: deleteCategory uses categoryDao.deleteById() rather than upsert with isActive=false — simpler since observeActiveCategories filters by isActive=1
 - [01-02]: approveProduct and suspendProduct update Room cache immediately after Firestore transaction for instant UI status reflection
 - [01-02]: syncModule placed before repositoryModule in appModules to ensure DAOs resolve before SyncManager is created
+- [Phase 01-room-foundation]: ConnectivityViewModel initialValue=true prevents false-offline flash on startup before callbackFlow emits
+- [Phase 01-room-foundation]: Initial state emitted inside callbackFlow before registerDefaultNetworkCallback — required for correct airplane-mode cold launch
+- [Phase 01-room-foundation]: Box overlay in MainActivity wraps full navigation graph so offline banner appears on every screen without per-screen wiring
+- [Phase 01-room-foundation]: Room user cache cleared in logOut, deleteAccount, and authStateListener null — redundant paths ensure cache is always wiped on sign-out
 
 ### Pending Todos
 
@@ -71,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 01-02-PLAN.md (Room-first repositories, SyncManager, Firestore-to-Room sync with SyncEvent SharedFlow)
-Resume file: .planning/phases/01-room-foundation/01-03-PLAN.md
+Stopped at: Completed 01-03-PLAN.md (ConnectivityObserver, global offline banner, AuthRepositoryImpl Room caching)
+Resume file: .planning/phases/01-room-foundation/01-04-PLAN.md
