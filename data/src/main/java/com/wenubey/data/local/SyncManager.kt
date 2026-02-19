@@ -1,6 +1,7 @@
 package com.wenubey.data.local
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import com.wenubey.data.local.dao.CategoryDao
 import com.wenubey.data.local.dao.ProductDao
 import com.wenubey.data.local.mapper.toEntity
@@ -91,7 +92,7 @@ class SyncManager(
 
     suspend fun manualSync() {
         try {
-            val productsSnapshot = firestore.collection(PRODUCTS_COLLECTION).get().await()
+            val productsSnapshot = firestore.collection(PRODUCTS_COLLECTION).get(Source.SERVER).await()
             val products = productsSnapshot.documents.mapNotNull { doc ->
                 try {
                     doc.toObject(Product::class.java)?.toEntity()
@@ -102,7 +103,7 @@ class SyncManager(
             }
             productDao.upsertAll(products)
 
-            val categoriesSnapshot = firestore.collection(CATEGORIES_COLLECTION).get().await()
+            val categoriesSnapshot = firestore.collection(CATEGORIES_COLLECTION).get(Source.SERVER).await()
             val categories = categoriesSnapshot.documents.mapNotNull { doc ->
                 try {
                     doc.toObject(Category::class.java)?.toEntity()
@@ -114,7 +115,7 @@ class SyncManager(
             categoryDao.upsertAll(categories)
         } catch (e: Exception) {
             Timber.e(e, "Manual sync failed")
-            _syncEvents.tryEmit(SyncEvent.SyncFailed("Sync failed — showing cached data"))
+            _syncEvents.emit(SyncEvent.SyncFailed("Sync failed — showing cached data"))
         }
     }
 }
