@@ -164,13 +164,89 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | | |
+| SYNC-01 | Phase 1 | Pending |
+| SYNC-02 | Phase 1 | Pending |
+| SYNC-05 | Phase 1 | Pending |
+| SYNC-06 | Phase 1 | Pending |
+| SYNC-03 | Phase 2 | Pending |
+| SYNC-04 | Phase 2 | Pending |
+| CART-01 | Phase 3 | Pending |
+| CART-02 | Phase 3 | Pending |
+| CART-03 | Phase 3 | Pending |
+| CART-04 | Phase 3 | Pending |
+| CART-05 | Phase 3 | Pending |
+| CART-06 | Phase 3 | Pending |
+| CART-07 | Phase 3 | Pending |
+| CART-08 | Phase 3 | Pending |
+| WISH-01 | Phase 3 | Pending |
+| WISH-02 | Phase 3 | Pending |
+| WISH-03 | Phase 3 | Pending |
+| WISH-04 | Phase 3 | Pending |
+| WISH-05 | Phase 3 | Pending |
+| CHKT-01 | Phase 4 | Pending |
+| CHKT-02 | Phase 4 | Pending |
+| CHKT-03 | Phase 4 | Pending |
+| CHKT-04 | Phase 4 | Pending |
+| CHKT-05 | Phase 4 | Pending |
+| CHKT-06 | Phase 4 | Pending |
+| CHKT-07 | Phase 4 | Pending |
+| DISC-01 | Phase 5 | Pending |
+| DISC-02 | Phase 5 | Pending |
+| DISC-03 | Phase 5 | Pending |
+| DISC-04 | Phase 5 | Pending |
+| DISC-05 | Phase 5 | Pending |
+| DISC-06 | Phase 5 | Pending |
+| DISC-07 | Phase 5 | Pending |
+| ORDR-01 | Phase 6 | Pending |
+| ORDR-02 | Phase 6 | Pending |
+| ORDR-03 | Phase 6 | Pending |
+| ORDR-04 | Phase 6 | Pending |
+| ORDR-05 | Phase 6 | Pending |
+| ORDR-06 | Phase 6 | Pending |
+| ORDR-07 | Phase 6 | Pending |
+| ORDR-08 | Phase 6 | Pending |
+| ORDR-09 | Phase 6 | Pending |
+| ORDR-10 | Phase 6 | Pending |
+| REVW-01 | Phase 7 | Pending |
+| REVW-02 | Phase 7 | Pending |
+| REVW-03 | Phase 7 | Pending |
+| REVW-04 | Phase 7 | Pending |
+| REVW-05 | Phase 7 | Pending |
+| REVW-06 | Phase 7 | Pending |
+| REVW-07 | Phase 7 | Pending |
+| NOTF-01 | Phase 8 | Pending |
+| NOTF-02 | Phase 8 | Pending |
+| NOTF-03 | Phase 8 | Pending |
+| NOTF-04 | Phase 8 | Pending |
+| NOTF-05 | Phase 8 | Pending |
+| NOTF-06 | Phase 8 | Pending |
+| NOTF-07 | Phase 8 | Pending |
+| NOTF-08 | Phase 8 | Pending |
+| FAVS-01 | Phase 9 | Pending |
+| FAVS-02 | Phase 9 | Pending |
+| FAVS-03 | Phase 9 | Pending |
+| FAVS-04 | Phase 9 | Pending |
+| PRSN-01 | Phase 10 | Pending |
+| PRSN-02 | Phase 10 | Pending |
+| PRSN-03 | Phase 10 | Pending |
+| PRSN-04 | Phase 10 | Pending |
+| PROF-01 | Phase 10 | Pending |
+| PROF-02 | Phase 10 | Pending |
+| PROF-03 | Phase 10 | Pending |
+| PROF-04 | Phase 10 | Pending |
+| PROF-05 | Phase 10 | Pending |
+| PROF-06 | Phase 10 | Pending |
+| TEST-01 | Phase 11 | Pending |
+| TEST-02 | Phase 11 | Pending |
+| TEST-03 | Phase 11 | Pending |
+| TEST-04 | Phase 11 | Pending |
+| TEST-05 | Phase 11 | Pending |
 
 **Coverage:**
-- v1 requirements: 62 total
-- Mapped to phases: 0
-- Unmapped: 62
+- v1 requirements: 77 total
+- Mapped to phases: 77
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-19*
-*Last updated: 2026-02-19 after initial definition*
+*Last updated: 2026-02-19 — traceability populated after roadmap creation*
