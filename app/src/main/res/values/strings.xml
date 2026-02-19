@@ -22,4 +22,10 @@
 
     <!--Connectivity-->
     <string name="no_internet_connection">No internet connection</string>
+
+    <!--Empty network state-->
+    <string name="empty_network_title">Connect to the internet to get started</string>
+    <string name="empty_network_subtitle">We need a connection to load products and categories for the first time.</string>
+    <string name="retry">Retry</string>
+    <string name="sync_failed_snackbar">Sync failed — showing cached data</string>
 </resources>
