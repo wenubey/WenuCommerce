@@ -46,6 +46,19 @@ data object SellerVerificationStatusScreen
 @Serializable
 data object SellerProfile
 
+@Serializable
+data object SellerProductCreate
+
+@Serializable
+data class SellerProductEdit(val productId: String)
+
+// Customer specific product screens
+@Serializable
+data class CustomerProductDetail(val productId: String)
+
+@Serializable
+data class SellerStorefront(val sellerId: String)
+
 // Admin specific screens
 @Serializable
 data object AdminDashboard

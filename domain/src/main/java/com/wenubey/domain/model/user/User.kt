@@ -26,6 +26,7 @@ data class User(
     val signedAt: String = "",
     val signedDevices: List<Device> = listOf(),
     val businessInfo: BusinessInfo? = null,
+    val products: List<String> = listOf(),
 ) {
     companion object {
         fun default(): User = User(

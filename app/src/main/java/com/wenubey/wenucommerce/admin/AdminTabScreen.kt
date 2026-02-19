@@ -35,6 +35,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wenubey.wenucommerce.admin.admin_analytics.AdminAnalyticsScreen
 import com.wenubey.wenucommerce.admin.admin_dashboard.AdminDashboardScreen
 import com.wenubey.wenucommerce.admin.admin_categories.AdminCategoryScreen
+import com.wenubey.wenucommerce.admin.admin_products.AdminProductModerationScreen
+import com.wenubey.wenucommerce.admin.admin_products.AdminProductSearchScreen
 import com.wenubey.wenucommerce.admin.admin_seller_approval.AdminApprovalScreen
 import com.wenubey.wenucommerce.admin.admin_settings.AdminSettingsScreen
 import com.wenubey.wenucommerce.admin.admin_users.AdminUsersScreen
@@ -126,6 +128,14 @@ fun AdminTabScreen(
                 }
 
                 5 -> {
+                    AdminProductModerationScreen()
+                }
+
+                6 -> {
+                    AdminProductSearchScreen()
+                }
+
+                7 -> {
                     AdminSettingsScreen()
                 }
 

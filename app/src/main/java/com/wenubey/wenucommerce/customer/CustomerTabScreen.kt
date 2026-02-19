@@ -33,6 +33,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun CustomerTabScreen(
     tabIndex: Int,
+    onProductClick: (String) -> Unit = {},
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
 ) {
     val emailBannerState by emailBannerVm.emailVerificationBannerState.collectAsStateWithLifecycle()
@@ -67,7 +68,7 @@ fun CustomerTabScreen(
             state = pagerState
         ) { page ->
             when (page) {
-                0 -> CustomerHomeScreen()
+                0 -> CustomerHomeScreen(onProductClick = onProductClick)
                 1 -> CustomerCartScreen()
                 2 -> CustomerProfileScreen()
             }
