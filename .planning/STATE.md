@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 1 of 11 (Room Foundation)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-19 — Completed plan 01-01 (Room entities, DAOs, TypeConverters, mappers, Koin databaseModule)
+Last activity: 2026-02-19 — Completed plan 01-02 (Room-first repositories, SyncManager, Firestore-to-Room sync listeners)
 
-Progress: [█░░░░░░░░░] 3%
+Progress: [█░░░░░░░░░] 6%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 6 min
-- Total execution time: 0.1 hours
+- Total plans completed: 2
+- Average duration: 4.5 min
+- Total execution time: 0.15 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-room-foundation | 1/3 complete | 6 min | 6 min |
+| 01-room-foundation | 2/3 complete | 9 min | 4.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6 min)
-- Trend: baseline established
+- Last 5 plans: 01-01 (6 min), 01-02 (3 min)
+- Trend: improving
 
 *Updated after each plan completion*
 
@@ -50,6 +50,11 @@ Recent decisions affecting current work:
 - [01-01]: fallbackToDestructiveMigration() guarded by BuildConfig.DEBUG — release builds throw IllegalStateException on missing migration, forcing explicit migration objects
 - [01-01]: JSON columns in entities use kotlinx.serialization with runCatching + safe defaults to prevent crashes on corrupt/missing data
 - [01-01]: Enum fields stored as String name in entities; valueOf() with runCatching fallback in mappers handles unknown values forward-compatibly
+- [01-02]: SyncManager uses SupervisorJob so a product listener failure does not cancel the category listener
+- [01-02]: Observe methods return DAO Flows directly — Firestore callbackFlow is gone from repositories; Firestore lives only in SyncManager and one-shot fetch methods
+- [01-02]: deleteCategory uses categoryDao.deleteById() rather than upsert with isActive=false — simpler since observeActiveCategories filters by isActive=1
+- [01-02]: approveProduct and suspendProduct update Room cache immediately after Firestore transaction for instant UI status reflection
+- [01-02]: syncModule placed before repositoryModule in appModules to ensure DAOs resolve before SyncManager is created
 
 ### Pending Todos
 
@@ -66,5 +71,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 01-01-PLAN.md (Room Foundation — entities, DAOs, mappers, Koin databaseModule)
-Resume file: .planning/phases/01-room-foundation/01-02-PLAN.md
+Stopped at: Completed 01-02-PLAN.md (Room-first repositories, SyncManager, Firestore-to-Room sync with SyncEvent SharedFlow)
+Resume file: .planning/phases/01-room-foundation/01-03-PLAN.md
