@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Offline-First Infrastructure
 
-- [ ] **SYNC-01**: Room database serves as single source of truth for all data reads
+- [x] **SYNC-01**: Room database serves as single source of truth for all data reads
 - [ ] **SYNC-02**: Firestore snapshot listeners write-through to Room in background
 - [ ] **SYNC-03**: Offline writes queue in PendingOperationEntity, auto-sync via WorkManager when online
 - [ ] **SYNC-04**: User sees "pending sync" indicator when offline mutations are queued
@@ -164,7 +164,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SYNC-01 | Phase 1 | Pending |
+| SYNC-01 | Phase 1 | Complete |
 | SYNC-02 | Phase 1 | Pending |
 | SYNC-05 | Phase 1 | Pending |
 | SYNC-06 | Phase 1 | Pending |
