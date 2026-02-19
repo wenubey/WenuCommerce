@@ -2,9 +2,11 @@ package com.wenubey.data.repository
 
 import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.wenubey.data.local.dao.CategoryDao
+import com.wenubey.data.local.mapper.toDomain
+import com.wenubey.data.local.mapper.toEntity
 import com.wenubey.data.util.CATEGORIES_COLLECTION
 import com.wenubey.data.util.safeApiCall
 import com.wenubey.domain.model.product.Category
@@ -12,9 +14,9 @@ import com.wenubey.domain.model.product.Subcategory
 import com.wenubey.domain.model.product.toMap
 import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import java.util.UUID
@@ -24,6 +26,7 @@ class CategoryRepositoryImpl(
     private val auth: FirebaseAuth,
     private val storage: FirebaseStorage,
     dispatcherProvider: DispatcherProvider,
+    private val categoryDao: CategoryDao,
 ) : CategoryRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
@@ -31,54 +34,31 @@ class CategoryRepositoryImpl(
     private val categoriesCollection
         get() = firestore.collection(CATEGORIES_COLLECTION)
 
-    override fun observeCategories(): Flow<List<Category>> = callbackFlow {
-        val query = categoriesCollection.whereEqualTo("isActive", true)
+    override fun observeCategories(): Flow<List<Category>> =
+        categoryDao.observeActiveCategories().map { entities -> entities.map { it.toDomain() } }
 
-        val listener = query.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                Timber.e(error, "Error observing categories")
-                close(error)
-                return@addSnapshotListener
-            }
-
-            val categories = snapshot?.documents?.mapNotNull { doc ->
+    override suspend fun getCategories(): Result<List<Category>> = safeApiCall(ioDispatcher) {
+        try {
+            val snapshot = categoriesCollection.whereEqualTo("isActive", true).get().await()
+            val categories = snapshot.documents.mapNotNull { doc ->
                 try {
                     doc.toObject(Category::class.java)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to deserialize category document: ${doc.id}")
+                    Timber.e(e, "Failed to deserialize category: ${doc.id}")
                     null
                 }
-            } ?: emptyList()
-
-            Timber.d("Categories updated: ${categories.size} categories")
-            trySend(categories)
-        }
-
-        awaitClose {
-            Timber.d("Removing categories listener")
-            listener.remove()
-        }
-    }
-
-    override suspend fun getCategories(): Result<List<Category>> = safeApiCall(ioDispatcher) {
-        val snapshot = categoriesCollection
-            .whereEqualTo("isActive", true)
-            .get()
-            .await()
-
-        snapshot.documents.mapNotNull { doc ->
-            try {
-                doc.toObject(Category::class.java)
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to deserialize category document: ${doc.id}")
-                null
             }
+            categoryDao.upsertAll(categories.map { it.toEntity() })
+            categories
+        } catch (e: Exception) {
+            Timber.w(e, "Firestore getCategories failed, falling back to Room cache")
+            categoryDao.observeActiveCategories().first().map { it.toDomain() }
         }
     }
 
     override suspend fun createCategory(category: Category): Result<Category> =
         safeApiCall(ioDispatcher) {
-            val categoryId = UUID.randomUUID().toString()
+            val categoryId = if (category.id.isNotBlank()) category.id else UUID.randomUUID().toString()
             val currentTime = System.currentTimeMillis().toString()
             val createdBy = auth.currentUser?.uid ?: throw Exception("User not authenticated")
 
@@ -95,6 +75,8 @@ class CategoryRepositoryImpl(
                 .set(newCategory.toMap())
                 .await()
 
+            categoryDao.upsert(newCategory.toEntity())
+
             Timber.d("Category created successfully: $categoryId")
             newCategory
         }
@@ -103,14 +85,19 @@ class CategoryRepositoryImpl(
         categoryId: String,
         subcategory: Subcategory,
     ): Result<Unit> = safeApiCall(ioDispatcher) {
-        val currentTime = System.currentTimeMillis().toString()
-
-        categoriesCollection.document(categoryId).update(
-            mapOf(
-                "subcategories" to FieldValue.arrayUnion(subcategory.toMap()),
+        firestore.runTransaction { transaction ->
+            val docRef = categoriesCollection.document(categoryId)
+            val snapshot = transaction.get(docRef)
+            val existing = snapshot.toObject(Category::class.java)
+                ?: throw Exception("Category not found")
+            if (existing.subcategories.any { it.id == subcategory.id }) return@runTransaction
+            val updated = existing.subcategories + subcategory
+            val currentTime = System.currentTimeMillis().toString()
+            transaction.update(docRef, mapOf(
+                "subcategories" to updated.map { it.toMap() },
                 "updatedAt" to currentTime,
-            )
-        ).await()
+            ))
+        }.await()
 
         Timber.d("Subcategory added to category: $categoryId")
     }
@@ -125,6 +112,8 @@ class CategoryRepositoryImpl(
                 .update(updatedCategory.toMap())
                 .await()
 
+            categoryDao.upsert(updatedCategory.toEntity())
+
             Timber.d("Category updated: ${category.id}")
         }
 
@@ -138,6 +127,8 @@ class CategoryRepositoryImpl(
                     "updatedAt" to currentTime,
                 )
             ).await()
+
+            categoryDao.deleteById(categoryId)
 
             Timber.d("Category soft-deleted: $categoryId")
         }
