@@ -5,32 +5,32 @@
 See: .planning/PROJECT.md (updated 2026-02-19)
 
 **Core value:** Customers can browse, search, and purchase products with a seamless offline-capable experience
-**Current focus:** Phase 1 — Room Foundation
+**Current focus:** Phase 1 — Room Foundation (COMPLETE)
 
 ## Current Position
 
-Phase: 1 of 11 (Room Foundation)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-19 — Completed plan 01-03 (ConnectivityObserver, global offline banner, AuthRepositoryImpl Room caching)
+Phase: 1 of 11 (Room Foundation) — COMPLETE
+Plan: 4 of 4 in current phase — COMPLETE
+Status: Phase complete — ready for Phase 2
+Last activity: 2026-02-19 — Completed plan 01-04 (shimmer skeleton placeholders, pull-to-refresh, EmptyNetworkState, sync failure snackbar)
 
-Progress: [█░░░░░░░░░] 8%
+Progress: [█░░░░░░░░░] 9%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4.3 min
-- Total execution time: 0.22 hours
+- Total plans completed: 4
+- Average duration: 4.25 min
+- Total execution time: 0.28 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-room-foundation | 3/4 complete | 13 min | 4.3 min |
+| 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6 min), 01-02 (3 min), 01-03 (4 min)
+- Last 5 plans: 01-01 (6 min), 01-02 (3 min), 01-03 (4 min), 01-04 (4 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -59,6 +59,11 @@ Recent decisions affecting current work:
 - [Phase 01-room-foundation]: Initial state emitted inside callbackFlow before registerDefaultNetworkCallback — required for correct airplane-mode cold launch
 - [Phase 01-room-foundation]: Box overlay in MainActivity wraps full navigation graph so offline banner appears on every screen without per-screen wiring
 - [Phase 01-room-foundation]: Room user cache cleared in logOut, deleteAccount, and authStateListener null — redundant paths ensure cache is always wiped on sign-out
+- [01-04]: shimmerEffect() modifier extension lives in ShimmerProductCard.kt and shared via import — no separate ShimmerModifier.kt file needed for a small package
+- [01-04]: PullToRefreshBox wraps only the main content area; search bar stays above so it remains accessible during refresh
+- [01-04]: isOnline StateFlow exposed directly on CustomerHomeViewModel (SharingStarted.WhileSubscribed 5000) — not passed as composable parameter
+- [01-04]: Scaffold added to MainActivity solely for SnackbarHost; padding lambda uses _ (ignored) to prevent layout shift to existing Box overlay
+- [01-04]: SyncEvent sealed interface is top-level in SyncManager.kt — imported as com.wenubey.data.local.SyncEvent (not SyncManager.SyncEvent)
 
 ### Pending Todos
 
@@ -75,5 +80,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 01-03-PLAN.md (ConnectivityObserver, global offline banner, AuthRepositoryImpl Room caching)
-Resume file: .planning/phases/01-room-foundation/01-04-PLAN.md
+Stopped at: Completed 01-04-PLAN.md (shimmer skeleton placeholders, pull-to-refresh, EmptyNetworkState, sync failure snackbar) — Phase 01 COMPLETE
+Resume file: .planning/phases/02-*/02-01-PLAN.md (next phase)
