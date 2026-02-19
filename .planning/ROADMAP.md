@@ -35,12 +35,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Product detail screen loads from Room; no Firestore `callbackFlow` is observed by any ViewModel
   3. App displays a connectivity status indicator when the device is offline
   4. Room schema version 1 is committed with schema JSON files tracked in git; no `fallbackToDestructiveMigration()` in release build config
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: Room database setup — WenuCommerceDatabase, base entity design, Koin databaseModule, schema JSON tracking
-- [ ] 01-02: Migrate Product and Category repositories to Room-first (Firestore listeners write to Room; UI observes Room DAOs)
-- [ ] 01-03: Migrate Auth repository to Room-first; ConnectivityObserver implementation; connectivity UI surface
+- [ ] 01-01-PLAN.md — Room database setup: entities, DAOs, TypeConverters, mappers, Koin databaseModule, schema v1
+- [ ] 01-02-PLAN.md — Migrate Product and Category repositories to Room-first with SyncManager
+- [ ] 01-03-PLAN.md — ConnectivityObserver, global offline banner UI, AuthRepositoryImpl Room caching
 
 ### Phase 2: Offline Write Queue
 **Goal**: Offline writes made by customers and sellers are queued locally and auto-sync to Firestore when connectivity is restored — no data is silently lost when the device is offline
