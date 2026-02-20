@@ -3,6 +3,8 @@ package com.wenubey.wenucommerce.customer.customer_products
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wenubey.domain.repository.AuthRepository
+import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProductRepository
 import com.wenubey.domain.repository.ProductReviewRepository
@@ -19,6 +21,8 @@ import timber.log.Timber
 class CustomerProductDetailViewModel(
     private val productRepository: ProductRepository,
     private val reviewRepository: ProductReviewRepository,
+    private val cartRepository: CartRepository,
+    private val authRepository: AuthRepository,
     private val savedStateHandle: SavedStateHandle,
     dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
@@ -56,6 +60,8 @@ class CustomerProductDetailViewModel(
                                 isLoading = false,
                             )
                         }
+                        // Check if product is already in cart
+                        checkCartStatus(id)
                     },
                     onFailure = { error ->
                         _state.update {
@@ -65,6 +71,20 @@ class CustomerProductDetailViewModel(
                             )
                         }
                     }
+                )
+            }
+        }
+    }
+
+    private suspend fun checkCartStatus(productId: String) {
+        val userId = authRepository.currentUser.value?.uuid ?: return
+        val cartItem = cartRepository.getCartItem(userId, productId)
+        if (cartItem != null) {
+            _state.update {
+                it.copy(
+                    isInCart = true,
+                    cartQuantity = cartItem.quantity,
+                    selectedQuantity = cartItem.quantity,
                 )
             }
         }
@@ -105,6 +125,77 @@ class CustomerProductDetailViewModel(
             is CustomerProductDetailAction.OnVariantSelected ->
                 _state.update { it.copy(selectedVariant = action.variant) }
             is CustomerProductDetailAction.OnMarkReviewHelpful -> markReviewHelpful(action.reviewId)
+            is CustomerProductDetailAction.SetQuantity -> setQuantity(action.quantity)
+            is CustomerProductDetailAction.AddToCart -> addToCart()
+            is CustomerProductDetailAction.UpdateCartQuantity -> updateCartQuantity(action.newQuantity)
+            is CustomerProductDetailAction.DismissLoginPrompt ->
+                _state.update { it.copy(showLoginPrompt = false) }
+            is CustomerProductDetailAction.DismissCartMessage ->
+                _state.update { it.copy(cartMessage = null) }
+        }
+    }
+
+    private fun setQuantity(quantity: Int) {
+        val maxStock = _state.value.product?.totalStockQuantity ?: 1
+        val clamped = quantity.coerceIn(1, maxStock.coerceAtLeast(1))
+        _state.update { it.copy(selectedQuantity = clamped) }
+    }
+
+    private fun addToCart() {
+        val userId = authRepository.currentUser.value?.uuid
+        if (userId == null) {
+            _state.update { it.copy(showLoginPrompt = true) }
+            return
+        }
+
+        val product = _state.value.product ?: return
+        if (product.totalStockQuantity <= 0) return
+
+        _state.update { it.copy(isAddingToCart = true) }
+        viewModelScope.launch(ioDispatcher) {
+            runCatching {
+                cartRepository.addToCart(userId, product, _state.value.selectedQuantity)
+            }.onSuccess {
+                val newCartItem = cartRepository.getCartItem(userId, product.id)
+                _state.update {
+                    it.copy(
+                        isAddingToCart = false,
+                        isInCart = true,
+                        cartQuantity = newCartItem?.quantity ?: it.selectedQuantity,
+                        cartMessage = "Added to cart",
+                    )
+                }
+            }.onFailure { error ->
+                Timber.e(error, "CustomerProductDetailViewModel: failed to add to cart")
+                _state.update {
+                    it.copy(
+                        isAddingToCart = false,
+                        cartMessage = "Failed to add to cart",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun updateCartQuantity(newQuantity: Int) {
+        val user = authRepository.currentUser.value
+        val userId = user?.uuid ?: return
+        val productId = _state.value.product?.id ?: return
+
+        viewModelScope.launch(ioDispatcher) {
+            runCatching {
+                cartRepository.updateQuantity(userId, productId, newQuantity)
+            }.onSuccess {
+                _state.update {
+                    it.copy(
+                        cartQuantity = newQuantity,
+                        selectedQuantity = newQuantity,
+                        isInCart = newQuantity > 0,
+                    )
+                }
+            }.onFailure { error ->
+                Timber.e(error, "CustomerProductDetailViewModel: failed to update cart quantity")
+            }
         }
     }
 
