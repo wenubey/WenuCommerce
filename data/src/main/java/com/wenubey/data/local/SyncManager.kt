@@ -92,6 +92,10 @@ class SyncManager(
         }
     }
 
+    fun emitOfflineWriteQueued() {
+        _syncEvents.tryEmit(SyncEvent.OfflineWriteQueued)
+    }
+
     suspend fun manualSync() {
         try {
             val productsSnapshot = firestore.collection(PRODUCTS_COLLECTION).get(Source.SERVER).await()
