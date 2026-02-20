@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 02-offline-write-queue
 source: [02-01-SUMMARY.md, 02-02-SUMMARY.md]
 started: 2026-02-20T15:16:14Z
-updated: 2026-02-20T15:40:00Z
+updated: 2026-02-20T17:00:00Z
 ---
 
 ## Current Test
@@ -53,7 +53,7 @@ skipped: 0
 ## Gaps
 
 - truth: "Tapping the offline banner navigates to a screen titled 'Pending Sync Queue' with a back arrow in the top bar"
-  status: failed
+  status: resolved
   reason: "User reported: I can not see the back arrow and top bar also"
   severity: major
   test: 4
