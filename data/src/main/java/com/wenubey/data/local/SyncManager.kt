@@ -2,6 +2,7 @@ package com.wenubey.data.local
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
+import com.wenubey.data.connectivity.ConnectivityObserver
 import com.wenubey.data.local.dao.CategoryDao
 import com.wenubey.data.local.dao.ProductDao
 import com.wenubey.data.local.mapper.toEntity
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -33,6 +35,7 @@ class SyncManager(
     private val productDao: ProductDao,
     private val categoryDao: CategoryDao,
     private val dispatcherProvider: DispatcherProvider,
+    private val connectivityObserver: ConnectivityObserver,
 ) {
 
     private val syncScope = CoroutineScope(SupervisorJob() + dispatcherProvider.io())
@@ -92,8 +95,11 @@ class SyncManager(
         }
     }
 
-    fun emitOfflineWriteQueued() {
-        _syncEvents.tryEmit(SyncEvent.OfflineWriteQueued)
+    suspend fun emitOfflineWriteQueued() {
+        val isOnline = connectivityObserver.isOnline.first()
+        if (!isOnline) {
+            _syncEvents.tryEmit(SyncEvent.OfflineWriteQueued)
+        }
     }
 
     suspend fun manualSync() {
