@@ -86,6 +86,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-19
-Stopped at: Completed quick-1-PLAN.md (fix sync failure snackbar — Source.SERVER + suspending emit) — Phase 01 still COMPLETE
-Resume file: .planning/phases/02-*/02-01-PLAN.md (next phase)
+Last session: 2026-02-20
+Stopped at: Phase 2 context gathered
+Resume file: .planning/phases/02-offline-write-queue/02-CONTEXT.md
