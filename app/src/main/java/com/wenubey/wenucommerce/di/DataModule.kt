@@ -134,7 +134,7 @@ val databaseModule = module {
 }
 
 val syncModule = module {
-    single { SyncManager(get(), get(), get(), get()) }
+    single { SyncManager(get(), get(), get(), get(), get()) }
 }
 
 val connectivityModule = module {
