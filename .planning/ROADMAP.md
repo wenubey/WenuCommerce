@@ -56,7 +56,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- PendingOperationEntity + DAO, SyncWorker with exponential backoff, WorkManager + Koin WorkerFactory integration, database v2 migration
-- [ ] 02-02-PLAN.md -- PendingSyncViewModel, merged offline+pending banner, queue management screen, navigation wiring, offline-write snackbar events
+- [x] 02-02-PLAN.md -- PendingSyncViewModel, merged offline+pending banner, queue management screen, navigation wiring, offline-write snackbar events
 
 ### Phase 3: Cart & Wishlist
 **Goal**: Customers can build a cart and wishlist that persist across app restarts and work offline, giving them full control over what they intend to buy
