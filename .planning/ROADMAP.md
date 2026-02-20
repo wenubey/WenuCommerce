@@ -57,7 +57,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md -- PendingOperationEntity + DAO, SyncWorker with exponential backoff, WorkManager + Koin WorkerFactory integration, database v2 migration
 - [x] 02-02-PLAN.md -- PendingSyncViewModel, merged offline+pending banner, queue management screen, navigation wiring, offline-write snackbar events
-- [ ] 02-03-PLAN.md -- Gap closure: suppress banner overlay on QueueManagement route so TopAppBar is visible
+- [x] 02-03-PLAN.md -- Gap closure: suppress banner overlay on QueueManagement route so TopAppBar is visible
 
 ### Phase 3: Cart & Wishlist
 **Goal**: Customers can build a cart and wishlist that persist across app restarts and work offline, giving them full control over what they intend to buy
@@ -69,13 +69,13 @@ Plans:
   3. Cart shows an inline warning on items that are out of stock or deleted; empty cart shows an illustration with a CTA to browse
   4. Customer taps the heart icon on a product card or detail screen to toggle wishlist membership; wishlist screen shows saved products
   5. Customer adds a product to cart directly from the wishlist screen; wishlist shows an inline warning for unavailable products
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 03-01: CartItemEntity + CartDAO + CartRepository domain interface; CartRepositoryImpl (Room + Firestore sync)
-- [ ] 03-02: Cart UI — CartScreen, quantity controls, subtotal, badge count, empty state, stock-aware warnings
-- [ ] 03-03: WishlistEntity + WishlistDAO + WishlistRepository domain interface; WishlistRepositoryImpl
-- [ ] 03-04: Wishlist UI — heart toggle on product cards/detail, WishlistScreen, add-to-cart from wishlist, unavailable product warning
+- [ ] 03-01-PLAN.md — Cart + Wishlist data foundation: entities, DAOs, domain models, mappers, MIGRATION_2_3, CartRepository with offline queue, SyncWorker wiring
+- [ ] 03-02-PLAN.md — Cart UI: NavigationBar with BadgedBox badge, CartScreen with stepper/swipe/bulk-select/stock-warnings, add-to-cart on product detail
+- [ ] 03-03-PLAN.md — Wishlist data: WishlistRepository with anonymous support, Firestore sync, login migration
+- [ ] 03-04-PLAN.md — Wishlist UI: heart toggle with bounce animation, WishlistScreen grid with add-to-cart actions, unavailable warnings
 
 ### Phase 4: Checkout & Payments
 **Goal**: Customers can complete a purchase end-to-end — from cart to payment to order confirmation — with payment logic fully server-side
@@ -228,7 +228,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
-| 3. Cart & Wishlist | 0/4 | Not started | - |
+| 3. Cart & Wishlist | 0/4 | Planned | - |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
