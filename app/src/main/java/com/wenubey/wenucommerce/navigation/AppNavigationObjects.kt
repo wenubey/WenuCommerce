@@ -80,3 +80,6 @@ data object Cart
 
 @Serializable
 data object Profile
+
+@Serializable
+data object QueueManagement

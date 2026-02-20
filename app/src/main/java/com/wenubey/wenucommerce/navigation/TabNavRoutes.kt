@@ -8,6 +8,7 @@ import com.wenubey.wenucommerce.admin.AdminTabScreen
 import com.wenubey.wenucommerce.customer.CustomerTabScreen
 import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailScreen
 import com.wenubey.wenucommerce.seller.SellerTabScreen
+import com.wenubey.wenucommerce.queue_management.QueueManagementScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditScreen
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontScreen
@@ -86,6 +87,14 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             onProductClick = { productId ->
                 navController.navigate(CustomerProductDetail(productId))
             },
+        )
+    }
+
+    composable<QueueManagement> {
+        QueueManagementScreen(
+            onNavigateBack = {
+                navController.popBackStack()
+            }
         )
     }
 }

@@ -24,6 +24,8 @@ import timber.log.Timber
 
 sealed interface SyncEvent {
     data class SyncFailed(val message: String) : SyncEvent
+    data object OfflineWriteQueued : SyncEvent
+    data class SyncPartialFailure(val message: String) : SyncEvent
 }
 
 class SyncManager(
