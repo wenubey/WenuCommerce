@@ -5,32 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-19)
 
 **Core value:** Customers can browse, search, and purchase products with a seamless offline-capable experience
-**Current focus:** Phase 1 — Room Foundation (COMPLETE)
+**Current focus:** Phase 2 — Offline Write Queue
 
 ## Current Position
 
-Phase: 1 of 11 (Room Foundation) — COMPLETE
-Plan: 4 of 4 in current phase — COMPLETE
-Status: Phase complete — ready for Phase 2
-Last activity: 2026-02-19 - Completed quick task 1: Fix sync failure snackbar not showing on pull-to-refresh with no network
+Phase: 2 of 11 (Offline Write Queue)
+Plan: 1 of 2 in current phase — COMPLETE
+Status: Active — ready for plan 02-02
+Last activity: 2026-02-20 - Completed plan 02-01: Offline write queue foundation
 
-Progress: [█░░░░░░░░░] 9%
+Progress: [█░░░░░░░░░] 11%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 4.25 min
-- Total execution time: 0.28 hours
+- Total plans completed: 5
+- Average duration: 4.6 min
+- Total execution time: 0.38 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
+| 02-offline-write-queue | 1/2 complete | 6 min | 6.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6 min), 01-02 (3 min), 01-03 (4 min), 01-04 (4 min)
+- Last 5 plans: 01-02 (3 min), 01-03 (4 min), 01-04 (4 min), 02-01 (6 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -65,6 +66,12 @@ Recent decisions affecting current work:
 - [01-04]: Scaffold added to MainActivity solely for SnackbarHost; padding lambda uses _ (ignored) to prevent layout shift to existing Box overlay
 - [01-04]: SyncEvent sealed interface is top-level in SyncManager.kt — imported as com.wenubey.data.local.SyncEvent (not SyncManager.SyncEvent)
 - [quick-1]: Source.SERVER used in manualSync() one-shot fetches only — startSync() real-time listeners unchanged; emit() replaces tryEmit() in manualSync() catch for guaranteed SharedFlow delivery in suspend context
+- [02-01]: OperationType enum defines initial types (ADD_TO_CART, UPDATE_CART_QUANTITY, REMOVE_FROM_CART, UPDATE_PROFILE, SUBMIT_REVIEW); more will be added in future phases
+- [02-01]: OperationStatus enum tracks lifecycle: PENDING → IN_PROGRESS → (deleted on success) or FAILED — successful operations deleted rather than marked to keep table lean
+- [02-01]: MAX_RETRIES = 3 hardcoded in SyncWorker; three retries with exponential backoff (30s initial) balances reliability vs. battery/network cost
+- [02-01]: Sequential queue draining (getNextPending() + re-enqueue after success) prevents race conditions and simplifies error handling
+- [02-01]: SyncWorker repository wiring deferred to Phase 3+ — when() block contains TODOs for actual Firestore write dispatching per operation type
+- [02-01]: WorkManagerInitializer removed via AndroidManifest.xml to prevent factory conflict — CRITICAL for Koin WorkerFactory dependency injection
 
 ### Pending Todos
 
@@ -87,5 +94,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-20
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-offline-write-queue/02-CONTEXT.md
+Stopped at: Completed 02-01-PLAN.md
+Resume file: .planning/phases/02-offline-write-queue/02-02-PLAN.md
