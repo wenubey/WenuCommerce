@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 3 of 11 (Cart & Wishlist)
-Plan: 1 of ? in current phase — COMPLETE
-Status: Active — Phase 3 plan 01 complete (Room data layer done), ready for Phase 3 plan 02
-Last activity: 2026-02-20 - Completed plan 03-01: Room data layer for Cart and Wishlist
+Plan: 3 of ? in current phase — COMPLETE
+Status: Active — Phase 3 plan 03 complete (WishlistRepository done), ready for Phase 3 plan 04
+Last activity: 2026-02-20 - Completed plan 03-03: WishlistRepository domain interface and implementation
 
 Progress: [███░░░░░░░] 15%
 
@@ -29,10 +29,10 @@ Progress: [███░░░░░░░] 15%
 |-------|-------|-------|----------|
 | 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
 | 02-offline-write-queue | 3/3 complete | 15 min | 5.0 min |
-| 03-cart-wishlist | 1/? complete | 5 min | 5.0 min |
+| 03-cart-wishlist | 3/? complete | 8 min | 2.67 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (6 min), 02-02 (6 min), 02-03 (3 min), 03-01 (5 min)
+- Last 5 plans: 02-02 (6 min), 02-03 (3 min), 03-01 (5 min), 03-03 (3 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -88,6 +88,8 @@ Recent decisions affecting current work:
 - [03-01]: REMOVE_FROM_CART stores productId directly as payloadJson string — single value needs no wrapper class
 - [03-01]: clearCart() does not queue PendingOperation — used post-checkout when Firestore already reflects cleared state
 - [03-01]: Purchase.quantity changed Double -> Int; backward-compatible via runCatching in UserMapper purchaseHistoryJson deserialization
+- [Phase 03-cart-wishlist]: [03-03]: WishlistRepositoryImpl uses effectiveUserId='' for anonymous users — Firestore write skipped when userId is empty; Room is source of truth
+- [Phase 03-cart-wishlist]: [03-03]: syncAnonymousOnLogin wired in AuthViewModel via previousUserId tracking — runs in background coroutine, failure non-blocking
 
 ### Pending Todos
 
@@ -109,5 +111,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-20
-Stopped at: Completed 03-01-PLAN.md (Phase 3 plan 01 — Room data layer for Cart and Wishlist)
-Resume file: .planning/phases/03-cart-wishlist/03-02-PLAN.md (next plan in Phase 3)
+Stopped at: Completed 03-03-PLAN.md (Phase 3 plan 03 — WishlistRepository domain interface and implementation)
+Resume file: .planning/phases/03-cart-wishlist/03-04-PLAN.md (next plan in Phase 3)
