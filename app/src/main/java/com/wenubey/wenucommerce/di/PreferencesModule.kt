@@ -20,6 +20,11 @@ private val Context.notificationPreferences: DataStore<Preferences> by preferenc
     name = NOTIFICATION_PREFERENCE_NAME
 )
 
+const val PENDING_SYNC_PREFERENCE_NAME = "pendingSyncPreferences"
+private val Context.pendingSyncPreferences: DataStore<Preferences> by preferencesDataStore(
+    name = PENDING_SYNC_PREFERENCE_NAME
+)
+
 val preferencesModule = module {
     single(named("deviceId")) {
         androidContext().deviceIdPreferences
@@ -27,6 +32,10 @@ val preferencesModule = module {
 
     single(named("notification")) {
         androidContext().notificationPreferences
+    }
+
+    single(named("pendingSync")) {
+        androidContext().pendingSyncPreferences
     }
 
     single {

@@ -26,8 +26,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.wenubey.data.local.SyncEvent
 import com.wenubey.data.local.SyncManager
-import com.wenubey.wenucommerce.core.connectivity.ConnectivityViewModel
-import com.wenubey.wenucommerce.core.connectivity.OfflineConnectivityBanner
+import com.wenubey.wenucommerce.core.connectivity.PendingSyncViewModel
+import com.wenubey.wenucommerce.core.connectivity.PendingSyncBanner
+import com.wenubey.wenucommerce.navigation.QueueManagement
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
 import com.wenubey.wenucommerce.ui.theme.WenuCommerceTheme
 import org.koin.androidx.compose.koinViewModel
@@ -52,22 +53,37 @@ class MainActivity : ComponentActivity() {
                     val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
                     val isInitialized by viewModel.isInitialized.collectAsStateWithLifecycle()
 
-                    // Connectivity banner
-                    val connectivityVm: ConnectivityViewModel = koinViewModel()
-                    val isOnline by connectivityVm.isOnline.collectAsStateWithLifecycle()
+                    // Pending sync banner
+                    val pendingSyncVm: PendingSyncViewModel = koinViewModel()
+                    val isOnline by pendingSyncVm.isOnline.collectAsStateWithLifecycle()
+                    val pendingCount by pendingSyncVm.pendingCount.collectAsStateWithLifecycle()
+                    val shouldShowBanner by pendingSyncVm.shouldShowBanner.collectAsStateWithLifecycle()
+                    val isSyncing by pendingSyncVm.isSyncing.collectAsStateWithLifecycle()
 
-                    // Sync failure snackbar
-                    // Per locked decision: "On sync failure: brief snackbar
-                    // 'Sync failed — showing cached data' then continue with cached content"
+                    // Sync event snackbars
                     val syncManager: SyncManager = koinInject()
                     val snackbarHostState = remember { SnackbarHostState() }
                     val syncFailedMessage = stringResource(R.string.sync_failed_snackbar)
+                    val savedLocallyMessage = stringResource(R.string.saved_locally_snackbar)
+                    val partialFailureMessage = stringResource(R.string.some_items_failed_to_sync)
                     LaunchedEffect(Unit) {
                         syncManager.syncEvents.collect { event ->
                             when (event) {
                                 is SyncEvent.SyncFailed -> {
                                     snackbarHostState.showSnackbar(
                                         message = syncFailedMessage,
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                }
+                                is SyncEvent.OfflineWriteQueued -> {
+                                    snackbarHostState.showSnackbar(
+                                        message = savedLocallyMessage,
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                }
+                                is SyncEvent.SyncPartialFailure -> {
+                                    snackbarHostState.showSnackbar(
+                                        message = event.message.ifEmpty { partialFailureMessage },
                                         duration = SnackbarDuration.Short,
                                     )
                                 }
@@ -90,17 +106,23 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
 
-                                // Global connectivity banner overlay — per user decision:
+                                // Global pending sync banner overlay — merged offline + pending sync states
                                 // "Top banner, visible on every screen", "Overlays on top of content (no layout shift)"
                                 // "Animates in (slide down) and out (slide up)"
-                                // "Auto-dismisses immediately when connectivity returns"
+                                // Shows: offline-only, pending-only, or combined states
                                 AnimatedVisibility(
-                                    visible = !isOnline,
+                                    visible = shouldShowBanner,
                                     modifier = Modifier.align(Alignment.TopCenter),
                                     enter = slideInVertically(initialOffsetY = { -it }),
                                     exit = slideOutVertically(targetOffsetY = { -it }),
                                 ) {
-                                    OfflineConnectivityBanner()
+                                    PendingSyncBanner(
+                                        isOnline = isOnline,
+                                        pendingCount = pendingCount,
+                                        isSyncing = isSyncing,
+                                        onDismiss = { pendingSyncVm.dismissBanner() },
+                                        onTap = { navController.navigate(QueueManagement) },
+                                    )
                                 }
                             }
                         }
