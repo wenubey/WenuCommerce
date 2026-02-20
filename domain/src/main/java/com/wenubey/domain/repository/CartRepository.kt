@@ -9,6 +9,7 @@ interface CartRepository {
     fun observeUniqueProductCount(userId: String): Flow<Int>
     suspend fun getCartItem(userId: String, productId: String): CartItem?
     suspend fun addToCart(userId: String, product: Product, quantity: Int)
+    suspend fun restoreCartItem(userId: String, cartItem: CartItem)
     suspend fun updateQuantity(userId: String, productId: String, newQuantity: Int)
     suspend fun removeFromCart(userId: String, productId: String)
     suspend fun clearCart(userId: String)
