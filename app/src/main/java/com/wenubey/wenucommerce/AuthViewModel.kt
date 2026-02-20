@@ -6,6 +6,7 @@ import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
+import com.wenubey.domain.repository.WishlistRepository
 import com.wenubey.wenucommerce.navigation.AdminTab
 import com.wenubey.wenucommerce.navigation.CustomerTab
 import com.wenubey.wenucommerce.navigation.Onboarding
@@ -22,6 +23,7 @@ import timber.log.Timber
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val dispatcherProvider: DispatcherProvider,
+    private val wishlistRepository: WishlistRepository,
 ) : ViewModel() {
 
     private val _startDestination = MutableStateFlow<Any>(SignUp)
@@ -37,6 +39,8 @@ class AuthViewModel(
         startInitializationTimeout()
     }
 
+    private var previousUserId: String? = null
+
     private fun observeUserChanges() {
         viewModelScope.launch {
             authRepository.currentUser.collect { user ->
@@ -44,12 +48,27 @@ class AuthViewModel(
                     user != null -> {
                         // User data is available, determine destination based on role
                         Timber.d("User Data Loaded: ${user.role}")
+                        // Detect login transition: user was null (unauthenticated), now has a real uuid
+                        val uid = user.uuid
+                        if (previousUserId == null && !uid.isNullOrEmpty()) {
+                            viewModelScope.launch {
+                                try {
+                                    wishlistRepository.syncAnonymousOnLogin(uid)
+                                    Timber.d("AuthViewModel: anonymous wishlist synced for $uid")
+                                } catch (e: Exception) {
+                                    Timber.e(e, "AuthViewModel: failed to sync anonymous wishlist on login")
+                                    // Non-blocking — user can still proceed
+                                }
+                            }
+                        }
+                        previousUserId = uid
                         updateStartDestination(user.role)
                         _isInitialized.value = true
                     }
                     authRepository.currentFirebaseUser == null -> {
                         // Not authenticated
                         Timber.d("User Not Authenticated")
+                        previousUserId = null
                         _startDestination.update { SignUp }
                         _isInitialized.value = true
                     }
