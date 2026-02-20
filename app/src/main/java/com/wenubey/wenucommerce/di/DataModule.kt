@@ -14,6 +14,7 @@ import com.wenubey.data.BuildConfig
 import com.wenubey.data.connectivity.ConnectivityObserver
 import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
+import com.wenubey.data.worker.SyncWorker
 import com.wenubey.data.repository.AuthRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
@@ -40,6 +41,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.singleOf
+import org.koin.androidx.workmanager.dsl.worker
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -129,4 +131,8 @@ val syncModule = module {
 
 val connectivityModule = module {
     single { ConnectivityObserver(get()) }
+}
+
+val workerModule = module {
+    worker { SyncWorker(get(), get(), get(), get()) }
 }
