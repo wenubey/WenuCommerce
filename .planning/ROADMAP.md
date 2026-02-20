@@ -69,7 +69,7 @@ Plans:
   3. Cart shows an inline warning on items that are out of stock or deleted; empty cart shows an illustration with a CTA to browse
   4. Customer taps the heart icon on a product card or detail screen to toggle wishlist membership; wishlist screen shows saved products
   5. Customer adds a product to cart directly from the wishlist screen; wishlist shows an inline warning for unavailable products
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 03-01-PLAN.md — Cart + Wishlist data foundation: entities, DAOs, domain models, mappers, MIGRATION_2_3, CartRepository with offline queue, SyncWorker wiring
@@ -228,7 +228,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
-| 3. Cart & Wishlist | 2/4 | In Progress|  |
+| 3. Cart & Wishlist | 3/4 | In Progress|  |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
