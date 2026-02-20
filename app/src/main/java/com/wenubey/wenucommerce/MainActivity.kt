@@ -22,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.wenubey.data.local.SyncEvent
 import com.wenubey.data.local.SyncManager
@@ -49,6 +51,10 @@ class MainActivity : ComponentActivity() {
             KoinContext {
                 WenuCommerceTheme {
                     navController = rememberNavController()
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val isOnQueueManagementScreen = with(NavDestination) {
+                        currentBackStackEntry?.destination?.hasRoute(QueueManagement::class) == true
+                    }
 
                     val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
                     val isInitialized by viewModel.isInitialized.collectAsStateWithLifecycle()
@@ -111,7 +117,7 @@ class MainActivity : ComponentActivity() {
                                 // "Animates in (slide down) and out (slide up)"
                                 // Shows: offline-only, pending-only, or combined states
                                 AnimatedVisibility(
-                                    visible = shouldShowBanner,
+                                    visible = shouldShowBanner && !isOnQueueManagementScreen,
                                     modifier = Modifier.align(Alignment.TopCenter),
                                     enter = slideInVertically(initialOffsetY = { -it }),
                                     exit = slideOutVertically(targetOffsetY = { -it }),
