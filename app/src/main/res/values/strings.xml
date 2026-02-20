@@ -4,6 +4,7 @@
     <!--Home Tabs Name-->
     <string name="home">Home</string>
     <string name="cart">Cart</string>
+    <string name="wishlist">Wishlist</string>
     <string name="profile">Profile</string>
 
     <!--Admin Tabs Name-->
