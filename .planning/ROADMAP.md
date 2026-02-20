@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Room Foundation** - Establish Room as single source of truth; migrate existing repositories off raw Firestore flows (completed 2026-02-19)
 - [x] **Phase 2: Offline Write Queue** - WorkManager-backed write queue; connectivity awareness; pending-sync UI (completed 2026-02-20)
-- [ ] **Phase 3: Cart & Wishlist** - Room-persisted cart with badge and stock awareness; offline-capable wishlist with add-to-cart
+- [x] **Phase 3: Cart & Wishlist** - Room-persisted cart with badge and stock awareness; offline-capable wishlist with add-to-cart (completed 2026-02-20)
 - [ ] **Phase 4: Checkout & Payments** - Stripe PaymentSheet via Cloud Function; order creation on success; order confirmation screen
 - [ ] **Phase 5: Discounts** - Seller coupon management; server-validated coupon entry at checkout; discounted pricing in summary
 - [ ] **Phase 6: Order Tracking & Management** - Customer order history and status timeline; seller order advancement; FCM on status change
@@ -69,7 +69,7 @@ Plans:
   3. Cart shows an inline warning on items that are out of stock or deleted; empty cart shows an illustration with a CTA to browse
   4. Customer taps the heart icon on a product card or detail screen to toggle wishlist membership; wishlist screen shows saved products
   5. Customer adds a product to cart directly from the wishlist screen; wishlist shows an inline warning for unavailable products
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 03-01-PLAN.md — Cart + Wishlist data foundation: entities, DAOs, domain models, mappers, MIGRATION_2_3, CartRepository with offline queue, SyncWorker wiring
@@ -228,7 +228,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
-| 3. Cart & Wishlist | 3/4 | In Progress|  |
+| 3. Cart & Wishlist | 4/4 | Complete   | 2026-02-20 |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
 | 6. Order Tracking & Management | 0/4 | Not started | - |

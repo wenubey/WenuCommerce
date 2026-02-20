@@ -74,9 +74,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **WISH-01**: Customer can add/remove products from wishlist via heart icon on product cards and detail
 - [x] **WISH-02**: Wishlist persists offline via Room, syncs to Firestore
-- [ ] **WISH-03**: Dedicated wishlist screen showing saved products
-- [ ] **WISH-04**: Customer can add to cart directly from wishlist
-- [ ] **WISH-05**: Deleted or unavailable products show inline warning in wishlist
+- [x] **WISH-03**: Dedicated wishlist screen showing saved products
+- [x] **WISH-04**: Customer can add to cart directly from wishlist
+- [x] **WISH-05**: Deleted or unavailable products show inline warning in wishlist
 
 ### Favorite Sellers
 
@@ -180,9 +180,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CART-08 | Phase 3 | Complete |
 | WISH-01 | Phase 3 | Complete |
 | WISH-02 | Phase 3 | Complete |
-| WISH-03 | Phase 3 | Pending |
-| WISH-04 | Phase 3 | Pending |
-| WISH-05 | Phase 3 | Pending |
+| WISH-03 | Phase 3 | Complete |
+| WISH-04 | Phase 3 | Complete |
+| WISH-05 | Phase 3 | Complete |
 | CHKT-01 | Phase 4 | Pending |
 | CHKT-02 | Phase 4 | Pending |
 | CHKT-03 | Phase 4 | Pending |

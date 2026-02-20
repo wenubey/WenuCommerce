@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 3 of 11 (Cart & Wishlist)
-Plan: 3 of ? in current phase — COMPLETE
-Status: Active — Phase 3 plan 03 complete (WishlistRepository done), ready for Phase 3 plan 04
-Last activity: 2026-02-20 - Completed plan 03-03: WishlistRepository domain interface and implementation
+Plan: 4 of 4 in current phase — COMPLETE
+Status: Active — Phase 3 plan 04 complete (Wishlist UI done), Phase 3 all plans complete
+Last activity: 2026-02-20 - Completed plan 03-04: Wishlist UI (WishlistScreen, WishlistViewModel, heart toggle with scale bounce)
 
-Progress: [███░░░░░░░] 15%
+Progress: [████░░░░░░] 18%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 4.6 min
 - Total execution time: 0.59 hours
 
@@ -29,7 +29,7 @@ Progress: [███░░░░░░░] 15%
 |-------|-------|-------|----------|
 | 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
 | 02-offline-write-queue | 3/3 complete | 15 min | 5.0 min |
-| 03-cart-wishlist | 3/? complete | 8 min | 2.67 min |
+| 03-cart-wishlist | 4/4 complete | 16 min | 4.0 min |
 
 **Recent Trend:**
 - Last 5 plans: 02-02 (6 min), 02-03 (3 min), 03-01 (5 min), 03-03 (3 min)
@@ -37,6 +37,7 @@ Progress: [███░░░░░░░] 15%
 
 *Updated after each plan completion*
 | Phase 03-cart-wishlist P02 | 9 | 3 tasks | 14 files |
+| Phase 03 P04 | 8 | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase 03-02]: koinInject() for CartRepository in CustomerTabScreen composable for live badge count — no separate ViewModel needed for single Flow collection
 - [Phase 03-02]: HorizontalPager userScrollEnabled=false in CustomerTabScreen — prevents swipe between Cart/Wishlist tabs during in-cart interactions
 - [Phase 03-02]: Auth gate in product detail uses showLoginPrompt flag + AlertDialog — Phase 5 replaces with actual sign-in navigation
+- [Phase 03]: ProductStatus.ARCHIVED used for deleted wishlist items in buildMinimalProduct (no DELETED enum value exists)
+- [Phase 03]: [03-04]: CustomerHomeViewModel injects WishlistRepository + AuthRepository to map wishlist Flow to Set<String> for per-card lookups
+- [Phase 03]: [03-04]: WishlistHeartButton reusable composable with Animatable scale bounce — no snackbar on toggle from browse/detail, animation is the only feedback
 
 ### Pending Todos
 
@@ -117,5 +121,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-20
-Stopped at: Completed 03-02-PLAN.md (Phase 3 plan 02 — Cart UI: NavigationBar with BadgedBox, CartViewModel, CartScreen, add-to-cart on product detail)
-Resume file: .planning/phases/03-cart-wishlist/03-04-PLAN.md (next plan in Phase 3; 03-03 WishlistRepository already complete)
+Stopped at: Completed 03-04-PLAN.md (Phase 3 plan 04 — Wishlist UI: WishlistScreen, WishlistViewModel, heart toggle with scale bounce on cards and detail screen)
+Resume file: Phase 3 complete — proceed to next phase when ready
