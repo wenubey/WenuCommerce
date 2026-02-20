@@ -6,6 +6,7 @@ import com.wenubey.data.local.SyncManager
 import com.wenubey.wenucommerce.di.appModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.core.context.startKoin
 import timber.log.Timber
 
@@ -18,6 +19,7 @@ class WenuCommerce: Application() {
         startKoin {
             androidLogger()
             androidContext(this@WenuCommerce)
+            workManagerFactory()
             modules(appModules)
         }
 
