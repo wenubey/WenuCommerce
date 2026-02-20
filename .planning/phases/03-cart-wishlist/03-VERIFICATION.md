@@ -1,179 +1,207 @@
 ---
 phase: 03-cart-wishlist
-verified: 2026-02-20T18:30:00Z
+verified: 2026-02-20T21:30:00Z
 status: passed
-score: 13/13 must-haves verified
-re_verification: false
+score: 3/3 gap-closure truths verified; 13/13 original truths confirmed by regression
+re_verification:
+  previous_status: passed (initial) + UAT gaps found
+  previous_score: 13/13
+  gaps_closed:
+    - "Add-to-cart from product detail shows only the feature snackbar, no 'saved locally' overlap"
+    - "Incrementing or decrementing cart quantity does not flash the offline banner when online"
+    - "Wishlist add-to-cart does not trigger false offline banner or saved locally snackbar when online"
+  gaps_remaining: []
+  regressions: []
 gaps: []
 human_verification:
-  - test: "Add product to cart from product detail — verify cart badge increments live"
-    expected: "Badge on Cart nav tab shows correct unique product count immediately after add"
-    why_human: "Flow wiring verified in code, but live badge reactivity requires runtime observation"
-  - test: "Decrement quantity to 1 and press minus — verify item is removed with undo snackbar"
-    expected: "Item disappears from cart list and snackbar appears with Undo action"
-    why_human: "ViewModel logic and SnackbarResult handling verified statically, but flow through LaunchedEffect needs runtime confirmation"
-  - test: "Heart button on product card — verify scale bounce animation fires on toggle"
-    expected: "Heart scales up then settles, switching between outlined and filled red"
-    why_human: "Animatable + LaunchedEffect(isWishlisted) pattern is correct in code; animation rendering needs device verification"
-  - test: "Wishlist without login — add a product to wishlist anonymously, then log in"
-    expected: "Anonymous wishlist items appear in the authenticated wishlist after login"
-    why_human: "syncAnonymousOnLogin wired in AuthViewModel and Room userId migration logic is correct, but end-to-end migration needs runtime verification with real Firestore"
-  - test: "Offline cart add — disable network, add product to cart, re-enable network"
-    expected: "Item appears in cart immediately; SyncWorker dispatches ADD_TO_CART to Firestore when network returns"
-    why_human: "Offline queue, PendingOperationEntity insertion, and SyncWorker dispatch all verified in code but WorkManager scheduling requires device testing"
+  - test: "Offline path: 'Saved locally' snackbar still fires when actually offline"
+    expected: "Exactly one snackbar appears when adding to cart in airplane mode. No second snackbar overlaps."
+    why_human: "Fix uses isOnline.first() — offline path must still emit. Requires device with network toggled off."
+  - test: "Offline banner appears and disappears correctly with connectivity"
+    expected: "PendingSyncBanner appears when offline, disappears when network restored"
+    why_human: "shouldShowBanner is now !online only; offline show / online hide behavior needs device confirmation."
+  - test: "Cart badge live increment after add-to-cart"
+    expected: "Badge on Cart nav tab increments within 1-2 seconds without manual refresh"
+    why_human: "collectAsStateWithLifecycle wiring verified statically; live recomposition reactivity requires device runtime."
+  - test: "Decrement-to-zero removes item with undo snackbar"
+    expected: "Item disappears from cart list and snackbar appears with Undo action; tapping Undo restores item"
+    why_human: "LaunchedEffect(undoItem) and SnackbarResult chain verified statically; runtime timing needs device."
+  - test: "Heart scale bounce animation on toggle"
+    expected: "Heart icon visibly bounces and switches between outlined and filled red"
+    why_human: "Animatable + LaunchedEffect(isWishlisted) animation verified in code; visual rendering needs device."
+  - test: "Anonymous-to-user wishlist migration on login"
+    expected: "Wishlist items added while logged out appear in Wishlist tab after sign-in"
+    why_human: "syncAnonymousOnLogin wiring verified; end-to-end migration with real Firestore requires device."
+  - test: "Offline cart add — persistence and sync-on-reconnect"
+    expected: "Item appears in cart immediately (Room); SyncWorker dispatches ADD_TO_CART to Firestore when network returns"
+    why_human: "PendingOperationEntity insert and WorkManager enqueue verified in code; requires device + Firestore."
 ---
 
 # Phase 03: Cart and Wishlist Verification Report
 
 **Phase Goal:** Customers can build a cart and wishlist that persist across app restarts and work offline, giving them full control over what they intend to buy
-**Verified:** 2026-02-20T18:30:00Z
+**Verified:** 2026-02-20T21:30:00Z
 **Status:** passed
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — after UAT gap closure (Plans 03-01 through 03-05 complete)
 
 ---
 
-## Goal Achievement
+## Re-verification Summary
 
-### Observable Truths
+The initial automated verification (2026-02-20T18:30:00Z) returned 13/13 passed. UAT (commit 15b7efa) then revealed 5 runtime issues — all tracing to two root causes:
+
+1. `PendingSyncViewModel.shouldShowBanner` fired when online with pending items, causing false offline banner flashes on cart quantity changes (UAT tests 4, 5, 11, 12)
+2. `SyncManager.emitOfflineWriteQueued()` emitted unconditionally regardless of connectivity, causing a duplicate "Saved locally" snackbar on every add-to-cart while online (UAT tests 2, 11, 12)
+
+Plan 03-05 was created (commit 86321bc) and executed in two commits:
+- `5ea9535` — `shouldShowBanner` lambda body simplified from `!online || (pending > 0 && pending > dismissed)` to `!online`
+- `c10c482` — `emitOfflineWriteQueued()` made `suspend fun` with `isOnline.first()` connectivity check; `ConnectivityObserver` injected as 5th SyncManager constructor parameter; DataModule updated to 5 `get()` calls
+
+This re-verification confirms both fixes are correctly implemented and no regressions were introduced.
+
+---
+
+## Gap Closure Verification (Plan 03-05 Must-Haves)
+
+### Gap-Closure Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | CartItemEntity rows persist across app restarts via Room | VERIFIED | `CartItemEntity` uses `@Entity(tableName = "cart_items", primaryKeys = ["userId", "productId"])`. DB v3 with `MIGRATION_2_3` exists. Schema JSON exported at `data/schemas/.../3.json`. |
-| 2 | Cart operations queue to PendingOperationEntity when offline and SyncWorker dispatches when online | VERIFIED | `CartRepositoryImpl.queueCartOperation()` inserts `PendingOperationEntity` with correct `OperationType`. `SyncWorker` deserializes payloads and calls `cartRepository.syncAddToCart/syncUpdateQuantity/syncRemoveFromCart`. |
-| 3 | CartRepository provides reactive Flow of cart items scoped to current user | VERIFIED | `CartRepositoryImpl.observeCartItems(userId)` maps `cartItemDao.observeCartItems(userId)` Flow to domain `CartItem`. `CartViewModel.init` collects this Flow. |
-| 4 | Adding the same product again increments quantity instead of creating duplicate rows | VERIFIED | `CartRepositoryImpl.addToCart()` calls `cartItemDao.getCartItem()` first; if existing, calls `updateQuantity(existing.quantity + quantity)`; else `upsert()`. |
-| 5 | Purchase.quantity is Int, not Double | VERIFIED | `Purchase.kt` declares `val quantity: Int = 0`. No `Double` variant found. |
-| 6 | Customer adds product to cart from product detail with quantity selector; cart badge increments | VERIFIED | `CustomerProductDetailScreen` has `CartActionSection` composable with 3 button states (Out of Stock / In Cart / Add to Cart) dispatching `CustomerProductDetailAction.AddToCart`. Badge in `CustomerTabScreen` collects `observeUniqueProductCount` Flow via `koinInject()`. |
-| 7 | Customer increments, decrements, and removes items on cart screen; subtotal updates in real time | VERIFIED | `CartViewModel.onAction` handles `IncrementQuantity`, `DecrementQuantity`, `RemoveItem`. `CartState.subtotal` is a computed `val` on `cartItems`. `CustomerCartScreen` renders stepper controls (`IconButton +/-`) and `CartBottomBar` showing `"$%.2f".format(subtotal)`. |
-| 8 | Out-of-stock items show grayed-out warning; deleted products show "No longer available" | VERIFIED | `CartItemRow` checks `item.isProductDeleted` and `item.availableStock <= 0`. Renders "No longer available" / "Out of Stock" text in error color. Row alpha set to 0.5f when unavailable. Stepper disabled for unavailable items. |
-| 9 | Cart badge on nav tab shows unique product count and disappears when cart is empty | VERIFIED | `CustomerTabScreen` renders `BadgedBox` with `Badge { Text("$cartCount") }` only when `cartCount > 0` on Cart tab. Count from `cartRepository.observeUniqueProductCount(userId)` Flow. |
-| 10 | Empty cart shows illustrated empty state with CTA | VERIFIED | `AnimatedContent(targetState = state.cartItems.isEmpty())` crossfades to `CartEmptyState` composable with icon, text "Your cart feels lonely!", and "Start Shopping" Button calling `onNavigateToHome`. |
-| 11 | WishlistRepository provides reactive Flow, persists offline, supports anonymous users | VERIFIED | `WishlistRepositoryImpl` uses `userId ?: ""` sentinel, `wishlistItemDao.observeWishlistItems(userId)`, and Room-first writes. `syncAnonymousOnLogin` migrates anonymous rows to real userId. `AuthViewModel` calls `wishlistRepository.syncAnonymousOnLogin(uid)` on login. |
-| 12 | Heart toggle works on product cards and detail screen with scale bounce animation | VERIFIED | `WishlistHeartButton` composable uses `Animatable` + `LaunchedEffect(isWishlisted)` (1.3f DampingRatioLowBouncy then 1f MediumBouncy). Wired on `CustomerHomeScreen` product cards (`wishlistedProductIds` Set from `CustomerHomeViewModel`) and `CustomerProductDetailScreen` title row (`isWishlisted` StateFlow from `CustomerProductDetailViewModel`). |
-| 13 | Wishlist screen shows grid, add-to-cart from wishlist (per item / bulk / multi-select) | VERIFIED | `CustomerWishlistScreen` uses `LazyVerticalGrid(GridCells.Fixed(2))` with `AnimatedContent` empty state. `WishlistItemCard` has "Add" button per item. "Add All to Cart" button shown when available items exist. Multi-select via long-press (`combinedClickable`) with "Add to Cart" in selection `TopAppBar`. `WishlistViewModel.addItemToCart/addAllToCart/addSelectedToCart` all call `cartRepository.addToCart`. |
+| G1 | Add-to-cart from product detail shows only the feature snackbar, no 'saved locally' overlap | VERIFIED | `SyncManager.emitOfflineWriteQueued()` (lines 98-103) is `suspend fun` that calls `connectivityObserver.isOnline.first()` (line 99) and only emits `SyncEvent.OfflineWriteQueued` when `!isOnline` (line 100-102). `import kotlinx.coroutines.flow.first` present at line 22. |
+| G2 | Incrementing or decrementing cart quantity does not flash the offline banner when online | VERIFIED | `PendingSyncViewModel.shouldShowBanner` combine lambda at lines 67-78: destructured as `{ online, _, _ -> !online }`. Parameters `pending` and `dismissed` received as underscored (ignored). Banner shows only when `!online`. |
+| G3 | Wishlist add-to-cart does not trigger false offline banner or saved locally snackbar when online | VERIFIED | Root causes fixed by G1 and G2. `WishlistViewModel.addItemToCart` calls `cartRepository.addToCart`, which calls `syncManager.emitOfflineWriteQueued()` (now offline-gated). Banner gated by `!online` in `PendingSyncViewModel`. |
 
-**Score:** 13/13 truths verified
+**Gap-closure score:** 3/3 truths verified
 
----
+### Gap-Closure Artifacts
 
-### Required Artifacts
-
-| Artifact | Expected | Status | Details |
+| Artifact | Provides | Status | Details |
 |----------|----------|--------|---------|
-| `data/.../entity/CartItemEntity.kt` | cart_items Room table | VERIFIED | `@Entity(tableName = "cart_items", primaryKeys = ["userId","productId"])`, all fields correct |
-| `data/.../dao/CartItemDao.kt` | Cart CRUD with Flow | VERIFIED | All 7 methods present: `observeCartItems`, `observeUniqueProductCount`, `getCartItem`, `upsert`, `deleteItem`, `clearCart`, `updateQuantity`, `updateProductStatus` |
-| `data/.../entity/WishlistItemEntity.kt` | wishlist_items Room table | VERIFIED | `@Entity(tableName = "wishlist_items", primaryKeys = ["userId","productId"])`, userId="" for anonymous |
-| `data/.../dao/WishlistItemDao.kt` | Wishlist CRUD with Flow | VERIFIED | All methods present: `observeWishlistItems`, `getWishlistItem`, `getItemsForUser`, `upsert`, `deleteItem`, `deleteAllForUser`, `isWishlisted` |
-| `domain/.../repository/CartRepository.kt` | Cart domain contract | VERIFIED | All specified methods present + `restoreCartItem` added for undo functionality |
-| `data/.../repository/CartRepositoryImpl.kt` | Cart Room-first impl with offline queue | VERIFIED | `pendingOperationDao.insert()` called in `queueCartOperation()`, `SyncWorker.enqueue(context)` called after mutations |
-| `data/.../local/WenuCommerceDatabase.kt` | DB v3 with both tables | VERIFIED | `version = 3`, `CartItemEntity::class` and `WishlistItemEntity::class` in entities array, `MIGRATION_2_3` creates both tables atomically |
-| `domain/.../model/CartItem.kt` | Cart domain model | VERIFIED | All fields present, no `userId` in domain model |
-| `domain/.../model/WishlistItem.kt` | Wishlist domain model | VERIFIED | All fields present |
-| `domain/.../repository/WishlistRepository.kt` | Wishlist domain contract | VERIFIED | `observeWishlistItems`, `isWishlisted`, `toggleWishlist`, `removeFromWishlist`, `syncAnonymousOnLogin` |
-| `data/.../repository/WishlistRepositoryImpl.kt` | Wishlist Room-first impl with anonymous support | VERIFIED | `wishlistItemDao` used throughout; `effectiveUserId = userId ?: ""`; Firestore writes gated on `isNotEmpty()`; `syncAnonymousOnLogin` migrates anonymous rows and fetches Firestore state |
-| `app/.../customer_cart/CartViewModel.kt` | Cart state management | VERIFIED | Observes `cartRepository.observeCartItems(userId)` Flow; `onAction` handles all 11 action types; `clearUndoItem()` public method |
-| `app/.../customer_cart/CartState.kt` | Cart state with computed subtotal | VERIFIED | `subtotal`, `availableItemCount`, `hasUnavailableItems`, `canCheckout` all computed `val` properties |
-| `app/.../CustomerCartScreen.kt` | Full cart UI | VERIFIED | `SwipeToDismissBox`, `AnimatedContent`, `SnackbarHost` with undo, `CartBottomBar` with subtotal and Checkout button |
-| `app/.../CustomerTabScreen.kt` | NavigationBar with BadgedBox | VERIFIED | `NavigationBar` + `NavigationBarItem`, `BadgedBox` on Cart tab, 4 tabs (Home/Cart/Wishlist/Profile) |
-| `app/.../customer_wishlist/WishlistViewModel.kt` | Wishlist state management | VERIFIED | `wishlistRepository.observeWishlistItems` collected; `onAction` handles all actions; `cartRepository.addToCart` called for cart actions |
-| `app/.../CustomerWishlistScreen.kt` | Wishlist grid UI | VERIFIED | `LazyVerticalGrid(GridCells.Fixed(2))`, `AnimatedContent`, undo snackbar, "Add All to Cart" button, multi-select overlay |
-| `app/.../core/components/WishlistHeartButton.kt` | Reusable heart with animation | VERIFIED | `Animatable` + `LaunchedEffect(isWishlisted)`, `Filled.Favorite` / `Outlined.FavoriteBorder`, `graphicsLayer { scaleX = scale.value }` |
-| `data/schemas/.../3.json` | Room schema v3 export | VERIFIED | File exists; `cart_items` and `wishlist_items` tables with composite PKs confirmed |
+| `app/src/main/java/com/wenubey/wenucommerce/core/connectivity/PendingSyncViewModel.kt` | Connectivity-gated banner visibility | VERIFIED | `shouldShowBanner` lambda at lines 71-73: `{ online, _, _ -> !online }`. Commit `5ea9535` confirmed. |
+| `data/src/main/java/com/wenubey/data/local/SyncManager.kt` | Connectivity-aware offline write event emission | VERIFIED | 5-parameter constructor at lines 33-39 includes `private val connectivityObserver: ConnectivityObserver`; `emitOfflineWriteQueued()` is `suspend fun` (line 98); `isOnline.first()` at line 99; `import kotlinx.coroutines.flow.first` at line 22. Commit `c10c482` confirmed. |
+| `app/src/main/java/com/wenubey/wenucommerce/di/DataModule.kt` | Koin wiring for 5-arg SyncManager | VERIFIED | `syncModule` at line 137: `single { SyncManager(get(), get(), get(), get(), get()) }` — 5 `get()` calls confirmed. Commit `c10c482` confirmed. |
 
----
-
-### Key Link Verification
+### Gap-Closure Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `CartRepositoryImpl` | `CartItemDao` | Room DAO injection | VERIFIED | `cartItemDao.` called in every CartRepositoryImpl method |
-| `CartRepositoryImpl` | `PendingOperationDao` | offline queue insertion | VERIFIED | `pendingOperationDao.insert(PendingOperationEntity(...))` in `queueCartOperation()` |
-| `SyncWorker` | `CartRepository` | cart operation dispatch | VERIFIED | `cartRepository.syncAddToCart`, `syncUpdateQuantity`, `syncRemoveFromCart` wired in SyncWorker `when()` block; `AddToCartPayload`/`UpdateCartQuantityPayload` deserialized from JSON |
-| `CartViewModel` | `CartRepository` | Koin injection | VERIFIED | `cartRepository.` used in `observeCartItems`, `updateQuantity`, `removeFromCart`, `restoreCartItem` |
-| `CustomerTabScreen` | `CartViewModel` (via `CartRepository`) | badge count collection | VERIFIED | `cartRepository.observeUniqueProductCount(userId).collectAsStateWithLifecycle(initialValue = 0)` — badge count live in composition |
-| `CustomerProductDetailScreen` | `CustomerProductDetailViewModel` | add-to-cart action dispatch | VERIFIED | `onAction(CustomerProductDetailAction.AddToCart)` dispatched from `CartActionSection` |
-| `WishlistRepositoryImpl` | `WishlistItemDao` | Room DAO injection | VERIFIED | `wishlistItemDao.` called in all 5 interface methods |
-| `WishlistRepositoryImpl` | Firestore `users/{uid}/wishlist` | Firestore write on toggle | VERIFIED | `.collection("wishlist")` appears 5 times — toggle add/remove, removeFromWishlist, syncAnonymousOnLogin migration, Firestore merge |
-| `WishlistViewModel` | `WishlistRepository` | Koin injection | VERIFIED | `wishlistRepository.observeWishlistItems`, `removeFromWishlist`, `toggleWishlist` called |
-| `WishlistViewModel` | `CartRepository` | add-to-cart from wishlist | VERIFIED | `cartRepository.addToCart(userId, minimalProduct, 1)` called in `addItemToCart`, `addAllToCart`, `addSelectedToCart` |
-| `CustomerHomeScreen` | heart icon toggle | wishlist state observation | VERIFIED | `wishlistedProductIds` Set from `CustomerHomeViewModel` state; `isWishlisted = product.id in wishlistedProductIds` on each card |
-| `AuthViewModel` | `WishlistRepository.syncAnonymousOnLogin` | login-triggered migration | VERIFIED | `wishlistRepository.syncAnonymousOnLogin(uid)` called in background coroutine on login transition |
+| `SyncManager.emitOfflineWriteQueued()` | `ConnectivityObserver.isOnline` | `isOnline.first()` check before tryEmit | VERIFIED | `isOnline.first()` at SyncManager.kt line 99; `tryEmit` called only in `if (!isOnline)` branch at line 101 |
+| `PendingSyncViewModel.shouldShowBanner` | `ConnectivityObserver.isOnline` | combine gating on `!online` | VERIFIED | `{ online, _, _ -> !online }` at PendingSyncViewModel.kt lines 71-73; combines isOnline, pendingCount, dismissedCount |
+| `SyncManager` | `ConnectivityObserver` (Koin) | 5th constructor parameter resolved by Koin | VERIFIED | `DataModule.syncModule` line 137 has 5 `get()` calls; `ConnectivityObserver` registered as singleton in `connectivityModule` line 141 |
 
 ---
 
-### Requirements Coverage
+## Regression Check on Original 13 Truths
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|------------|-------------|--------|----------|
-| CART-01 | 03-01, 03-02 | Customer can add product to cart from product detail with quantity selector | SATISFIED | `CartActionSection` composable with stepper (1..totalStockQuantity) + Add to Cart button; dispatches `CustomerProductDetailAction.AddToCart` to `CustomerProductDetailViewModel.addToCart()` |
-| CART-02 | 03-01 | Cart persists across app restarts via Room | SATISFIED | Room `cart_items` table with `@Entity`, composite PK, `MIGRATION_2_3`; schema v3 JSON exported |
-| CART-03 | 03-01 | Cart syncs to Firestore when online | SATISFIED | `SyncWorker` dispatches `ADD_TO_CART`, `UPDATE_CART_QUANTITY`, `REMOVE_FROM_CART` to `CartRepository` sync methods that write to `users/{uid}/cart/{productId}` Firestore documents |
-| CART-04 | 03-01, 03-02 | Customer can update quantity (increment/decrement) or remove items | SATISFIED | `CartViewModel.onAction` handles `IncrementQuantity`, `DecrementQuantity`, `RemoveItem`; calls `cartRepository.updateQuantity` and `removeFromCart`; decrement-to-0 triggers remove |
-| CART-05 | 03-02 | Cart shows subtotal, item count, and per-line totals | SATISFIED | `CartState.subtotal` computed val; `CartBottomBar` renders `"$%.2f".format(subtotal)`; per-item `"$%.2f".format(item.snapshotPrice)` in `CartItemRow` |
-| CART-06 | 03-02 | Out-of-stock or deleted products show warning inline | SATISFIED | `CartItemRow` renders "No longer available" / "Out of Stock" in error color; row alpha 0.5f; stepper disabled; swipe-dismiss background shown only for available items |
-| CART-07 | 03-02 | Cart badge/count visible on navigation tab | SATISFIED | `BadgedBox` with `Badge { Text("$cartCount") }` on Cart `NavigationBarItem`; hidden when `cartCount == 0`; sourced from `observeUniqueProductCount` Room Flow |
-| CART-08 | 03-02 | Empty cart shows illustration with CTA to browse products | SATISFIED | `AnimatedContent` crossfades to `CartEmptyState` with ShoppingCart icon (80dp), "Your cart feels lonely!", "Start Shopping" Button navigating to home tab |
-| WISH-01 | 03-03, 03-04 | Customer can add/remove products from wishlist via heart icon on product cards and detail | SATISFIED | `WishlistHeartButton` in product cards (`CustomerHomeScreen`) and detail title row (`CustomerProductDetailScreen`); dispatches `OnToggleWishlist` / `ToggleWishlist` actions to respective ViewModels |
-| WISH-02 | 03-03 | Wishlist persists offline via Room, syncs to Firestore | SATISFIED | `wishlist_items` Room table; `WishlistRepositoryImpl` writes Room-first; Firestore write on toggle for logged-in users (wrapped in try/catch so Room succeeds even if Firestore fails) |
-| WISH-03 | 03-04 | Dedicated wishlist screen showing saved products | SATISFIED | `CustomerWishlistScreen` with `LazyVerticalGrid(GridCells.Fixed(2))`; wired on page 2 of `HorizontalPager` in `CustomerTabScreen` |
-| WISH-04 | 03-04 | Customer can add to cart directly from wishlist | SATISFIED | Per-item "Add" button in `WishlistItemCard`; "Add All to Cart" full-width button above grid; multi-select "Add to Cart" in selection TopAppBar; all call `cartRepository.addToCart` via `WishlistViewModel` |
-| WISH-05 | 03-04 | Deleted or unavailable products show inline warning in wishlist | SATISFIED | `WishlistItemCard` overlays "No longer available" / "Out of Stock" text centered on image; "Add" button hidden for unavailable items |
+Only the three files in Plan 03-05's `files_modified` were changed. All other Phase 03 artifacts are unmodified.
 
-**All 13 requirements satisfied.**
+| # | Truth | Regression Status | Evidence |
+|---|-------|-------------------|----------|
+| 1 | CartItemEntity Room persistence | NO REGRESSION | `cart_items` entity file unmodified; schema v3 JSON at `data/schemas/.../3.json` confirmed present |
+| 2 | Offline queue to PendingOperationEntity and SyncWorker dispatch | NO REGRESSION | `CartRepositoryImpl.queueCartOperation()` unmodified; `SyncWorker` dispatch methods (3 matches: syncAddToCart, syncUpdateQuantity, syncRemoveFromCart) confirmed |
+| 3 | CartRepository Flow scoped to user | NO REGRESSION | `observeCartItems(userId)` in `CartRepositoryImpl` unmodified |
+| 4 | Duplicate add increments quantity | NO REGRESSION | `addToCart()` upsert logic in `CartRepositoryImpl` unmodified |
+| 5 | Purchase.quantity is Int | NO REGRESSION | `Purchase.kt` not in Plan 03-05 modified files |
+| 6 | Add-to-cart from product detail with badge increment | NO REGRESSION | `CustomerProductDetailScreen`, `CustomerTabScreen` unmodified; `BadgedBox`/`observeUniqueProductCount`/`NavigationBar` confirmed (9 matches in CustomerTabScreen) |
+| 7 | Increment/decrement/remove with live subtotal | NO REGRESSION | `CartViewModel` unmodified |
+| 8 | Out-of-stock/deleted inline warnings | NO REGRESSION | `CartItemRow` unmodified |
+| 9 | Cart badge shows unique count, disappears when empty | NO REGRESSION | `CustomerTabScreen` unmodified; `BadgedBox` wiring confirmed |
+| 10 | Empty cart with crossfade and CTA | NO REGRESSION | `CustomerCartScreen` unmodified |
+| 11 | WishlistRepository offline persistence with anonymous support | NO REGRESSION | `WishlistRepositoryImpl` unmodified; 14 matches confirmed for syncAnonymousOnLogin/wishlistItemDao/toggleWishlist |
+| 12 | Heart toggle with scale bounce animation | NO REGRESSION | `WishlistHeartButton` unmodified; Animatable/LaunchedEffect/isWishlisted confirmed (10 matches) |
+| 13 | Wishlist screen grid, per-item/bulk/multi-select add-to-cart | NO REGRESSION | `CustomerWishlistScreen`, `WishlistViewModel` unmodified |
 
 ---
 
-### Anti-Patterns Found
+## Requirements Coverage
+
+All 13 requirements accounted for and marked `[x]` complete in REQUIREMENTS.md. No orphaned requirements.
+
+| Requirement | Description | Status | Evidence |
+|-------------|-------------|--------|----------|
+| CART-01 | Customer can add product to cart from product detail with quantity selector | SATISFIED | `CartActionSection` with stepper and Add to Cart button; `CustomerProductDetailAction.AddToCart` dispatch verified |
+| CART-02 | Cart persists across app restarts via Room | SATISFIED | Room `cart_items` entity, composite PK, `MIGRATION_2_3`, schema v3 JSON exported |
+| CART-03 | Cart syncs to Firestore when online | SATISFIED | `SyncWorker` dispatches `ADD_TO_CART`, `UPDATE_CART_QUANTITY`, `REMOVE_FROM_CART` to Firestore |
+| CART-04 | Customer can update quantity (increment/decrement) or remove items | SATISFIED | `CartViewModel.onAction` handles `IncrementQuantity`, `DecrementQuantity`, `RemoveItem` |
+| CART-05 | Cart shows subtotal, item count, and per-line totals | SATISFIED | `CartState.subtotal` computed val; `CartBottomBar` renders formatted total |
+| CART-06 | Out-of-stock or deleted products show warning inline | SATISFIED | `CartItemRow` renders "No longer available" / "Out of Stock"; row alpha 0.5f; stepper disabled |
+| CART-07 | Cart badge/count visible on navigation tab | SATISFIED | `BadgedBox` in `CustomerTabScreen`; `observeUniqueProductCount` Flow; hidden when count == 0 |
+| CART-08 | Empty cart shows illustration with CTA to browse products | SATISFIED | `AnimatedContent` crossfade to `CartEmptyState`; "Start Shopping" Button navigating to home tab |
+| WISH-01 | Customer can add/remove products from wishlist via heart icon on product cards and detail | SATISFIED | `WishlistHeartButton` on `CustomerHomeScreen` cards and `CustomerProductDetailScreen` title row |
+| WISH-02 | Wishlist persists offline via Room, syncs to Firestore | SATISFIED | `wishlist_items` Room table; Room-first writes; Firestore write for logged-in users |
+| WISH-03 | Dedicated wishlist screen showing saved products | SATISFIED | `CustomerWishlistScreen` with `LazyVerticalGrid(GridCells.Fixed(2))` wired on tab page 2 |
+| WISH-04 | Customer can add to cart directly from wishlist | SATISFIED | Per-item "Add" button, "Add All to Cart" button, multi-select "Add to Cart" in selection TopAppBar |
+| WISH-05 | Deleted or unavailable products show inline warning in wishlist | SATISFIED | `WishlistItemCard` overlays "No longer available" / "Out of Stock"; "Add" button hidden for unavailable items |
+
+---
+
+## Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `data/worker/SyncWorker.kt` | 130-131 | `TODO("Wire UPDATE_PROFILE...")` and `TODO("Wire SUBMIT_REVIEW...")` | Info | These are for future phases (Phase 3+ per comment); explicitly out of scope for this phase. Not a Phase 03 gap. |
+| `data/worker/SyncWorker.kt` | 130-131 | `TODO("Wire UPDATE_PROFILE...")` and `TODO("Wire SUBMIT_REVIEW...")` | Info | Intentionally deferred to future phases — explicitly out of scope for Phase 03. Not a gap. |
 
-No blocker or warning anti-patterns found in Phase 03 artifacts.
+No anti-patterns found in any Plan 03-05 modified files.
 
 ---
 
-### Human Verification Required
+## Human Verification Required
 
-#### 1. Cart badge live increment after add-to-cart
+### 1. Offline path — "Saved locally" snackbar still fires when actually offline
 
-**Test:** Open product detail for any in-stock product. Tap "Add to Cart". Immediately switch to or observe the Cart tab in the navigation bar.
+**Test:** Enable airplane mode. Open a product detail. Tap "Add to Cart."
+**Expected:** Exactly one snackbar appears: "Saved locally, will sync when online" (or equivalent). No overlapping second snackbar.
+**Why human:** The fix uses `isOnline.first()` — the offline path must still emit. Requires device with network disabled to confirm the positive case was not broken by the fix.
+
+### 2. Offline banner appears and disappears correctly with connectivity
+
+**Test:** Enable airplane mode. Navigate to Home, Cart, or Wishlist screen.
+**Expected:** `PendingSyncBanner` appears at the top of the screen. Re-enable network — banner disappears.
+**Why human:** `shouldShowBanner` is now `!online` only. Online state with pending items must not show the banner. Requires device with airplane mode toggle.
+
+### 3. Cart badge live increment after add-to-cart
+
+**Test:** Open any in-stock product detail. Tap "Add to Cart." Immediately observe the Cart tab in the bottom navigation bar.
 **Expected:** The badge number on the Cart tab increments within 1-2 seconds without any manual refresh.
-**Why human:** Flow collection wiring from `observeUniqueProductCount` through `collectAsStateWithLifecycle` verified in code, but live recomposition reactivity requires device runtime.
+**Why human:** `collectAsStateWithLifecycle` from `observeUniqueProductCount` Flow wiring verified statically; live recomposition reactivity requires device runtime.
 
-#### 2. Decrement-to-zero removes item with undo snackbar
+### 4. Decrement-to-zero removes item with undo snackbar
 
-**Test:** Add one unit of a product to the cart. On the cart screen, tap the "-" (minus) stepper button.
-**Expected:** The item disappears from the list. A snackbar appears at the bottom with "Item removed" and an "Undo" action button. Tapping "Undo" restores the item.
-**Why human:** `LaunchedEffect(undoItem)` and `SnackbarResult.ActionPerformed -> onAction(UndoRemove)` chain verified statically; runtime coroutine timing and snackbar display need device confirmation.
+**Test:** Add one unit of a product to the cart. On the Cart screen, tap the "-" stepper button.
+**Expected:** Item disappears from the list. A snackbar appears with an "Undo" action button. Tapping Undo restores the item.
+**Why human:** `LaunchedEffect(undoItem)` and `SnackbarResult.ActionPerformed` chain verified statically; runtime coroutine timing and snackbar display need device confirmation.
 
-#### 3. Heart scale bounce animation on toggle
+### 5. Heart scale bounce animation on toggle
 
-**Test:** Navigate to the product browse screen. Tap the heart icon on any product card.
-**Expected:** The heart icon visibly scales up (bounces) before settling back to normal size, and switches between outlined (not wishlisted) and filled red (wishlisted).
+**Test:** On the Home screen product cards, tap the heart icon on any product card.
+**Expected:** The heart icon visibly scales up (bounces) before settling, and switches between outlined (not wishlisted) and filled red (wishlisted).
 **Why human:** `Animatable` + `LaunchedEffect(isWishlisted)` spring animations verified in code; animation smoothness and visual correctness requires device rendering.
 
-#### 4. Anonymous-to-user wishlist migration on login
+### 6. Anonymous-to-user wishlist migration on login
 
 **Test:** While logged out, add 2+ products to the wishlist. Then sign in with an existing account.
-**Expected:** The previously saved wishlist items appear in the Wishlist tab after login. The anonymous items are merged with any existing Firestore wishlist items.
-**Why human:** `syncAnonymousOnLogin` implementation in `WishlistRepositoryImpl` is complete, and `AuthViewModel` wiring is verified. End-to-end migration with real Firestore writes and Room deletions requires device testing with network.
+**Expected:** Previously saved wishlist items appear in the Wishlist tab after login, merged with any Firestore wishlist items for that user.
+**Why human:** `syncAnonymousOnLogin` implementation and `AuthViewModel` wiring verified. End-to-end migration with real Firestore requires device testing with network.
 
-#### 5. Offline cart persistence and sync-on-reconnect
+### 7. Offline cart add — persistence and sync-on-reconnect
 
-**Test:** Enable airplane mode. Add a product to the cart. Verify item appears in cart. Re-enable network.
-**Expected:** Cart item is immediately visible (Room write). When network reconnects, SyncWorker fires and the item syncs to Firestore (`users/{uid}/cart/{productId}` document created).
-**Why human:** `PendingOperationEntity` queue insertion and `WorkManager.enqueueUniqueWork` are verified in code. WorkManager scheduling and Firestore write execution require device + Firestore verification.
-
----
-
-### Gaps Summary
-
-No gaps found. All 13 must-haves across Plans 03-01 through 03-04 are verified at all three levels (exists, substantive, wired).
-
-The two `TODO` stubs in `SyncWorker.kt` (`UPDATE_PROFILE`, `SUBMIT_REVIEW`) are intentionally deferred to future phases per the plan specification and do not affect Phase 03 goal achievement.
+**Test:** Enable airplane mode. Add a product to the cart. Verify it appears in cart. Re-enable network.
+**Expected:** Cart item is immediately visible (Room write). When network reconnects, SyncWorker fires and item syncs to Firestore (`users/{uid}/cart/{productId}` document created).
+**Why human:** `PendingOperationEntity` insert and `WorkManager.enqueueUniqueWork` verified in code. WorkManager scheduling and Firestore write execution require device + Firestore observation.
 
 ---
 
-*Verified: 2026-02-20T18:30:00Z*
+## Gaps Summary
+
+No gaps. All 5 UAT issues (tests 2, 4, 5, 11, 12) were closed by Plan 03-05 in two commits:
+
+- `5ea9535`: `PendingSyncViewModel.shouldShowBanner` simplified to `!online` — eliminates false offline banner on cart quantity changes (UAT tests 4, 5) and wishlist add-to-cart (UAT tests 11, 12)
+- `c10c482`: `SyncManager.emitOfflineWriteQueued()` made connectivity-aware via `isOnline.first()` — eliminates duplicate "Saved locally" snackbar when online (UAT tests 2, 11, 12)
+
+All 13 original phase truths pass regression checks. All 13 requirements (CART-01 through CART-08, WISH-01 through WISH-05) satisfied. Phase 03 goal is fully achieved.
+
+---
+
+*Verified: 2026-02-20T21:30:00Z*
 *Verifier: Claude (gsd-verifier)*
+*Re-verification after UAT gap closure — Plans 03-01 through 03-05 complete*
