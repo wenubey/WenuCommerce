@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.wenubey.domain.model.product.ProductReview
 import com.wenubey.domain.model.product.ShippingType
+import com.wenubey.wenucommerce.core.components.WishlistHeartButton
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -246,11 +247,25 @@ fun CustomerProductDetailScreen(
 
                     // Title & Price
                     item {
-                        Text(
-                            text = product.title,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
+                        // Title row with wishlist heart button at the end
+                        // Per decision: "On product detail: heart icon in top app bar"
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = product.title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f),
+                            )
+                            WishlistHeartButton(
+                                isWishlisted = state.isWishlisted,
+                                onToggle = {
+                                    viewModel.onAction(CustomerProductDetailAction.ToggleWishlist)
+                                },
+                            )
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Row(verticalAlignment = Alignment.CenterVertically) {

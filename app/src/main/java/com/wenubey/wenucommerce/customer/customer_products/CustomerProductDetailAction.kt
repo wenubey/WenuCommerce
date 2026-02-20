@@ -12,4 +12,6 @@ sealed interface CustomerProductDetailAction {
     data class UpdateCartQuantity(val newQuantity: Int) : CustomerProductDetailAction
     data object DismissLoginPrompt : CustomerProductDetailAction
     data object DismissCartMessage : CustomerProductDetailAction
+    // Wishlist actions
+    data object ToggleWishlist : CustomerProductDetailAction
 }

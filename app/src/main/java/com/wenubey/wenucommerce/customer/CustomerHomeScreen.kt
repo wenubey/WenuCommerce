@@ -52,6 +52,7 @@ import com.wenubey.wenucommerce.core.components.EmptyNetworkState
 import com.wenubey.wenucommerce.core.components.ShimmerCategoryRow
 import com.wenubey.wenucommerce.core.components.ShimmerProductGrid
 import com.wenubey.wenucommerce.core.components.WenuSearchBar
+import com.wenubey.wenucommerce.core.components.WishlistHeartButton
 import com.wenubey.wenucommerce.customer.customer_home.CustomerHomeAction
 import com.wenubey.wenucommerce.customer.customer_home.CustomerHomeViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -65,6 +66,7 @@ fun CustomerHomeScreen(
 ) {
     val state by viewModel.homeState.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+    val wishlistedProductIds = state.wishlistedProductIds
 
     val isSearchActive = state.searchQuery.isNotBlank()
 
@@ -300,6 +302,10 @@ fun CustomerHomeScreen(
                                     CustomerProductCard(
                                         product = product,
                                         onClick = { onProductClick(product.id) },
+                                        isWishlisted = product.id in wishlistedProductIds,
+                                        onToggleWishlist = {
+                                            viewModel.onAction(CustomerHomeAction.OnToggleWishlist(product.id))
+                                        },
                                     )
                                 }
                             }
@@ -355,6 +361,10 @@ fun CustomerHomeScreen(
                                     CustomerProductCard(
                                         product = product,
                                         onClick = { onProductClick(product.id) },
+                                        isWishlisted = product.id in wishlistedProductIds,
+                                        onToggleWishlist = {
+                                            viewModel.onAction(CustomerHomeAction.OnToggleWishlist(product.id))
+                                        },
                                     )
                                 }
                             }
@@ -420,6 +430,8 @@ fun CategoryCard(
 fun CustomerProductCard(
     product: Product,
     onClick: () -> Unit,
+    isWishlisted: Boolean = false,
+    onToggleWishlist: () -> Unit = {},
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -538,6 +550,19 @@ fun CustomerProductCard(
                             )
                         }
                     }
+                }
+
+                // Action row: heart icon below the card content
+                // Per decision: "On product cards (browse/search): heart in action row below the card"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    WishlistHeartButton(
+                        isWishlisted = isWishlisted,
+                        onToggle = onToggleWishlist,
+                    )
                 }
             }
         }

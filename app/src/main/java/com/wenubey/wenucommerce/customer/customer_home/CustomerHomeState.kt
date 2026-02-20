@@ -21,4 +21,6 @@ data class CustomerHomeState(
     val filterSheetSubcategoryId: String? = null,
     // Pull-to-refresh state — drives the PullToRefreshBox indicator and shimmer overlay
     val isRefreshing: Boolean = false,
+    // Wishlist state — set of wishlisted product IDs for heart icon state on product cards
+    val wishlistedProductIds: Set<String> = emptySet(),
 )
