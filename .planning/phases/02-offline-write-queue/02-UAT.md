@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 02-offline-write-queue
 source: [02-01-SUMMARY.md, 02-02-SUMMARY.md]
 started: 2026-02-20T15:16:14Z
-updated: 2026-02-20T15:35:00Z
+updated: 2026-02-20T15:40:00Z
 ---
 
 ## Current Test
@@ -57,5 +57,14 @@ skipped: 0
   reason: "User reported: I can not see the back arrow and top bar also"
   severity: major
   test: 4
-  artifacts: []
-  missing: []
+  root_cause: "PendingSyncBanner overlay in MainActivity persists on all routes including QueueManagement. The banner's statusBarsPadding() positions it at the exact same vertical space as the TopAppBar, physically covering it."
+  artifacts:
+    - path: "app/src/main/java/com/wenubey/wenucommerce/MainActivity.kt"
+      issue: "Banner overlay (lines 113-126) rendered at Alignment.TopCenter with no route-aware suppression"
+    - path: "app/src/main/java/com/wenubey/wenucommerce/core/connectivity/PendingSyncBanner.kt"
+      issue: "statusBarsPadding() (line 54) places banner at same position as TopAppBar"
+    - path: "app/src/main/java/com/wenubey/wenucommerce/queue_management/QueueManagementScreen.kt"
+      issue: "Correctly implemented — not at fault"
+  missing:
+    - "Auto-dismiss banner when navigating to QueueManagement screen, or suppress banner on QueueManagement route"
+  debug_session: ".planning/debug/02-missing-topbar.md"
