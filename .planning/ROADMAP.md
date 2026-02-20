@@ -52,11 +52,11 @@ Plans:
   2. User sees a "N items pending sync" indicator in the UI while offline writes are queued
   3. The pending-sync indicator disappears after successful sync to Firestore
   4. App does not crash or lose data when toggling between offline and online while operations are pending
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: PendingOperationEntity design, WriteQueueWorker (WorkManager), conflict resolution policy implementation per entity type
-- [ ] 02-02: SyncRepository with pending-count flow; KoinWorkerFactory wiring; pending-sync UI component
+- [ ] 02-01-PLAN.md -- PendingOperationEntity + DAO, SyncWorker with exponential backoff, WorkManager + Koin WorkerFactory integration, database v2 migration
+- [ ] 02-02-PLAN.md -- PendingSyncViewModel, merged offline+pending banner, queue management screen, navigation wiring, offline-write snackbar events
 
 ### Phase 3: Cart & Wishlist
 **Goal**: Customers can build a cart and wishlist that persist across app restarts and work offline, giving them full control over what they intend to buy
@@ -226,7 +226,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
-| 2. Offline Write Queue | 0/2 | Not started | - |
+| 2. Offline Write Queue | 0/2 | Planned | - |
 | 3. Cart & Wishlist | 0/4 | Not started | - |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
