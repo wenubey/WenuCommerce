@@ -38,10 +38,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 4/4 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Room database setup: entities, DAOs, TypeConverters, mappers, Koin databaseModule, schema v1
-- [ ] 01-02-PLAN.md — Migrate Product and Category repositories to Room-first with SyncManager
-- [ ] 01-03-PLAN.md — ConnectivityObserver, global offline banner UI, AuthRepositoryImpl Room caching
-- [ ] 01-04-PLAN.md — Empty network state, shimmer/skeleton placeholders, pull-to-refresh, sync failure snackbar
+- [x] 01-01-PLAN.md — Room database setup: entities, DAOs, TypeConverters, mappers, Koin databaseModule, schema v1
+- [x] 01-02-PLAN.md — Migrate Product and Category repositories to Room-first with SyncManager
+- [x] 01-03-PLAN.md — ConnectivityObserver, global offline banner UI, AuthRepositoryImpl Room caching
+- [x] 01-04-PLAN.md — Empty network state, shimmer/skeleton placeholders, pull-to-refresh, sync failure snackbar
 
 ### Phase 2: Offline Write Queue
 **Goal**: Offline writes made by customers and sellers are queued locally and auto-sync to Firestore when connectivity is restored — no data is silently lost when the device is offline
@@ -55,7 +55,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- PendingOperationEntity + DAO, SyncWorker with exponential backoff, WorkManager + Koin WorkerFactory integration, database v2 migration
+- [x] 02-01-PLAN.md -- PendingOperationEntity + DAO, SyncWorker with exponential backoff, WorkManager + Koin WorkerFactory integration, database v2 migration
 - [ ] 02-02-PLAN.md -- PendingSyncViewModel, merged offline+pending banner, queue management screen, navigation wiring, offline-write snackbar events
 
 ### Phase 3: Cart & Wishlist
@@ -226,7 +226,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
-| 2. Offline Write Queue | 0/2 | Planned | - |
+| 2. Offline Write Queue | 1/2 | In Progress | - |
 | 3. Cart & Wishlist | 0/4 | Not started | - |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
