@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 03-cart-wishlist
 source: [03-01-SUMMARY.md, 03-02-SUMMARY.md, 03-03-SUMMARY.md, 03-04-SUMMARY.md]
 started: 2026-02-20T19:00:00Z
-updated: 2026-02-20T19:25:00Z
+updated: 2026-02-20T21:00:00Z
 ---
 
 ## Current Test
@@ -86,7 +86,7 @@ skipped: 1
 ## Gaps
 
 - truth: "Add to Cart snackbar appears without overlap"
-  status: failed
+  status: resolved
   reason: "User reported: pass but I found issue on when I tap add to cart button 2 snackbar shown one for added to cart and the other one for saved locally will sync... snackbar also shown they overlap each other"
   severity: minor
   test: 2
@@ -103,7 +103,7 @@ skipped: 1
     - "Or filter at MainActivity: only show 'Saved locally' snackbar when !isOnline"
 
 - truth: "Cart operations do not trigger false offline banner"
-  status: failed
+  status: resolved
   reason: "User reported: pass but when I increment or decrement quantity, you are offline banner shows and disappear"
   severity: minor
   test: 4
@@ -115,7 +115,7 @@ skipped: 1
     - "PendingSyncViewModel.shouldShowBanner should only show when device is offline (!online), not when online with pending items"
 
 - truth: "Cart quantity changes do not trigger false offline banner"
-  status: failed
+  status: resolved
   reason: "User reported: pass but same offline banner issue when changing quantity"
   severity: minor
   test: 5
@@ -127,7 +127,7 @@ skipped: 1
     - "PendingSyncViewModel.shouldShowBanner should only show when device is offline"
 
 - truth: "Wishlist add-to-cart does not trigger false offline banner or saved locally snackbar"
-  status: failed
+  status: resolved
   reason: "User reported: pass but as I mentioned before when I click add to cart button offline banner show and snackbar show item saved locally"
   severity: minor
   test: 11
@@ -141,7 +141,7 @@ skipped: 1
     - "Same fixes as tests 2 and 4"
 
 - truth: "Wishlist add-to-cart does not trigger false offline banner or saved locally snackbar"
-  status: failed
+  status: resolved
   reason: "User reported: pass but same offline banner and saved locally snackbar issue"
   severity: minor
   test: 12
