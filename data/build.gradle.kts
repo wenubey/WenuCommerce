@@ -84,6 +84,10 @@ dependencies {
     implementation(libs.room.paging)
     implementation(libs.room.ktx)
 
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.koin.workmanager)
+
     // Unit Test
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

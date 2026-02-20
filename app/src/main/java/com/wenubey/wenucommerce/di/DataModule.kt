@@ -109,15 +109,18 @@ val databaseModule = module {
             get(),
             WenuCommerceDatabase::class.java,
             "wenu_commerce_database"
-        ).apply {
-            if (BuildConfig.DEBUG) {
-                fallbackToDestructiveMigration()
-            }
-        }.build()
+        )
+            .addMigrations(WenuCommerceDatabase.MIGRATION_1_2)
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    fallbackToDestructiveMigration()
+                }
+            }.build()
     }
     single { get<WenuCommerceDatabase>().productDao() }
     single { get<WenuCommerceDatabase>().categoryDao() }
     single { get<WenuCommerceDatabase>().userDao() }
+    single { get<WenuCommerceDatabase>().pendingOperationDao() }
 }
 
 val syncModule = module {
