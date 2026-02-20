@@ -16,6 +16,7 @@ import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.worker.SyncWorker
 import com.wenubey.data.repository.AuthRepositoryImpl
+import com.wenubey.data.repository.CartRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
@@ -27,6 +28,7 @@ import com.wenubey.data.repository.TagRepositoryImpl
 import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
 import com.wenubey.domain.repository.AuthRepository
+import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
@@ -66,6 +68,7 @@ val repositoryModule = module {
     singleOf(::ProductRepositoryImpl).bind<ProductRepository>()
     singleOf(::ProductReviewRepositoryImpl).bind<ProductReviewRepository>()
     singleOf(::TagRepositoryImpl).bind<TagRepository>()
+    singleOf(::CartRepositoryImpl).bind<CartRepository>()
 }
 
 val dispatcherModule = module {
@@ -112,7 +115,7 @@ val databaseModule = module {
             WenuCommerceDatabase::class.java,
             "wenu_commerce_database"
         )
-            .addMigrations(WenuCommerceDatabase.MIGRATION_1_2)
+            .addMigrations(WenuCommerceDatabase.MIGRATION_1_2, WenuCommerceDatabase.MIGRATION_2_3)
             .apply {
                 if (BuildConfig.DEBUG) {
                     fallbackToDestructiveMigration()
@@ -123,6 +126,8 @@ val databaseModule = module {
     single { get<WenuCommerceDatabase>().categoryDao() }
     single { get<WenuCommerceDatabase>().userDao() }
     single { get<WenuCommerceDatabase>().pendingOperationDao() }
+    single { get<WenuCommerceDatabase>().cartItemDao() }
+    single { get<WenuCommerceDatabase>().wishlistItemDao() }
 }
 
 val syncModule = module {
@@ -134,5 +139,5 @@ val connectivityModule = module {
 }
 
 val workerModule = module {
-    worker { SyncWorker(get(), get(), get(), get()) }
+    worker { SyncWorker(get(), get(), get(), get(), get()) }
 }

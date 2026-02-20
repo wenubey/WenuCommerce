@@ -12,7 +12,11 @@ import androidx.work.WorkerParameters
 import com.wenubey.data.local.dao.PendingOperationDao
 import com.wenubey.data.local.entity.OperationStatus
 import com.wenubey.data.local.entity.OperationType
+import com.wenubey.data.repository.AddToCartPayload
+import com.wenubey.data.repository.UpdateCartQuantityPayload
+import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.DispatcherProvider
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.time.Duration
 import java.time.Instant
@@ -29,18 +33,18 @@ import java.time.Instant
  *
  * Dependencies injected via Koin WorkerFactory:
  * - PendingOperationDao: Queue access
+ * - CartRepository: Cart Firestore sync
  * - DispatcherProvider: IO dispatcher for database operations
- *
- * NOTE: Repository wiring for actual Firestore writes will be added in Phase 3+
- * when cart/profile repositories gain offline-write support. For now, this worker
- * establishes the retry logic and queue draining structure.
  */
 class SyncWorker(
     appContext: Context,
     params: WorkerParameters,
     private val pendingOperationDao: PendingOperationDao,
+    private val cartRepository: CartRepository,
     private val dispatcherProvider: DispatcherProvider
 ) : CoroutineWorker(appContext, params) {
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun doWork(): Result = dispatcherProvider.io().run {
         // Handle CANCELLED state before doing any work
@@ -98,20 +102,36 @@ class SyncWorker(
             }
 
             // Execute operation based on type
-            // NOTE: Actual repository dispatching will be wired in Phase 3+ when
-            // cart/profile repositories add offline-write support. For now, we
-            // establish the structure with TODOs.
-            @Suppress("KotlinConstantConditions")
             when (operationType) {
-                OperationType.ADD_TO_CART -> TODO("Wire ADD_TO_CART to CartRepository in Phase 3+")
-                OperationType.UPDATE_CART_QUANTITY -> TODO("Wire UPDATE_CART_QUANTITY to CartRepository in Phase 3+")
-                OperationType.REMOVE_FROM_CART -> TODO("Wire REMOVE_FROM_CART to CartRepository in Phase 3+")
+                OperationType.ADD_TO_CART -> {
+                    val payload = json.decodeFromString<AddToCartPayload>(operation.payloadJson)
+                    cartRepository.syncAddToCart(
+                        userId = operation.entityId,
+                        productId = payload.productId,
+                        quantity = payload.quantity,
+                        snapshotPrice = payload.snapshotPrice
+                    )
+                }
+                OperationType.UPDATE_CART_QUANTITY -> {
+                    val payload = json.decodeFromString<UpdateCartQuantityPayload>(operation.payloadJson)
+                    cartRepository.syncUpdateQuantity(
+                        userId = operation.entityId,
+                        productId = payload.productId,
+                        quantity = payload.quantity
+                    )
+                }
+                OperationType.REMOVE_FROM_CART -> {
+                    // payloadJson is the productId for REMOVE_FROM_CART
+                    cartRepository.syncRemoveFromCart(
+                        userId = operation.entityId,
+                        productId = operation.payloadJson
+                    )
+                }
                 OperationType.UPDATE_PROFILE -> TODO("Wire UPDATE_PROFILE to ProfileRepository in Phase 3+")
                 OperationType.SUBMIT_REVIEW -> TODO("Wire SUBMIT_REVIEW to ReviewRepository in Phase 3+")
             }
 
             // On success: delete operation and enqueue next
-            // (This code is currently unreachable due to TODOs above, but structure is correct)
             pendingOperationDao.deleteById(operation.id)
             Timber.d("SyncWorker: Successfully processed operation ${operation.id}")
             enqueue(applicationContext) // Process next item
