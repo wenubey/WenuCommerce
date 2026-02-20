@@ -61,6 +61,37 @@ class CartRepositoryImpl(
             cartItemDao.getCartItem(userId, productId)?.toDomain()
         }
 
+    override suspend fun restoreCartItem(userId: String, cartItem: CartItem) =
+        withContext(dispatcherProvider.io()) {
+            val now = Instant.now().toString()
+            val entity = CartItemEntity(
+                userId = userId,
+                productId = cartItem.productId,
+                productTitle = cartItem.productTitle,
+                productImageUrl = cartItem.productImageUrl,
+                quantity = cartItem.quantity,
+                snapshotPrice = cartItem.snapshotPrice,
+                availableStock = cartItem.availableStock,
+                isProductDeleted = cartItem.isProductDeleted,
+                addedAt = cartItem.addedAt.ifEmpty { now },
+                updatedAt = now
+            )
+            cartItemDao.upsert(entity)
+            queueCartOperation(
+                entityId = userId,
+                operationType = OperationType.ADD_TO_CART,
+                payloadJson = json.encodeToString(
+                    AddToCartPayload(
+                        productId = cartItem.productId,
+                        quantity = cartItem.quantity,
+                        snapshotPrice = cartItem.snapshotPrice
+                    )
+                )
+            )
+            SyncWorker.enqueue(context)
+            syncManager.emitOfflineWriteQueued()
+        }
+
     override suspend fun addToCart(userId: String, product: Product, quantity: Int) =
         withContext(dispatcherProvider.io()) {
             val now = Instant.now().toString()
