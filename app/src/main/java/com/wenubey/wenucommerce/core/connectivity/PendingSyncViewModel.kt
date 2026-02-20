@@ -29,8 +29,7 @@ import kotlinx.coroutines.launch
  *
  * Banner visibility logic:
  * - Show if offline (regardless of pending count)
- * - Show if pending count > 0 AND pending count > dismissed count
- * - Hide if online AND (no pending operations OR user dismissed at this count)
+ * - Hide if online regardless of pending count (SyncWorker handles pending items silently)
  *
  * Dismiss behavior:
  * - Stores the current pending count in DataStore
@@ -69,11 +68,9 @@ class PendingSyncViewModel(
         isOnline,
         pendingCount,
         dismissedCount
-    ) { online, pending, dismissed ->
-        // Show banner if:
-        // 1. Offline (regardless of pending count)
-        // 2. Online but pending items exist AND count > dismissed count
-        !online || (pending > 0 && pending > dismissed)
+    ) { online, _, _ ->
+        // Show banner only when offline — SyncWorker handles pending items silently when online
+        !online
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
