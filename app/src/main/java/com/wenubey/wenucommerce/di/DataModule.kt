@@ -17,6 +17,7 @@ import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.worker.SyncWorker
 import com.wenubey.data.repository.AuthRepositoryImpl
 import com.wenubey.data.repository.CartRepositoryImpl
+import com.wenubey.data.repository.WishlistRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
@@ -29,6 +30,7 @@ import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.CartRepository
+import com.wenubey.domain.repository.WishlistRepository
 import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
@@ -69,6 +71,7 @@ val repositoryModule = module {
     singleOf(::ProductReviewRepositoryImpl).bind<ProductReviewRepository>()
     singleOf(::TagRepositoryImpl).bind<TagRepository>()
     singleOf(::CartRepositoryImpl).bind<CartRepository>()
+    singleOf(::WishlistRepositoryImpl).bind<WishlistRepository>()
 }
 
 val dispatcherModule = module {

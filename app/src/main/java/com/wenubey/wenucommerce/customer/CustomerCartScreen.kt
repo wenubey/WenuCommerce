@@ -20,9 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-// TODO Refactor Later
+// TODO Refactor Later — full cart UI implemented in plan 03-02
 @Composable
-fun CustomerCartScreen(modifier: Modifier = Modifier) {
+fun CustomerCartScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToProduct: (String) -> Unit = {},
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -63,7 +67,7 @@ fun CustomerCartScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { /* Navigate to home */ }
+                    onClick = onNavigateToHome
                 ) {
                     Text("Continue Shopping")
                 }
