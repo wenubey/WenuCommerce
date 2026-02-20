@@ -13,7 +13,7 @@ WenuCommerce transforms from a browsing app into a full transactional e-commerce
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Room Foundation** - Establish Room as single source of truth; migrate existing repositories off raw Firestore flows (completed 2026-02-19)
-- [ ] **Phase 2: Offline Write Queue** - WorkManager-backed write queue; connectivity awareness; pending-sync UI
+- [x] **Phase 2: Offline Write Queue** - WorkManager-backed write queue; connectivity awareness; pending-sync UI (completed 2026-02-20)
 - [ ] **Phase 3: Cart & Wishlist** - Room-persisted cart with badge and stock awareness; offline-capable wishlist with add-to-cart
 - [ ] **Phase 4: Checkout & Payments** - Stripe PaymentSheet via Cloud Function; order creation on success; order confirmation screen
 - [ ] **Phase 5: Discounts** - Seller coupon management; server-validated coupon entry at checkout; discounted pricing in summary
@@ -52,7 +52,7 @@ Plans:
   2. User sees a "N items pending sync" indicator in the UI while offline writes are queued
   3. The pending-sync indicator disappears after successful sync to Firestore
   4. App does not crash or lose data when toggling between offline and online while operations are pending
-**Plans:** 3 plans (including 1 gap-closure)
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md -- PendingOperationEntity + DAO, SyncWorker with exponential backoff, WorkManager + Koin WorkerFactory integration, database v2 migration
@@ -227,7 +227,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
-| 2. Offline Write Queue | 2/3 | In Progress | - |
+| 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
 | 3. Cart & Wishlist | 0/4 | Not started | - |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
