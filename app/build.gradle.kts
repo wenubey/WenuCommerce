@@ -125,6 +125,10 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
 
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.koin.workmanager)
+
     // Timber
     implementation(libs.timber)
 
