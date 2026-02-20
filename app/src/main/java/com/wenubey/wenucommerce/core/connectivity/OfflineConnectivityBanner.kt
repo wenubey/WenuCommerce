@@ -1,3 +1,4 @@
+// Superseded by PendingSyncBanner — retained for potential reuse
 package com.wenubey.wenucommerce.core.connectivity
 
 import androidx.compose.foundation.layout.Arrangement

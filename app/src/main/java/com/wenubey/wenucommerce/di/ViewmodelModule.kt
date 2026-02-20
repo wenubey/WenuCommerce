@@ -2,8 +2,9 @@ package com.wenubey.wenucommerce.di
 
 import com.wenubey.wenucommerce.AuthViewModel
 import com.wenubey.wenucommerce.admin.AdminBadgeViewModel
-import com.wenubey.wenucommerce.core.connectivity.ConnectivityViewModel
+import com.wenubey.wenucommerce.core.connectivity.PendingSyncViewModel
 import com.wenubey.wenucommerce.admin.admin_seller_approval.AdminApprovalViewModel
+import com.wenubey.wenucommerce.queue_management.QueueManagementViewModel
 import com.wenubey.wenucommerce.onboard.OnboardingViewModel
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationBannerViewModel
 import com.wenubey.wenucommerce.admin.admin_categories.AdminCategoryViewModel
@@ -23,10 +24,19 @@ import com.wenubey.wenucommerce.sign_up.SignUpViewModel
 import com.wenubey.wenucommerce.verify_email.VerifyEmailViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val viewModelModule = module {
-    viewModelOf(::ConnectivityViewModel)
+    viewModel {
+        PendingSyncViewModel(
+            connectivityObserver = get(),
+            pendingOperationDao = get(),
+            dataStore = get(named("pendingSync")),
+            application = get()
+        )
+    }
+    viewModelOf(::QueueManagementViewModel)
     viewModelOf(::SignUpViewModel)
     viewModelOf(::SignInViewModel)
     viewModelOf(::AuthViewModel)

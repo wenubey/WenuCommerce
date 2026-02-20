@@ -22,10 +22,20 @@
 
     <!--Connectivity-->
     <string name="no_internet_connection">No internet connection</string>
+    <string name="pending_sync_count">%d items pending sync</string>
+    <string name="offline_pending_sync">Offline -- %d items pending sync</string>
+    <string name="syncing_items">Syncing %d items…</string>
 
     <!--Empty network state-->
     <string name="empty_network_title">Connect to the internet to get started</string>
     <string name="empty_network_subtitle">We need a connection to load products and categories for the first time.</string>
     <string name="retry">Retry</string>
     <string name="sync_failed_snackbar">Sync failed — showing cached data</string>
+
+    <!--Queue Management-->
+    <string name="pending_sync_queue_title">Pending Sync Queue</string>
+    <string name="no_pending_operations">No pending operations</string>
+    <string name="operation_failed_message">Failed to sync</string>
+    <string name="saved_locally_snackbar">Saved locally -- will sync when online</string>
+    <string name="some_items_failed_to_sync">Some items failed to sync</string>
 </resources>

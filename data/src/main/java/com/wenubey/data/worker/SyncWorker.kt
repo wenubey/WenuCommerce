@@ -145,7 +145,7 @@ class SyncWorker(
 
     companion object {
         private const val MAX_RETRIES = 3
-        private const val UNIQUE_WORK_NAME = "sync_pending_operations"
+        const val UNIQUE_WORK_NAME = "sync_pending_operations"
 
         /**
          * Enqueue a one-time sync work request with network constraints and exponential backoff.
