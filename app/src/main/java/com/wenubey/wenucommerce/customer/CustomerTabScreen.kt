@@ -1,7 +1,6 @@
 package com.wenubey.wenucommerce.customer
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -20,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,23 +95,15 @@ fun CustomerTabScreen(
                     },
                     onNavigateToProduct = onProductClick
                 )
-                2 -> CustomerWishlistPlaceholder()
+                2 -> CustomerWishlistScreen(
+                    onNavigateToProduct = onProductClick,
+                    onNavigateToHome = {
+                        scope.launch { pagerState.animateScrollToPage(CustomerTabs.Home.ordinal) }
+                    },
+                )
                 3 -> CustomerProfileScreen()
             }
         }
-    }
-}
-
-@Composable
-private fun CustomerWishlistPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "Wishlist coming soon",
-            style = MaterialTheme.typography.bodyLarge,
-        )
     }
 }
 
