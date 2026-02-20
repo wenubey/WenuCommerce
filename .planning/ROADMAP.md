@@ -69,13 +69,14 @@ Plans:
   3. Cart shows an inline warning on items that are out of stock or deleted; empty cart shows an illustration with a CTA to browse
   4. Customer taps the heart icon on a product card or detail screen to toggle wishlist membership; wishlist screen shows saved products
   5. Customer adds a product to cart directly from the wishlist screen; wishlist shows an inline warning for unavailable products
-**Plans:** 4/4 plans complete
+**Plans:** 5 plans (4 complete, 1 gap closure)
 
 Plans:
-- [ ] 03-01-PLAN.md — Cart + Wishlist data foundation: entities, DAOs, domain models, mappers, MIGRATION_2_3, CartRepository with offline queue, SyncWorker wiring
-- [ ] 03-02-PLAN.md — Cart UI: NavigationBar with BadgedBox badge, CartScreen with stepper/swipe/bulk-select/stock-warnings, add-to-cart on product detail
-- [ ] 03-03-PLAN.md — Wishlist data: WishlistRepository with anonymous support, Firestore sync, login migration
-- [ ] 03-04-PLAN.md — Wishlist UI: heart toggle with bounce animation, WishlistScreen grid with add-to-cart actions, unavailable warnings
+- [x] 03-01-PLAN.md — Cart + Wishlist data foundation: entities, DAOs, domain models, mappers, MIGRATION_2_3, CartRepository with offline queue, SyncWorker wiring
+- [x] 03-02-PLAN.md — Cart UI: NavigationBar with BadgedBox badge, CartScreen with stepper/swipe/bulk-select/stock-warnings, add-to-cart on product detail
+- [x] 03-03-PLAN.md — Wishlist data: WishlistRepository with anonymous support, Firestore sync, login migration
+- [x] 03-04-PLAN.md — Wishlist UI: heart toggle with bounce animation, WishlistScreen grid with add-to-cart actions, unavailable warnings
+- [ ] 03-05-PLAN.md — Gap closure: fix false offline banner and duplicate snackbar on cart/wishlist operations when online
 
 ### Phase 4: Checkout & Payments
 **Goal**: Customers can complete a purchase end-to-end — from cart to payment to order confirmation — with payment logic fully server-side
@@ -228,7 +229,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
-| 3. Cart & Wishlist | 4/4 | Complete    | 2026-02-20 |
+| 3. Cart & Wishlist | 4/5 | Gap closure | - |
 | 4. Checkout & Payments | 0/5 | Not started | - |
 | 5. Discounts | 0/3 | Not started | - |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
