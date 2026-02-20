@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-19)
 
 **Core value:** Customers can browse, search, and purchase products with a seamless offline-capable experience
-**Current focus:** Phase 2 — Offline Write Queue
+**Current focus:** Phase 3 — Cart & Wishlist
 
 ## Current Position
 
-Phase: 2 of 11 (Offline Write Queue)
-Plan: 3 of 3 in current phase — COMPLETE
-Status: Active — Phase 2 complete (gap closure 02-03 done), ready for Phase 3
-Last activity: 2026-02-20 - Completed plan 02-03: Banner suppression on QueueManagement route
+Phase: 3 of 11 (Cart & Wishlist)
+Plan: 1 of ? in current phase — COMPLETE
+Status: Active — Phase 3 plan 01 complete (Room data layer done), ready for Phase 3 plan 02
+Last activity: 2026-02-20 - Completed plan 03-01: Room data layer for Cart and Wishlist
 
-Progress: [██░░░░░░░░] 13%
+Progress: [███░░░░░░░] 15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 4.7 min
-- Total execution time: 0.55 hours
+- Total plans completed: 8
+- Average duration: 4.6 min
+- Total execution time: 0.59 hours
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: [██░░░░░░░░] 13%
 |-------|-------|-------|----------|
 | 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
 | 02-offline-write-queue | 3/3 complete | 15 min | 5.0 min |
+| 03-cart-wishlist | 1/? complete | 5 min | 5.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (4 min), 02-01 (6 min), 02-02 (6 min), 02-03 (3 min)
+- Last 5 plans: 02-01 (6 min), 02-02 (6 min), 02-03 (3 min), 03-01 (5 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -81,6 +82,12 @@ Recent decisions affecting current work:
 - [02-03]: with(NavDestination) scope required to call hasRoute(KClass) — the KClass overload is declared @JvmStatic inside NavDestination.Companion; plain call resolves to String overload
 - [02-03]: isOnQueueManagementScreen derived from currentBackStackEntryAsState() in setContent — reactive to back-stack changes, no ViewModel needed
 - [02-03]: AnimatedVisibility visible = shouldShowBanner && !isOnQueueManagementScreen — banner slides out on navigate-to-queue, slides back in on back-navigation
+- [03-01]: CartRepositoryImpl takes Application Context as constructor param for SyncWorker.enqueue() — injected via Koin androidContext()
+- [03-01]: AddToCartPayload and UpdateCartQuantityPayload declared in CartRepositoryImpl.kt (co-located with repo) — no separate package for small DTOs
+- [03-01]: SyncManager.emitOfflineWriteQueued() added as public method — syncEvents is read-only SharedFlow externally; _syncEvents.tryEmit is private
+- [03-01]: REMOVE_FROM_CART stores productId directly as payloadJson string — single value needs no wrapper class
+- [03-01]: clearCart() does not queue PendingOperation — used post-checkout when Firestore already reflects cleared state
+- [03-01]: Purchase.quantity changed Double -> Int; backward-compatible via runCatching in UserMapper purchaseHistoryJson deserialization
 
 ### Pending Todos
 
@@ -89,7 +96,6 @@ None.
 ### Blockers/Concerns
 
 - [Pre-Phase 1]: All library versions marked [VERIFY] in research (WorkManager, Stripe SDK, Turbine, MockK, Koin test artifacts) must be confirmed at Maven Central / GitHub before adding to `libs.versions.toml`
-- [Pre-Phase 1]: `Purchase.quantity` is currently `Double` in domain model — must fix to `Int` before CartItemEntity design in Phase 3
 - [Pre-Phase 4]: Stripe Cloud Function contract (createPaymentIntent API shape, handlePaymentSuccess webhook) must be designed before Phase 4 begins — research-phase recommended
 - [Pre-Phase 4]: Stripe webhook signing secret must be stored in Cloud Function environment variables before Phase 4 can be tested end-to-end
 - [Ongoing]: Firestore security rules for new collections (cart, orders, reviews, notifications) must be written per phase as new data types are introduced
@@ -103,5 +109,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-20
-Stopped at: Completed 02-03-PLAN.md (Phase 2 fully complete including gap closure)
-Resume file: .planning/phases/03-offline-cart/03-01-PLAN.md (next phase)
+Stopped at: Completed 03-01-PLAN.md (Phase 3 plan 01 — Room data layer for Cart and Wishlist)
+Resume file: .planning/phases/03-cart-wishlist/03-02-PLAN.md (next plan in Phase 3)
