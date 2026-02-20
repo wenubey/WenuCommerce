@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 3 of 11 (Cart & Wishlist)
-Plan: 4 of 4 in current phase — COMPLETE
-Status: Active — Phase 3 plan 04 complete (Wishlist UI done), Phase 3 all plans complete
-Last activity: 2026-02-20 - Completed plan 03-04: Wishlist UI (WishlistScreen, WishlistViewModel, heart toggle with scale bounce)
+Plan: 5 of 5 in current phase — COMPLETE
+Status: Active — Phase 3 plan 05 complete (UAT gap closure done), Phase 3 all plans complete
+Last activity: 2026-02-20 - Completed plan 03-05: UAT gap closure (false offline banner and duplicate snackbar fixed)
 
 Progress: [████░░░░░░] 18%
 
@@ -29,7 +29,7 @@ Progress: [████░░░░░░] 18%
 |-------|-------|-------|----------|
 | 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
 | 02-offline-write-queue | 3/3 complete | 15 min | 5.0 min |
-| 03-cart-wishlist | 4/4 complete | 16 min | 4.0 min |
+| 03-cart-wishlist | 5/5 complete | 18 min | 3.6 min |
 
 **Recent Trend:**
 - Last 5 plans: 02-02 (6 min), 02-03 (3 min), 03-01 (5 min), 03-03 (3 min)
@@ -38,6 +38,7 @@ Progress: [████░░░░░░] 18%
 *Updated after each plan completion*
 | Phase 03-cart-wishlist P02 | 9 | 3 tasks | 14 files |
 | Phase 03 P04 | 8 | 2 tasks | 15 files |
+| Phase 03-cart-wishlist P05 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,9 @@ Recent decisions affecting current work:
 - [Phase 03]: ProductStatus.ARCHIVED used for deleted wishlist items in buildMinimalProduct (no DELETED enum value exists)
 - [Phase 03]: [03-04]: CustomerHomeViewModel injects WishlistRepository + AuthRepository to map wishlist Flow to Set<String> for per-card lookups
 - [Phase 03]: [03-04]: WishlistHeartButton reusable composable with Animatable scale bounce — no snackbar on toggle from browse/detail, animation is the only feedback
+- [Phase 03-05]: [03-05]: shouldShowBanner simplified to !online — online pending items handled silently by SyncWorker; dismiss infrastructure preserved
+- [Phase 03-05]: [03-05]: emitOfflineWriteQueued() made suspend with isOnline.first() check — OfflineWriteQueued event only emitted when device is actually offline
+- [Phase 03-05]: [03-05]: ConnectivityObserver injected as 5th constructor param in SyncManager; Koin lazy resolution makes module ordering irrelevant
 
 ### Pending Todos
 
@@ -121,5 +125,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-20
-Stopped at: Completed 03-04-PLAN.md (Phase 3 plan 04 — Wishlist UI: WishlistScreen, WishlistViewModel, heart toggle with scale bounce on cards and detail screen)
-Resume file: Phase 3 complete — proceed to next phase when ready
+Stopped at: Completed 03-05-PLAN.md (Phase 3 plan 05 — UAT gap closure: false offline banner and duplicate snackbar fixed via connectivity gating in PendingSyncViewModel and SyncManager)
+Resume file: Phase 3 fully complete (all 5 plans done) — proceed to Phase 4 (Checkout/Stripe) when ready
