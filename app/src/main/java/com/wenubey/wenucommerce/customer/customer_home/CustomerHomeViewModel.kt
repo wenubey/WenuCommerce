@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wenubey.data.connectivity.ConnectivityObserver
 import com.wenubey.data.local.SyncManager
+import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProductRepository
+import com.wenubey.domain.repository.WishlistRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,20 +19,25 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @OptIn(FlowPreview::class)
 class CustomerHomeViewModel(
     private val categoryRepository: CategoryRepository,
     private val productRepository: ProductRepository,
+    private val wishlistRepository: WishlistRepository,
+    private val authRepository: AuthRepository,
     private val syncManager: SyncManager,
     private val connectivityObserver: ConnectivityObserver,
     dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
 
     private val mainDispatcher = dispatcherProvider.main()
+    private val ioDispatcher = dispatcherProvider.io()
 
     private val _homeState = MutableStateFlow(CustomerHomeState())
     val homeState: StateFlow<CustomerHomeState> = _homeState.asStateFlow()
@@ -52,6 +59,21 @@ class CustomerHomeViewModel(
     init {
         observeCategories()
         setupSearchDebounce()
+        observeWishlistIds()
+    }
+
+    private fun observeWishlistIds() {
+        val userId = authRepository.currentUser.value?.uuid ?: ""
+        viewModelScope.launch(ioDispatcher) {
+            wishlistRepository.observeWishlistItems(userId)
+                .map { items -> items.map { it.productId }.toSet() }
+                .catch { error ->
+                    Timber.e(error, "CustomerHomeViewModel: failed to observe wishlist ids")
+                }
+                .collect { ids ->
+                    _homeState.update { it.copy(wishlistedProductIds = ids) }
+                }
+        }
     }
 
     private fun setupSearchDebounce() {
@@ -211,6 +233,21 @@ class CustomerHomeViewModel(
                 performSearchWithCurrentFilters()
             }
             is CustomerHomeAction.OnPullToRefresh -> onPullToRefresh()
+            is CustomerHomeAction.OnToggleWishlist -> onToggleWishlist(action.productId)
+        }
+    }
+
+    private fun onToggleWishlist(productId: String) {
+        val product = _homeState.value.products.find { it.id == productId }
+            ?: _homeState.value.searchResults.find { it.id == productId }
+            ?: return
+        val userId = authRepository.currentUser.value?.uuid
+        viewModelScope.launch(ioDispatcher) {
+            runCatching {
+                wishlistRepository.toggleWishlist(userId, product)
+            }.onFailure { error ->
+                Timber.e(error, "CustomerHomeViewModel: failed to toggle wishlist for $productId")
+            }
         }
     }
 

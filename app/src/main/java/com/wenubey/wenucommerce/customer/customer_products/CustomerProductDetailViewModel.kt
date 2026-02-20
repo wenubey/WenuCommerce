@@ -8,6 +8,7 @@ import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProductRepository
 import com.wenubey.domain.repository.ProductReviewRepository
+import com.wenubey.domain.repository.WishlistRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,11 +19,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
+
 class CustomerProductDetailViewModel(
     private val productRepository: ProductRepository,
     private val reviewRepository: ProductReviewRepository,
     private val cartRepository: CartRepository,
     private val authRepository: AuthRepository,
+    private val wishlistRepository: WishlistRepository,
     private val savedStateHandle: SavedStateHandle,
     dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
@@ -43,6 +46,20 @@ class CustomerProductDetailViewModel(
         loadProduct(productId)
         observeReviews(productId)
         incrementViewCount(productId)
+        observeWishlistState(productId)
+    }
+
+    private fun observeWishlistState(productId: String) {
+        val userId = authRepository.currentUser.value?.uuid ?: ""
+        viewModelScope.launch(ioDispatcher) {
+            wishlistRepository.isWishlisted(userId, productId)
+                .catch { error ->
+                    Timber.e(error, "CustomerProductDetailViewModel: failed to observe wishlist state")
+                }
+                .collect { wishlisted ->
+                    _state.update { it.copy(isWishlisted = wishlisted) }
+                }
+        }
     }
 
     private fun loadProduct(id: String) {
@@ -132,6 +149,19 @@ class CustomerProductDetailViewModel(
                 _state.update { it.copy(showLoginPrompt = false) }
             is CustomerProductDetailAction.DismissCartMessage ->
                 _state.update { it.copy(cartMessage = null) }
+            is CustomerProductDetailAction.ToggleWishlist -> toggleWishlist()
+        }
+    }
+
+    private fun toggleWishlist() {
+        val product = _state.value.product ?: return
+        val userId = authRepository.currentUser.value?.uuid
+        viewModelScope.launch(ioDispatcher) {
+            runCatching {
+                wishlistRepository.toggleWishlist(userId, product)
+            }.onFailure { error ->
+                Timber.e(error, "CustomerProductDetailViewModel: failed to toggle wishlist for ${product.id}")
+            }
         }
     }
 

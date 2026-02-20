@@ -11,4 +11,6 @@ sealed interface CustomerHomeAction {
     data object OnClearSearchFilters : CustomerHomeAction
     // Pull-to-refresh and empty-state retry action
     data object OnPullToRefresh : CustomerHomeAction
+    // Wishlist heart toggle
+    data class OnToggleWishlist(val productId: String) : CustomerHomeAction
 }

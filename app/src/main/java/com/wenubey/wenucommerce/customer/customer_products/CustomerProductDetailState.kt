@@ -18,4 +18,6 @@ data class CustomerProductDetailState(
     val isAddingToCart: Boolean = false,
     val cartMessage: String? = null, // snackbar message after add-to-cart
     val showLoginPrompt: Boolean = false, // auth gate for unauthenticated users
+    // Wishlist state
+    val isWishlisted: Boolean = false,
 )
