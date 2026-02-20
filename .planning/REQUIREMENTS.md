@@ -22,10 +22,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CART-02**: Cart persists across app restarts via Room
 - [x] **CART-03**: Cart syncs to Firestore when online
 - [x] **CART-04**: Customer can update quantity (increment/decrement) or remove items
-- [ ] **CART-05**: Cart shows subtotal, item count, and per-line totals
-- [ ] **CART-06**: Out-of-stock or deleted products show warning inline
-- [ ] **CART-07**: Cart badge/count visible on navigation tab
-- [ ] **CART-08**: Empty cart shows illustration with CTA to browse products
+- [x] **CART-05**: Cart shows subtotal, item count, and per-line totals
+- [x] **CART-06**: Out-of-stock or deleted products show warning inline
+- [x] **CART-07**: Cart badge/count visible on navigation tab
+- [x] **CART-08**: Empty cart shows illustration with CTA to browse products
 
 ### Checkout
 
@@ -174,10 +174,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CART-02 | Phase 3 | Complete |
 | CART-03 | Phase 3 | Complete |
 | CART-04 | Phase 3 | Complete |
-| CART-05 | Phase 3 | Pending |
-| CART-06 | Phase 3 | Pending |
-| CART-07 | Phase 3 | Pending |
-| CART-08 | Phase 3 | Pending |
+| CART-05 | Phase 3 | Complete |
+| CART-06 | Phase 3 | Complete |
+| CART-07 | Phase 3 | Complete |
+| CART-08 | Phase 3 | Complete |
 | WISH-01 | Phase 3 | Complete |
 | WISH-02 | Phase 3 | Complete |
 | WISH-03 | Phase 3 | Pending |

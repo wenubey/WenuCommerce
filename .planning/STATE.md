@@ -36,6 +36,7 @@ Progress: [███░░░░░░░] 15%
 - Trend: stable
 
 *Updated after each plan completion*
+| Phase 03-cart-wishlist P02 | 9 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,11 @@ Recent decisions affecting current work:
 - [03-01]: Purchase.quantity changed Double -> Int; backward-compatible via runCatching in UserMapper purchaseHistoryJson deserialization
 - [Phase 03-cart-wishlist]: [03-03]: WishlistRepositoryImpl uses effectiveUserId='' for anonymous users — Firestore write skipped when userId is empty; Room is source of truth
 - [Phase 03-cart-wishlist]: [03-03]: syncAnonymousOnLogin wired in AuthViewModel via previousUserId tracking — runs in background coroutine, failure non-blocking
+- [Phase 03-02]: User.uuid not User.id — User model uses uuid: String? (nullable); all cart operations extract userId = user?.uuid and guard against null
+- [Phase 03-02]: CartRepository.restoreCartItem() added to interface + impl for undo-remove — CartItem has all needed fields so no Product object required for re-insert
+- [Phase 03-02]: koinInject() for CartRepository in CustomerTabScreen composable for live badge count — no separate ViewModel needed for single Flow collection
+- [Phase 03-02]: HorizontalPager userScrollEnabled=false in CustomerTabScreen — prevents swipe between Cart/Wishlist tabs during in-cart interactions
+- [Phase 03-02]: Auth gate in product detail uses showLoginPrompt flag + AlertDialog — Phase 5 replaces with actual sign-in navigation
 
 ### Pending Todos
 
@@ -111,5 +117,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-20
-Stopped at: Completed 03-03-PLAN.md (Phase 3 plan 03 — WishlistRepository domain interface and implementation)
-Resume file: .planning/phases/03-cart-wishlist/03-04-PLAN.md (next plan in Phase 3)
+Stopped at: Completed 03-02-PLAN.md (Phase 3 plan 02 — Cart UI: NavigationBar with BadgedBox, CartViewModel, CartScreen, add-to-cart on product detail)
+Resume file: .planning/phases/03-cart-wishlist/03-04-PLAN.md (next plan in Phase 3; 03-03 WishlistRepository already complete)
