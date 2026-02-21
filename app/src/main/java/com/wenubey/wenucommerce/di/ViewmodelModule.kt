@@ -10,6 +10,7 @@ import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerification
 import com.wenubey.wenucommerce.admin.admin_categories.AdminCategoryViewModel
 import com.wenubey.wenucommerce.admin.admin_products.AdminProductModerationViewModel
 import com.wenubey.wenucommerce.admin.admin_products.AdminProductSearchViewModel
+import com.wenubey.wenucommerce.customer.checkout.CheckoutViewModel
 import com.wenubey.wenucommerce.customer.customer_cart.CartViewModel
 import com.wenubey.wenucommerce.customer.customer_wishlist.WishlistViewModel
 import com.wenubey.wenucommerce.customer.customer_home.CustomerHomeViewModel
@@ -52,6 +53,7 @@ val viewModelModule = module {
     viewModelOf(::SellerCategoryViewModel)
     viewModelOf(::CustomerHomeViewModel)
     viewModelOf(::CartViewModel)
+    viewModelOf(::CheckoutViewModel)
     viewModelOf(::WishlistViewModel)
     // Product ViewModels
     viewModelOf(::SellerProductListViewModel)
