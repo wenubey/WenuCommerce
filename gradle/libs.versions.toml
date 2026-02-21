@@ -33,6 +33,8 @@ coreTesting = "1.1.1"
 logbackClassic = "1.5.16"
 playServicesAuth = "21.3.0"
 googleid = "1.1.1"
+stripe = "22.8.1"
+lottie = "6.7.1"
 
 
 [libraries]
@@ -107,6 +109,12 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 
 identity-googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+
+# Stripe
+stripe-android = { module = "com.stripe:stripe-android", version.ref = "stripe" }
+
+# Lottie
+lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

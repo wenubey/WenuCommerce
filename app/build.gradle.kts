@@ -27,6 +27,7 @@ android {
         properties.load(project.rootProject.file("local.properties").inputStream())
         buildConfigField("String", "TMDB_API_KEY", "\"${properties.getProperty("TMDB_API_KEY")}\"")
         buildConfigField("String", "GOOGLE_ID_WEB_CLIENT", "\"${properties.getProperty("GOOGLE_ID_WEB_CLIENT")}\"")
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${properties.getProperty("STRIPE_PUBLISHABLE_KEY", "")}\"")
     }
 
     buildTypes {
@@ -135,5 +136,10 @@ dependencies {
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    // Stripe
+    implementation(libs.stripe.android)
+
+    // Lottie
+    implementation(libs.lottie.compose)
 
 }

@@ -2,6 +2,7 @@ package com.wenubey.wenucommerce
 
 import android.app.Application
 import com.google.firebase.FirebaseApp
+import com.stripe.android.PaymentConfiguration
 import com.wenubey.data.local.SyncManager
 import com.wenubey.wenucommerce.di.appModules
 import org.koin.android.ext.koin.androidContext
@@ -15,6 +16,8 @@ class WenuCommerce: Application() {
         super.onCreate()
 
         FirebaseApp.initializeApp(this@WenuCommerce)
+
+        PaymentConfiguration.init(applicationContext, BuildConfig.STRIPE_PUBLISHABLE_KEY)
 
         startKoin {
             androidLogger()
