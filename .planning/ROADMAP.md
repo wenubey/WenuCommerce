@@ -88,14 +88,13 @@ Plans:
   3. Stripe PaymentSheet appears; customer enters card details and payment completes without any card data passing through the Android app
   4. On payment success, cart clears, an Order document exists in Firestore and Room, and the order confirmation screen shows the order ID and items
   5. On payment failure, the error is displayed, the cart is preserved, and the customer can retry payment
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 04-01: Cloud Function — createPaymentIntent (server-side PaymentIntent creation, receives cart items and address, returns clientSecret)
-- [ ] 04-02: PaymentRepository domain interface and impl; Stripe Android SDK integration in app module; CheckoutViewModel with SavedStateHandle
-- [ ] 04-03: Order + OrderItem domain models and Room entities; OrderRepositoryImpl (creation path)
-- [ ] 04-04: CheckoutScreen (summary, address, coupon field placeholder); Stripe PaymentSheet launch flow
-- [ ] 04-05: OrderConfirmationScreen; cart-clear logic on PaymentSheetResult.Completed; error handling for PaymentSheetResult.Failed
+- [ ] 04-01-PLAN.md — Cloud Function: createPaymentIntent (stock validation, amount calculation, Stripe PaymentIntent, pending Order in Firestore)
+- [ ] 04-02-PLAN.md — Data foundation: Order/Address domain models, Room entities + migration v3->v4, PaymentRepository + AddressRepository, Stripe SDK setup
+- [ ] 04-03-PLAN.md — Checkout wizard UI: 3-step flow (Address -> Review -> Payment), CheckoutViewModel, AddressFormScreen, navigation wiring from cart
+- [ ] 04-04-PLAN.md — Order confirmation: OrderConfirmationScreen with Lottie checkmark, MinimalOrderScreen, navigation routes, end-to-end verification checkpoint
 
 ### Phase 5: Discounts
 **Goal**: Sellers can create and manage discount codes that customers can apply at checkout, with validation enforced server-side so no coupon can be bypassed
@@ -230,7 +229,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
 | 3. Cart & Wishlist | 5/5 | Complete   | 2026-02-20 |
-| 4. Checkout & Payments | 0/5 | Not started | - |
+| 4. Checkout & Payments | 0/4 | Planned | - |
 | 5. Discounts | 0/3 | Not started | - |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
 | 7. Reviews & Ratings | 0/3 | Not started | - |
