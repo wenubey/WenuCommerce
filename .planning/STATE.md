@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-19)
 
 **Core value:** Customers can browse, search, and purchase products with a seamless offline-capable experience
-**Current focus:** Phase 3 — Cart & Wishlist
+**Current focus:** Phase 4 — Checkout & Payments
 
 ## Current Position
 
-Phase: 3 of 11 (Cart & Wishlist)
-Plan: 5 of 5 in current phase — COMPLETE
-Status: Active — Phase 3 plan 05 complete (UAT gap closure done), Phase 3 all plans complete
-Last activity: 2026-02-20 - Completed plan 03-05: UAT gap closure (false offline banner and duplicate snackbar fixed)
+Phase: 4 of 11 (Checkout & Payments)
+Plan: 1 of 4 in current phase — Plan 01 COMPLETE
+Status: Active — Phase 4 plan 01 complete (Firebase Cloud Functions createPaymentIntent)
+Last activity: 2026-02-21 - Completed plan 04-01: Firebase Cloud Functions project + createPaymentIntent callable function
 
-Progress: [████░░░░░░] 18%
+Progress: [████░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 4.6 min
-- Total execution time: 0.59 hours
+- Total execution time: 0.66 hours
 
 **By Phase:**
 
@@ -30,15 +30,17 @@ Progress: [████░░░░░░] 18%
 | 01-room-foundation | 4/4 complete | 17 min | 4.25 min |
 | 02-offline-write-queue | 3/3 complete | 15 min | 5.0 min |
 | 03-cart-wishlist | 5/5 complete | 18 min | 3.6 min |
+| 04-checkout-payments | 1/4 complete | 4 min | 4.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (6 min), 02-03 (3 min), 03-01 (5 min), 03-03 (3 min)
+- Last 5 plans: 02-03 (3 min), 03-01 (5 min), 03-03 (3 min), 03-05 (2 min), 04-01 (4 min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 03-cart-wishlist P02 | 9 | 3 tasks | 14 files |
 | Phase 03 P04 | 8 | 2 tasks | 15 files |
 | Phase 03-cart-wishlist P05 | 2 | 2 tasks | 3 files |
+| Phase 04-checkout-payments P01 | 4 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -104,6 +106,9 @@ Recent decisions affecting current work:
 - [Phase 03-05]: [03-05]: shouldShowBanner simplified to !online — online pending items handled silently by SyncWorker; dismiss infrastructure preserved
 - [Phase 03-05]: [03-05]: emitOfflineWriteQueued() made suspend with isOnline.first() check — OfflineWriteQueued event only emitted when device is actually offline
 - [Phase 03-05]: [03-05]: ConnectivityObserver injected as 5th constructor param in SyncManager; Koin lazy resolution makes module ordering irrelevant
+- [Phase 04-01]: Stripe apiVersion updated to 2025-02-24.acacia (stripe@17.7.0 requires this; plan had 2025-01-27.acacia)
+- [Phase 04-01]: Shipping cost computed per-product-line (not per-unit) - once per cart line regardless of quantity
+- [Phase 04-01]: PENDING Order document pre-created in Firestore by Cloud Function before returning clientSecret - provides fallback if user kills app between PaymentSheet and Room write
 
 ### Pending Todos
 
@@ -124,6 +129,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-20
-Stopped at: Completed 03-05-PLAN.md (Phase 3 plan 05 — UAT gap closure: false offline banner and duplicate snackbar fixed via connectivity gating in PendingSyncViewModel and SyncManager)
-Resume file: Phase 3 fully complete (all 5 plans done) — proceed to Phase 4 (Checkout/Stripe) when ready
+Last session: 2026-02-21
+Stopped at: Completed 04-01-PLAN.md (Phase 4 plan 01 — Firebase Cloud Functions: createPaymentIntent callable function with Stripe PaymentIntent creation and PENDING Order pre-write)
+Resume file: Phase 4 plan 01 complete — proceed to 04-02 (checkout UI wizard or Android integration)
