@@ -6,6 +6,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.wenubey.wenucommerce.admin.AdminTabScreen
 import com.wenubey.wenucommerce.customer.CustomerTabScreen
+import com.wenubey.wenucommerce.customer.checkout.CheckoutScreen
+import com.wenubey.wenucommerce.customer.checkout.components.AddressFormScreen
 import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailScreen
 import com.wenubey.wenucommerce.seller.SellerTabScreen
 import com.wenubey.wenucommerce.queue_management.QueueManagementScreen
@@ -21,6 +23,9 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             tabIndex = tabArgs.tabIndex,
             onProductClick = { productId ->
                 navController.navigate(CustomerProductDetail(productId))
+            },
+            onNavigateToCheckout = {
+                navController.navigate(Checkout)
             },
         )
     }
@@ -79,6 +84,11 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             onNavigateBack = {
                 navController.navigateUp()
             },
+            onNavigateToCart = {
+                navController.navigate(CustomerTab(tabIndex = 1)) {
+                    popUpTo<CustomerTab> { inclusive = true }
+                }
+            },
         )
     }
 
@@ -95,6 +105,26 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             onNavigateBack = {
                 navController.popBackStack()
             }
+        )
+    }
+
+    // Checkout screens
+    composable<Checkout> {
+        CheckoutScreen(
+            onNavigateToAddAddress = { navController.navigate(AddressForm) },
+            onNavigateToConfirmation = { orderId ->
+                navController.navigate(OrderConfirmation(orderId)) {
+                    popUpTo<CustomerTab> { inclusive = false }
+                }
+            },
+            onNavigateBack = { navController.popBackStack() },
+        )
+    }
+
+    composable<AddressForm> {
+        AddressFormScreen(
+            onAddressSaved = { navController.popBackStack() },
+            onNavigateBack = { navController.popBackStack() },
         )
     }
 }

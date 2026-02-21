@@ -83,3 +83,16 @@ data object Profile
 
 @Serializable
 data object QueueManagement
+
+// Checkout screens
+@Serializable
+data object Checkout
+
+@Serializable
+data object AddressForm
+
+@Serializable
+data class OrderConfirmation(val orderId: String)
+
+@Serializable
+data class OrderDetail(val orderId: String)
