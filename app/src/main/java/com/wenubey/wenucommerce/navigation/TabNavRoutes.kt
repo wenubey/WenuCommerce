@@ -9,6 +9,8 @@ import com.wenubey.wenucommerce.customer.CustomerTabScreen
 import com.wenubey.wenucommerce.customer.checkout.CheckoutScreen
 import com.wenubey.wenucommerce.customer.checkout.components.AddressFormScreen
 import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailScreen
+import com.wenubey.wenucommerce.customer.order_confirmation.MinimalOrderScreen
+import com.wenubey.wenucommerce.customer.order_confirmation.OrderConfirmationScreen
 import com.wenubey.wenucommerce.seller.SellerTabScreen
 import com.wenubey.wenucommerce.queue_management.QueueManagementScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
@@ -124,6 +126,29 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
     composable<AddressForm> {
         AddressFormScreen(
             onAddressSaved = { navController.popBackStack() },
+            onNavigateBack = { navController.popBackStack() },
+        )
+    }
+
+    composable<OrderConfirmation> {
+        val args = it.toRoute<OrderConfirmation>()
+        OrderConfirmationScreen(
+            orderId = args.orderId,
+            onContinueShopping = {
+                navController.navigate(CustomerTab(tabIndex = 0)) {
+                    popUpTo<CustomerTab> { inclusive = true }
+                }
+            },
+            onViewOrder = { orderId ->
+                navController.navigate(OrderDetail(orderId))
+            },
+        )
+    }
+
+    composable<OrderDetail> {
+        val args = it.toRoute<OrderDetail>()
+        MinimalOrderScreen(
+            orderId = args.orderId,
             onNavigateBack = { navController.popBackStack() },
         )
     }
