@@ -88,7 +88,7 @@ Plans:
   3. Stripe PaymentSheet appears; customer enters card details and payment completes without any card data passing through the Android app
   4. On payment success, cart clears, an Order document exists in Firestore and Room, and the order confirmation screen shows the order ID and items
   5. On payment failure, the error is displayed, the cart is preserved, and the customer can retry payment
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Cloud Function: createPaymentIntent (stock validation, amount calculation, Stripe PaymentIntent, pending Order in Firestore)
@@ -229,7 +229,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Room Foundation | 4/4 | Complete   | 2026-02-19 |
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
 | 3. Cart & Wishlist | 5/5 | Complete   | 2026-02-20 |
-| 4. Checkout & Payments | 1/4 | In Progress|  |
+| 4. Checkout & Payments | 2/4 | In Progress|  |
 | 5. Discounts | 0/3 | Not started | - |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
 | 7. Reviews & Ratings | 0/3 | Not started | - |
