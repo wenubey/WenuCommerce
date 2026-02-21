@@ -1,0 +1,24 @@
+{
+  "name": "wenucommerce-functions",
+  "description": "Firebase Cloud Functions for WenuCommerce",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "lint": "eslint --ext .js,.ts ."
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0",
+    "stripe": "^17.0.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "latest",
+    "typescript": "^5.0.0"
+  },
+  "private": true
+}
