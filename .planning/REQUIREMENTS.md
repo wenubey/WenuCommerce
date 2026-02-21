@@ -32,10 +32,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CHKT-01**: Firebase Cloud Function creates Stripe PaymentIntent server-side
 - [ ] **CHKT-02**: Customer sees checkout summary (items, totals, address) before payment
 - [ ] **CHKT-03**: Stripe PaymentSheet presented for card entry (no custom form)
-- [ ] **CHKT-04**: On payment success: Order document created in Firestore + Room, cart cleared
+- [x] **CHKT-04**: On payment success: Order document created in Firestore + Room, cart cleared
 - [ ] **CHKT-05**: On payment failure: error shown, cart preserved, retry allowed
 - [ ] **CHKT-06**: Order confirmation screen shows order ID, items, and link to order tracking
-- [ ] **CHKT-07**: Customer can enter or select shipping address at checkout
+- [x] **CHKT-07**: Customer can enter or select shipping address at checkout
 
 ### Discounts
 
@@ -186,10 +186,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHKT-01 | Phase 4 | Complete |
 | CHKT-02 | Phase 4 | Pending |
 | CHKT-03 | Phase 4 | Pending |
-| CHKT-04 | Phase 4 | Pending |
+| CHKT-04 | Phase 4 | Complete |
 | CHKT-05 | Phase 4 | Pending |
 | CHKT-06 | Phase 4 | Pending |
-| CHKT-07 | Phase 4 | Pending |
+| CHKT-07 | Phase 4 | Complete |
 | DISC-01 | Phase 5 | Pending |
 | DISC-02 | Phase 5 | Pending |
 | DISC-03 | Phase 5 | Pending |

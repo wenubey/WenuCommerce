@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 4 of 11 (Checkout & Payments)
-Plan: 1 of 4 in current phase — Plan 01 COMPLETE
-Status: Active — Phase 4 plan 01 complete (Firebase Cloud Functions createPaymentIntent)
-Last activity: 2026-02-21 - Completed plan 04-01: Firebase Cloud Functions project + createPaymentIntent callable function
+Plan: 2 of 4 in current phase — Plan 02 COMPLETE
+Status: Active — Phase 4 plan 02 complete (data foundation: Order/Address models, Room v4, PaymentRepository, AddressRepository, Stripe SDK)
+Last activity: 2026-02-21 - Completed plan 04-02: Order/Address domain models, Room v4 migration (orders+addresses tables), PaymentRepository (Firebase Functions), AddressRepository (Room-first), Stripe SDK initialized
 
 Progress: [████░░░░░░] 20%
 
@@ -41,6 +41,7 @@ Progress: [████░░░░░░] 20%
 | Phase 03 P04 | 8 | 2 tasks | 15 files |
 | Phase 03-cart-wishlist P05 | 2 | 2 tasks | 3 files |
 | Phase 04-checkout-payments P01 | 4 | 2 tasks | 6 files |
+| Phase 04-checkout-payments P02 | 7 | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Recent decisions affecting current work:
 - [Phase 04-01]: Stripe apiVersion updated to 2025-02-24.acacia (stripe@17.7.0 requires this; plan had 2025-01-27.acacia)
 - [Phase 04-01]: Shipping cost computed per-product-line (not per-unit) - once per cart line regardless of quantity
 - [Phase 04-01]: PENDING Order document pre-created in Firestore by Cloud Function before returning clientSecret - provides fallback if user kills app between PaymentSheet and Room write
+- [Phase 04-02]: OrderEntity stores items as JSON in itemsJson (embedded list pattern per research) — no separate order_items table
+- [Phase 04-02]: AddressRepositoryImpl uses activeListeners map to prevent duplicate Firestore snapshot listeners per userId
+- [Phase 04-02]: updateOrderStatus updates Room first (optimistic local update), then Firestore — consistent with Room-first policy
 
 ### Pending Todos
 
@@ -130,5 +134,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-21
-Stopped at: Completed 04-01-PLAN.md (Phase 4 plan 01 — Firebase Cloud Functions: createPaymentIntent callable function with Stripe PaymentIntent creation and PENDING Order pre-write)
-Resume file: Phase 4 plan 01 complete — proceed to 04-02 (checkout UI wizard or Android integration)
+Stopped at: Completed 04-02-PLAN.md (Phase 4 plan 02 — data foundation: Order/Address domain models, Room v4 migration (orders+addresses), PaymentRepository, AddressRepository Room-first, Stripe SDK + Lottie)
+Resume file: Phase 4 plan 02 complete — proceed to 04-03 (CheckoutScreen UI with PaymentSheet integration)
