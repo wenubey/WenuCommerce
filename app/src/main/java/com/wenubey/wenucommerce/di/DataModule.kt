@@ -15,6 +15,7 @@ import com.wenubey.data.connectivity.ConnectivityObserver
 import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.worker.SyncWorker
+import com.wenubey.data.repository.AddressRepositoryImpl
 import com.wenubey.data.repository.AuthRepositoryImpl
 import com.wenubey.data.repository.CartRepositoryImpl
 import com.wenubey.data.repository.WishlistRepositoryImpl
@@ -22,12 +23,14 @@ import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
 import com.wenubey.data.repository.LocationServiceImpl
+import com.wenubey.data.repository.PaymentRepositoryImpl
 import com.wenubey.data.repository.ProductRepositoryImpl
 import com.wenubey.data.repository.ProductReviewRepositoryImpl
 import com.wenubey.data.repository.ProfileRepositoryImpl
 import com.wenubey.data.repository.TagRepositoryImpl
 import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
+import com.wenubey.domain.repository.AddressRepository
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.WishlistRepository
@@ -35,6 +38,7 @@ import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.repository.LocationService
+import com.wenubey.domain.repository.PaymentRepository
 import com.wenubey.domain.repository.ProductRepository
 import com.wenubey.domain.repository.ProductReviewRepository
 import com.wenubey.domain.repository.ProfileRepository
@@ -72,6 +76,8 @@ val repositoryModule = module {
     singleOf(::TagRepositoryImpl).bind<TagRepository>()
     singleOf(::CartRepositoryImpl).bind<CartRepository>()
     singleOf(::WishlistRepositoryImpl).bind<WishlistRepository>()
+    singleOf(::PaymentRepositoryImpl).bind<PaymentRepository>()
+    singleOf(::AddressRepositoryImpl).bind<AddressRepository>()
 }
 
 val dispatcherModule = module {
@@ -118,7 +124,11 @@ val databaseModule = module {
             WenuCommerceDatabase::class.java,
             "wenu_commerce_database"
         )
-            .addMigrations(WenuCommerceDatabase.MIGRATION_1_2, WenuCommerceDatabase.MIGRATION_2_3)
+            .addMigrations(
+            WenuCommerceDatabase.MIGRATION_1_2,
+            WenuCommerceDatabase.MIGRATION_2_3,
+            WenuCommerceDatabase.MIGRATION_3_4
+        )
             .apply {
                 if (BuildConfig.DEBUG) {
                     fallbackToDestructiveMigration()
@@ -131,6 +141,8 @@ val databaseModule = module {
     single { get<WenuCommerceDatabase>().pendingOperationDao() }
     single { get<WenuCommerceDatabase>().cartItemDao() }
     single { get<WenuCommerceDatabase>().wishlistItemDao() }
+    single { get<WenuCommerceDatabase>().orderDao() }
+    single { get<WenuCommerceDatabase>().addressDao() }
 }
 
 val syncModule = module {
