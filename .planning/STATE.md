@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 4 of 11 (Checkout & Payments)
-Plan: 2 of 4 in current phase — Plan 02 COMPLETE
-Status: Active — Phase 4 plan 02 complete (data foundation: Order/Address models, Room v4, PaymentRepository, AddressRepository, Stripe SDK)
-Last activity: 2026-02-21 - Completed plan 04-02: Order/Address domain models, Room v4 migration (orders+addresses tables), PaymentRepository (Firebase Functions), AddressRepository (Room-first), Stripe SDK initialized
+Plan: 3 of 4 in current phase — Plan 03 COMPLETE
+Status: Active — Phase 4 plan 03 complete (checkout wizard UI: CheckoutScreen 3-step wizard, CheckoutViewModel, PaymentSheet integration, AddressFormScreen, navigation wiring)
+Last activity: 2026-02-21 - Completed plan 04-03: CheckoutScreen 3-step wizard (Address→Review→Payment), CheckoutViewModel orchestrating PaymentIntent/PaymentSheet/order CONFIRMED/cart clear, AddressFormScreen with validation, navigation routes, cart-to-checkout wiring
 
-Progress: [████░░░░░░] 20%
+Progress: [████░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [████░░░░░░] 20%
 | Phase 03-cart-wishlist P05 | 2 | 2 tasks | 3 files |
 | Phase 04-checkout-payments P01 | 4 | 2 tasks | 6 files |
 | Phase 04-checkout-payments P02 | 7 | 3 tasks | 20 files |
+| Phase 04-checkout-payments P03 | 7 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,10 @@ Recent decisions affecting current work:
 - [Phase 04-02]: OrderEntity stores items as JSON in itemsJson (embedded list pattern per research) — no separate order_items table
 - [Phase 04-02]: AddressRepositoryImpl uses activeListeners map to prevent duplicate Firestore snapshot listeners per userId
 - [Phase 04-02]: updateOrderStatus updates Room first (optimistic local update), then Firestore — consistent with Room-first policy
+- [Phase 04-03]: AnimatedContent transitionSpec uses receiver-scoped targetState/initialState (not lambda parameter) — fixed after compile error revealed wrong lambda signature
+- [Phase 04-03]: AddressFormScreen uses koinInject() directly for AddressRepository/AuthRepository instead of a dedicated ViewModel — lightweight form with single operation does not warrant ViewModel scoping
+- [Phase 04-03]: CheckoutViewModel.advanceToStep(2) both updates currentStep to 2 AND calls createPaymentIntent() atomically — single action triggers both state change and side effect for atomic step transition
+- [Phase 04-03]: PaymentStepContent uses deprecated rememberPaymentSheet (warning only) — migration to PaymentSheet.Builder deferred to future phase when Stripe SDK is updated
 
 ### Pending Todos
 
@@ -134,5 +139,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-21
-Stopped at: Completed 04-02-PLAN.md (Phase 4 plan 02 — data foundation: Order/Address domain models, Room v4 migration (orders+addresses), PaymentRepository, AddressRepository Room-first, Stripe SDK + Lottie)
-Resume file: Phase 4 plan 02 complete — proceed to 04-03 (CheckoutScreen UI with PaymentSheet integration)
+Stopped at: Completed 04-03-PLAN.md (Phase 4 plan 03 — CheckoutScreen wizard, PaymentSheet integration, AddressFormScreen, navigation wiring)
+Resume file: Phase 4 plan 03 complete — proceed to 04-04 (OrderConfirmation screen)
