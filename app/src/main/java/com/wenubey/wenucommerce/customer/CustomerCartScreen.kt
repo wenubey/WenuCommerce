@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -65,6 +67,7 @@ fun CustomerCartScreen(
     modifier: Modifier = Modifier,
     onNavigateToProduct: (String) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
+    onNavigateToCheckout: () -> Unit = {},
     viewModel: CartViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -109,7 +112,13 @@ fun CustomerCartScreen(
                 CartBottomBar(
                     subtotal = state.subtotal,
                     canCheckout = state.canCheckout,
-                    onCheckout = { viewModel.onAction(CartAction.Checkout) }
+                    onCheckout = {
+                        if (state.canCheckout) {
+                            onNavigateToCheckout()
+                        } else {
+                            viewModel.onAction(CartAction.Checkout)
+                        }
+                    }
                 )
             }
         }
@@ -348,9 +357,10 @@ private fun CartItemRow(
                             }
                             Text(
                                 text = "${item.quantity}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.width(24.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.widthIn(min = 28.dp),
                             )
                             IconButton(
                                 onClick = onIncrement,

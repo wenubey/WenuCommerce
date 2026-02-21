@@ -35,6 +35,7 @@ import org.koin.compose.koinInject
 fun CustomerTabScreen(
     tabIndex: Int,
     onProductClick: (String) -> Unit = {},
+    onNavigateToCheckout: () -> Unit = {},
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
     cartRepository: CartRepository = koinInject(),
     authRepository: AuthRepository = koinInject(),
@@ -93,7 +94,8 @@ fun CustomerTabScreen(
                     onNavigateToHome = {
                         scope.launch { pagerState.animateScrollToPage(CustomerTabs.Home.ordinal) }
                     },
-                    onNavigateToProduct = onProductClick
+                    onNavigateToProduct = onProductClick,
+                    onNavigateToCheckout = onNavigateToCheckout,
                 )
                 2 -> CustomerWishlistScreen(
                     onNavigateToProduct = onProductClick,
