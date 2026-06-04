@@ -138,6 +138,20 @@ fun OrderConfirmationScreen(
             textAlign = TextAlign.Center,
         )
 
+        // Savings line for coupon discount
+        val discountCode = order?.discountCode ?: ""
+        val discountAmount = order?.discountAmount ?: 0.0
+        if (discountCode.isNotEmpty() && discountAmount > 0) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "You saved ${"$%.2f".format(discountAmount)} with $discountCode",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.tertiary,
+                textAlign = TextAlign.Center,
+            )
+        }
+
         Spacer(modifier = Modifier.height(40.dp))
 
         Button(

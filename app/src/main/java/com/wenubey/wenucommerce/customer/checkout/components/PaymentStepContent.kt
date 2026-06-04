@@ -36,6 +36,8 @@ fun PaymentStepContent(
     onPaymentResult: (PaymentSheetResult) -> Unit,
     onRetry: () -> Unit,
     onDismissError: () -> Unit,
+    appliedCouponCode: String? = null,
+    discountAmountCents: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     // IMPORTANT (from research Pitfall 4): callback must NOT capture ViewModel state directly
@@ -78,6 +80,17 @@ fun PaymentStepContent(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
+            }
+
+            // Discount note
+            if (appliedCouponCode != null && discountAmountCents > 0) {
+                Text(
+                    text = "Includes $appliedCouponCode discount (-${"$%.2f".format(discountAmountCents / 100.0)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             // Payment error display
@@ -150,6 +163,9 @@ fun PaymentStepContent(
                         paymentIntentClientSecret = clientSecret,
                         configuration = PaymentSheet.Configuration(
                             merchantDisplayName = "WenuCommerce",
+                            billingDetailsCollectionConfiguration = PaymentSheet.BillingDetailsCollectionConfiguration(
+                                address = PaymentSheet.BillingDetailsCollectionConfiguration.AddressCollectionMode.Never,
+                            ),
                         ),
                     )
                 },

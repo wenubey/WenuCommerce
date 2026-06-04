@@ -30,7 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextDecoration
 import com.wenubey.domain.model.CartItem
+import com.wenubey.domain.model.discount.DiscountType
 import com.wenubey.domain.model.order.ShippingAddress
 
 @Composable
@@ -46,6 +48,15 @@ fun ReviewStepContent(
     onDismissStockError: () -> Unit,
     onContinue: () -> Unit,
     onBack: () -> Unit,
+    couponInput: String = "",
+    appliedCouponCode: String? = null,
+    appliedCouponType: DiscountType? = null,
+    discountAmountCents: Int = 0,
+    couponError: String? = null,
+    isValidatingCoupon: Boolean = false,
+    onCouponInputChange: (String) -> Unit = {},
+    onApplyCoupon: () -> Unit = {},
+    onRemoveCoupon: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -156,8 +167,7 @@ fun ReviewStepContent(
                 )
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        val availableItems = cartItems.filter { !it.isProductDeleted && it.availableStock > 0 }
-                        availableItems.forEachIndexed { index, item ->
+                        cartItems.forEachIndexed { index, item ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -176,12 +186,25 @@ fun ReviewStepContent(
                                     fontWeight = FontWeight.Medium,
                                 )
                             }
-                            if (index < availableItems.lastIndex) {
+                            if (index < cartItems.lastIndex) {
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
                             }
                         }
                     }
                 }
+
+                // Coupon section (above totals)
+                CouponSection(
+                    couponInput = couponInput,
+                    appliedCouponCode = appliedCouponCode,
+                    appliedCouponType = appliedCouponType,
+                    discountAmountCents = discountAmountCents,
+                    couponError = couponError,
+                    isValidatingCoupon = isValidatingCoupon,
+                    onCouponInputChange = onCouponInputChange,
+                    onApply = onApplyCoupon,
+                    onRemove = onRemoveCoupon,
+                )
 
                 // Totals section
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -202,6 +225,27 @@ fun ReviewStepContent(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
+
+                        // Discount line (only when coupon applied and not FREE_SHIPPING)
+                        if (appliedCouponCode != null && discountAmountCents > 0 && appliedCouponType != DiscountType.FREE_SHIPPING) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = "Discount ($appliedCouponCode)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                                Text(
+                                    text = "-${"$%.2f".format(discountAmountCents / 100.0)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                            }
+                        }
+
+                        // Shipping row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -210,20 +254,58 @@ fun ReviewStepContent(
                                 text = "Shipping",
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                            Text(
-                                text = if (amountCents > 0) {
-                                    "$%.2f".format(shippingTotal)
-                                } else {
-                                    "Calculated at next step"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (amountCents > 0) {
-                                    MaterialTheme.colorScheme.onSurface
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
+                            if (appliedCouponType == DiscountType.FREE_SHIPPING && appliedCouponCode != null) {
+                                // Free shipping: show strikethrough on original + "Free" label
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = "$%.2f".format(shippingTotal),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textDecoration = TextDecoration.LineThrough,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = "Free",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = if (amountCents > 0) {
+                                        "$%.2f".format(shippingTotal)
+                                    } else {
+                                        "Calculated at next step"
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (amountCents > 0) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
                         }
+
+                        // Free shipping coupon line
+                        if (appliedCouponType == DiscountType.FREE_SHIPPING && appliedCouponCode != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = "Free Shipping ($appliedCouponCode)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                                Text(
+                                    text = "-${"$%.2f".format(shippingTotal)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                            }
+                        }
+
                         HorizontalDivider()
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -237,6 +319,8 @@ fun ReviewStepContent(
                             Text(
                                 text = if (amountCents > 0) {
                                     "$%.2f".format(amountCents / 100.0)
+                                } else if (discountAmountCents > 0) {
+                                    "$%.2f".format(subtotal - discountAmountCents / 100.0)
                                 } else {
                                     "$%.2f".format(subtotal)
                                 },

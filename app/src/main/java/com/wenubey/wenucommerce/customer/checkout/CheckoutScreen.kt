@@ -193,6 +193,21 @@ fun CheckoutScreen(
                             onBack = {
                                 viewModel.onAction(CheckoutAction.PreviousStep)
                             },
+                            couponInput = state.couponInput,
+                            appliedCouponCode = state.appliedCouponCode,
+                            appliedCouponType = state.appliedCouponType,
+                            discountAmountCents = state.discountAmountCents,
+                            couponError = state.couponError,
+                            isValidatingCoupon = state.isValidatingCoupon,
+                            onCouponInputChange = { code ->
+                                viewModel.onAction(CheckoutAction.UpdateCouponInput(code))
+                            },
+                            onApplyCoupon = {
+                                viewModel.onAction(CheckoutAction.ApplyCoupon)
+                            },
+                            onRemoveCoupon = {
+                                viewModel.onAction(CheckoutAction.RemoveCoupon)
+                            },
                         )
                         2 -> PaymentStepContent(
                             total = state.total,
@@ -208,6 +223,8 @@ fun CheckoutScreen(
                             onDismissError = {
                                 viewModel.onAction(CheckoutAction.DismissPaymentError)
                             },
+                            appliedCouponCode = state.appliedCouponCode,
+                            discountAmountCents = state.discountAmountCents,
                         )
                     }
                 }
