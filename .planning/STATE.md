@@ -148,6 +148,10 @@ Recent decisions affecting current work:
 - [Phase 05-01]: FieldValue.increment(1) for atomic usage count decrement -- never read-modify-write
 - [Phase 05-01]: Inactive coupons return "Code not found" (not "Inactive") for security
 - [Phase 05-01]: Stripe minimum 50 cents guard on final total in createPaymentIntent
+- [Phase 05-02]: DiscountCreateEditViewModel and full state/action created in Task 1 for compilation; screen implemented in Task 2
+- [Phase 05-02]: Status badge derives state from isActive + expiresAt + usageCount vs usageLimit (no server-side status field)
+- [Phase 05-02]: FilterChip row used for discount type selector instead of ExposedDropdownMenu
+- [Phase 05-02]: Product picker uses LazyColumn with heightIn(max=200.dp) to prevent nested scroll issues
 - [Phase 05-03]: removeCoupon() invalidates clientSecret and orderId to force new PaymentIntent (Pitfall 4)
 - [Phase 05-03]: CouponSection isExpanded kept as local composable state, set to true on remove (Pitfall 2)
 - [Phase 05-03]: decrementCouponUsage called after PaymentSheetResult.Completed, failure logged but does not block navigation
