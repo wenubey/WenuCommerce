@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Offline Write Queue** - WorkManager-backed write queue; connectivity awareness; pending-sync UI (completed 2026-02-20)
 - [x] **Phase 3: Cart & Wishlist** - Room-persisted cart with badge and stock awareness; offline-capable wishlist with add-to-cart (completed 2026-02-20)
 - [x] **Phase 4: Checkout & Payments** - Stripe PaymentSheet via Cloud Function; order creation on success; order confirmation screen (completed 2026-04-29)
-- [ ] **Phase 5: Discounts** - Seller coupon management; server-validated coupon entry at checkout; discounted pricing in summary
+- [x] **Phase 5: Discounts** - Seller coupon management; server-validated coupon entry at checkout; discounted pricing in summary (completed 2026-06-04)
 - [ ] **Phase 6: Order Tracking & Management** - Customer order history and status timeline; seller order advancement; FCM on status change
 - [ ] **Phase 7: Reviews & Ratings** - Verified-purchase reviews; aggregate ratings on product cards; seller review visibility
 - [ ] **Phase 8: Notifications** - FCM push for all event types; typed notification channels; in-app notification history; permission flow
@@ -106,11 +106,11 @@ Plans:
   3. Customer enters a coupon code at checkout; invalid, expired, or limit-exceeded codes show an error; valid codes show a success confirmation
   4. Checkout summary shows both the original price and the discounted price after a valid coupon is applied
   5. Discount is applied to the Stripe PaymentIntent amount by the Cloud Function, not the client app
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Data foundation: DiscountCode domain model, DiscountRepository (Firestore-only), validateCoupon + decrementCouponUsage Cloud Functions, createPaymentIntent coupon extension
-- [ ] 05-02-PLAN.md — Seller/Admin discount management UI: Discounts tab, list screen with status badges, create/edit form with product picker, navigation routes
+- [x] 05-02-PLAN.md — Seller/Admin discount management UI: Discounts tab, list screen with status badges, create/edit form with product picker, navigation routes
 - [x] 05-03-PLAN.md — Checkout coupon integration: collapsible CouponSection, discount line in totals, PaymentStep discount note, OrderConfirmation savings line, CheckoutViewModel coupon logic
 
 ### Phase 6: Order Tracking & Management
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Offline Write Queue | 3/3 | Complete   | 2026-02-20 |
 | 3. Cart & Wishlist | 5/5 | Complete   | 2026-02-20 |
 | 4. Checkout & Payments | 4/4 | Complete   | 2026-04-29 |
-| 5. Discounts | 0/3 | Not started | - |
+| 5. Discounts | 3/3 | Complete   | 2026-06-04 |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
 | 7. Reviews & Ratings | 0/3 | Not started | - |
 | 8. Notifications | 0/4 | Not started | - |
