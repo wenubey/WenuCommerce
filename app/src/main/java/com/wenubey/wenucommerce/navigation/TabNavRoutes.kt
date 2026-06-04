@@ -13,6 +13,7 @@ import com.wenubey.wenucommerce.customer.order_confirmation.MinimalOrderScreen
 import com.wenubey.wenucommerce.customer.order_confirmation.OrderConfirmationScreen
 import com.wenubey.wenucommerce.seller.SellerTabScreen
 import com.wenubey.wenucommerce.queue_management.QueueManagementScreen
+import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountCreateEditScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditScreen
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontScreen
@@ -33,7 +34,15 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
     }
     composable<AdminTab> {
         val tabArgs = it.toRoute<AdminTab>()
-        AdminTabScreen(tabIndex = tabArgs.tabIndex)
+        AdminTabScreen(
+            tabIndex = tabArgs.tabIndex,
+            onNavigateToCreateDiscount = {
+                navController.navigate(SellerDiscountCreateEdit(code = null, isSeller = false))
+            },
+            onNavigateToEditDiscount = { code ->
+                navController.navigate(SellerDiscountCreateEdit(code = code, isSeller = false))
+            },
+        )
     }
     composable<SellerTab> {
         val tabArgs = it.toRoute<SellerTab>()
@@ -48,6 +57,12 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             },
             onNavigateToEditProduct = { productId ->
                 navController.navigate(SellerProductEdit(productId))
+            },
+            onNavigateToCreateDiscount = {
+                navController.navigate(SellerDiscountCreateEdit(code = null, isSeller = true))
+            },
+            onNavigateToEditDiscount = { code ->
+                navController.navigate(SellerDiscountCreateEdit(code = code, isSeller = true))
             },
         )
     }
@@ -150,6 +165,15 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
         MinimalOrderScreen(
             orderId = args.orderId,
             onNavigateBack = { navController.popBackStack() },
+        )
+    }
+
+    composable<SellerDiscountCreateEdit> { backStackEntry ->
+        val args = backStackEntry.toRoute<SellerDiscountCreateEdit>()
+        SellerDiscountCreateEditScreen(
+            code = args.code,
+            isSeller = args.isSeller,
+            onNavigateBack = { navController.navigateUp() },
         )
     }
 }

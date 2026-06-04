@@ -31,6 +31,7 @@ import com.wenubey.wenucommerce.AuthViewModel
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationBannerViewModel
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationNotificationBar
 import com.wenubey.wenucommerce.seller.seller_dashboard.SellerDashboardScreen
+import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountListScreen
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -41,6 +42,8 @@ fun SellerTabScreen(
     onNavigateToSellerVerification: (user: User?) -> Unit,
     onNavigateToCreateProduct: () -> Unit = {},
     onNavigateToEditProduct: (String) -> Unit = {},
+    onNavigateToCreateDiscount: () -> Unit = {},
+    onNavigateToEditDiscount: (String) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel(),
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
 ) {
@@ -96,7 +99,11 @@ fun SellerTabScreen(
                         onEditProduct = onNavigateToEditProduct,
                     )
                     2 -> SellerOrdersScreen()
-                    3 -> SellerProfileScreen(user = user)
+                    3 -> SellerDiscountListScreen(
+                        onNavigateToCreate = onNavigateToCreateDiscount,
+                        onNavigateToEdit = onNavigateToEditDiscount,
+                    )
+                    4 -> SellerProfileScreen(user = user)
                 }
             }
         }

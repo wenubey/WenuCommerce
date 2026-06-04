@@ -96,3 +96,7 @@ data class OrderConfirmation(val orderId: String)
 
 @Serializable
 data class OrderDetail(val orderId: String)
+
+// Discount screens
+@Serializable
+data class SellerDiscountCreateEdit(val code: String?, val isSeller: Boolean)

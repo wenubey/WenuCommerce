@@ -19,6 +19,8 @@ import com.wenubey.wenucommerce.seller.seller_categories.SellerCategoryViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductListViewModel
+import com.wenubey.wenucommerce.seller.seller_discounts.DiscountCreateEditViewModel
+import com.wenubey.wenucommerce.seller.seller_discounts.DiscountListViewModel
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontViewModel
 import com.wenubey.wenucommerce.seller.seller_dashboard.SellerDashboardViewModel
 import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationViewModel
@@ -63,6 +65,9 @@ val viewModelModule = module {
     viewModelOf(::AdminProductSearchViewModel)
     viewModelOf(::CustomerProductDetailViewModel)
     viewModelOf(::SellerStorefrontViewModel)
+    // Discount ViewModels
+    viewModelOf(::DiscountListViewModel)
+    viewModelOf(::DiscountCreateEditViewModel)
     viewModel {
         EmailVerificationBannerViewModel(
             authRepository = get(),

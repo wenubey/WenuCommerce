@@ -40,6 +40,7 @@ import com.wenubey.wenucommerce.admin.admin_products.AdminProductSearchScreen
 import com.wenubey.wenucommerce.admin.admin_seller_approval.AdminApprovalScreen
 import com.wenubey.wenucommerce.admin.admin_settings.AdminSettingsScreen
 import com.wenubey.wenucommerce.admin.admin_users.AdminUsersScreen
+import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountListScreen
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationBannerViewModel
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationNotificationBar
 import kotlinx.coroutines.launch
@@ -49,6 +50,8 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun AdminTabScreen(
     tabIndex: Int,
+    onNavigateToCreateDiscount: () -> Unit = {},
+    onNavigateToEditDiscount: (String) -> Unit = {},
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
     badgeVm: AdminBadgeViewModel = koinViewModel(),
 ) {
@@ -137,6 +140,13 @@ fun AdminTabScreen(
 
                 7 -> {
                     AdminSettingsScreen()
+                }
+
+                8 -> {
+                    SellerDiscountListScreen(
+                        onNavigateToCreate = onNavigateToCreateDiscount,
+                        onNavigateToEdit = onNavigateToEditDiscount,
+                    )
                 }
 
                 else -> {
