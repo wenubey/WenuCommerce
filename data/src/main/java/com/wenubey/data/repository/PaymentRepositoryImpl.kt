@@ -31,19 +31,24 @@ class PaymentRepositoryImpl(
         userId: String,
         cartItems: List<CartItem>,
         shippingAddress: ShippingAddress,
+        couponCode: String?,
     ): Result<PaymentIntentResult> = withContext(dispatcherProvider.io()) {
         runCatching {
-            val data = mapOf(
-                "userId" to userId,
-                "items" to cartItems.map { item ->
+            val data = buildMap {
+                put("userId", userId)
+                put("cartItems", cartItems.map { item ->
                     mapOf(
                         "productId" to item.productId,
+                        "productTitle" to item.productTitle,
                         "quantity" to item.quantity,
-                        "snapshotPrice" to item.snapshotPrice
+                        "price" to item.snapshotPrice
                     )
-                },
-                "shippingAddress" to shippingAddress.toMap()
-            )
+                })
+                put("shippingAddress", shippingAddress.toMap())
+                if (!couponCode.isNullOrBlank()) {
+                    put("couponCode", couponCode)
+                }
+            }
 
             val result = Firebase.functions
                 .getHttpsCallable("createPaymentIntent")
@@ -60,11 +65,13 @@ class PaymentRepositoryImpl(
                 ?: error("Missing amountCents in response")
             val orderId = responseData["orderId"] as? String
                 ?: error("Missing orderId in response")
+            val discountAmountCents = (responseData["discountAmountCents"] as? Number)?.toInt() ?: 0
 
             PaymentIntentResult(
                 clientSecret = clientSecret,
                 amountCents = amountCents,
-                orderId = orderId
+                orderId = orderId,
+                discountAmountCents = discountAmountCents,
             )
         }.onFailure { e ->
             Timber.e(e, "PaymentRepository: createPaymentIntent failed")

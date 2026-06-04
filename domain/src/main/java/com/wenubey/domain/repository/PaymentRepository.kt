@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.Flow
 data class PaymentIntentResult(
     val clientSecret: String,
     val amountCents: Int,
-    val orderId: String
+    val orderId: String,
+    val discountAmountCents: Int = 0,
 )
 
 interface PaymentRepository {
@@ -18,6 +19,7 @@ interface PaymentRepository {
         userId: String,
         cartItems: List<CartItem>,
         shippingAddress: ShippingAddress,
+        couponCode: String? = null,
     ): Result<PaymentIntentResult>
 
     suspend fun createOrderInRoom(order: Order)

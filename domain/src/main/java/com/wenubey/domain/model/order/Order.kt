@@ -14,6 +14,8 @@ data class Order(
     val stripePaymentIntentId: String = "",
     val shippingAddress: ShippingAddress = ShippingAddress.default(),
     val items: List<OrderItem> = emptyList(),
+    val discountAmount: Double = 0.0,
+    val discountCode: String = "",
     val createdAt: String = "",
     val updatedAt: String = ""
 ) {

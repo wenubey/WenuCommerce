@@ -15,6 +15,8 @@ data class OrderEntity(
     val stripePaymentIntentId: String = "",
     val shippingAddressJson: String = "",
     val itemsJson: String = "[]",
+    val discountAmount: Double = 0.0,
+    val discountCode: String = "",
     val createdAt: String = "",
     val updatedAt: String = ""
 )

@@ -17,6 +17,7 @@ import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.worker.SyncWorker
 import com.wenubey.data.repository.AddressRepositoryImpl
 import com.wenubey.data.repository.AuthRepositoryImpl
+import com.wenubey.data.repository.DiscountRepositoryImpl
 import com.wenubey.data.repository.CartRepositoryImpl
 import com.wenubey.data.repository.WishlistRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
@@ -32,6 +33,7 @@ import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
 import com.wenubey.domain.repository.AddressRepository
 import com.wenubey.domain.repository.AuthRepository
+import com.wenubey.domain.repository.DiscountRepository
 import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.WishlistRepository
 import com.wenubey.domain.repository.CategoryRepository
@@ -78,6 +80,7 @@ val repositoryModule = module {
     singleOf(::WishlistRepositoryImpl).bind<WishlistRepository>()
     singleOf(::PaymentRepositoryImpl).bind<PaymentRepository>()
     singleOf(::AddressRepositoryImpl).bind<AddressRepository>()
+    singleOf(::DiscountRepositoryImpl).bind<DiscountRepository>()
 }
 
 val dispatcherModule = module {
@@ -127,7 +130,8 @@ val databaseModule = module {
             .addMigrations(
             WenuCommerceDatabase.MIGRATION_1_2,
             WenuCommerceDatabase.MIGRATION_2_3,
-            WenuCommerceDatabase.MIGRATION_3_4
+            WenuCommerceDatabase.MIGRATION_3_4,
+            WenuCommerceDatabase.MIGRATION_4_5
         )
             .apply {
                 if (BuildConfig.DEBUG) {

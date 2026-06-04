@@ -28,6 +28,8 @@ fun OrderEntity.toDomain(): Order = Order(
     items = runCatching {
         json.decodeFromString<List<OrderItem>>(itemsJson)
     }.getOrElse { emptyList() },
+    discountAmount = discountAmount,
+    discountCode = discountCode,
     createdAt = createdAt,
     updatedAt = updatedAt
 )
@@ -43,6 +45,8 @@ fun Order.toEntity(): OrderEntity = OrderEntity(
     stripePaymentIntentId = stripePaymentIntentId,
     shippingAddressJson = json.encodeToString(shippingAddress),
     itemsJson = json.encodeToString(items),
+    discountAmount = discountAmount,
+    discountCode = discountCode,
     createdAt = createdAt,
     updatedAt = updatedAt
 )

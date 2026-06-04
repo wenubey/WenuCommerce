@@ -34,7 +34,7 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         OrderEntity::class,
         AddressEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -135,6 +135,16 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
          * Addresses use composite primary keys (userId, addressId) matching the
          * cart_items and wishlist_items pattern.
          */
+        /**
+         * Migration from v4 to v5: Add discount fields to orders table.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `orders` ADD COLUMN `discountAmount` REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE `orders` ADD COLUMN `discountCode` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
