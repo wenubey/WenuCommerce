@@ -1,6 +1,7 @@
 package com.wenubey.wenucommerce.customer.checkout
 
 import com.wenubey.domain.model.CartItem
+import com.wenubey.domain.model.discount.DiscountType
 import com.wenubey.domain.model.order.ShippingAddress
 
 data class CheckoutState(
@@ -20,6 +21,13 @@ data class CheckoutState(
     val stockError: String? = null, // server-side stock check failure message
     val isOnline: Boolean = true,
     val isLoading: Boolean = true,
+    // Coupon fields
+    val couponInput: String = "",
+    val appliedCouponCode: String? = null,
+    val appliedCouponType: DiscountType? = null,
+    val discountAmountCents: Int = 0,
+    val couponError: String? = null,
+    val isValidatingCoupon: Boolean = false,
 ) {
     val canProceedToReview: Boolean
         get() = selectedAddress != null

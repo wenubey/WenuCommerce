@@ -10,6 +10,7 @@ import com.wenubey.domain.model.order.OrderStatus
 import com.wenubey.domain.repository.AddressRepository
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.CartRepository
+import com.wenubey.domain.repository.DiscountRepository
 import com.wenubey.domain.repository.PaymentRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -29,6 +30,7 @@ class CheckoutViewModel(
     private val addressRepository: AddressRepository,
     private val authRepository: AuthRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val discountRepository: DiscountRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CheckoutState())
@@ -67,9 +69,7 @@ class CheckoutViewModel(
                     _state.update { it.copy(isLoading = false) }
                 }
                 .collect { items ->
-                    val subtotal = items
-                        .filter { !it.isProductDeleted && it.availableStock > 0 }
-                        .sumOf { it.snapshotPrice * it.quantity }
+                    val subtotal = items.sumOf { it.snapshotPrice * it.quantity }
                     _state.update { it.copy(cartItems = items, subtotal = subtotal, isLoading = false) }
                 }
         }
@@ -137,6 +137,18 @@ class CheckoutViewModel(
             is CheckoutAction.DismissStockError -> {
                 _state.update { it.copy(stockError = null) }
             }
+            is CheckoutAction.UpdateCouponInput -> {
+                _state.update { it.copy(couponInput = action.code, couponError = null) }
+            }
+            is CheckoutAction.ApplyCoupon -> {
+                applyCoupon()
+            }
+            is CheckoutAction.RemoveCoupon -> {
+                removeCoupon()
+            }
+            is CheckoutAction.DismissCouponError -> {
+                _state.update { it.copy(couponError = null) }
+            }
         }
     }
 
@@ -158,20 +170,73 @@ class CheckoutViewModel(
         }
     }
 
+    private fun applyCoupon() {
+        val currentState = _state.value
+        val input = currentState.couponInput.trim()
+        if (input.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isValidatingCoupon = true, couponError = null) }
+            val subtotalCents = (currentState.subtotal * 100).toInt()
+            discountRepository.validateCoupon(input, currentState.cartItems, subtotalCents)
+                .onSuccess { result ->
+                    _state.update {
+                        it.copy(
+                            appliedCouponCode = result.code,
+                            appliedCouponType = result.type,
+                            discountAmountCents = result.discountAmountCents,
+                            isValidatingCoupon = false,
+                            couponInput = "",
+                            couponError = null,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    Timber.e(error, "CheckoutViewModel: applyCoupon failed")
+                    _state.update {
+                        it.copy(
+                            couponError = error.message ?: "Invalid coupon code",
+                            isValidatingCoupon = false,
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun removeCoupon() {
+        // CRITICAL (Pitfall 4): Invalidate clientSecret — it was created with the discounted amount
+        _state.update {
+            it.copy(
+                appliedCouponCode = null,
+                appliedCouponType = null,
+                discountAmountCents = 0,
+                couponError = null,
+                clientSecret = "",
+                orderId = "",
+                amountCents = 0,
+            )
+        }
+    }
+
     private fun createPaymentIntent() {
         val currentUserId = userId ?: return
         val currentState = _state.value
         val address = currentState.selectedAddress ?: return
-        val cartItems = currentState.cartItems.filter { !it.isProductDeleted && it.availableStock > 0 }
+        val cartItems = currentState.cartItems
 
         if (cartItems.isEmpty()) {
-            Timber.d("CheckoutViewModel: no available cart items for payment intent")
+            Timber.d("CheckoutViewModel: no cart items for payment intent")
             return
         }
 
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isCreatingPaymentIntent = true, paymentError = null, stockError = null) }
-            paymentRepository.createPaymentIntent(currentUserId, cartItems, address)
+            paymentRepository.createPaymentIntent(
+                userId = currentUserId,
+                cartItems = cartItems,
+                shippingAddress = address,
+                couponCode = currentState.appliedCouponCode,
+            )
                 .onSuccess { result ->
                     _state.update { it ->
                         it.copy(
@@ -179,6 +244,7 @@ class CheckoutViewModel(
                             amountCents = result.amountCents,
                             orderId = result.orderId,
                             total = result.amountCents / 100.0,
+                            discountAmountCents = result.discountAmountCents,
                             isCreatingPaymentIntent = false,
                         )
                     }
@@ -241,9 +307,7 @@ class CheckoutViewModel(
                     shippingTotal = currentState.shippingTotal,
                     totalAmount = currentState.total,
                     shippingAddress = currentState.selectedAddress ?: return@runCatching,
-                    items = currentState.cartItems
-                        .filter { !it.isProductDeleted && it.availableStock > 0 }
-                        .map { cartItem ->
+                    items = currentState.cartItems.map { cartItem ->
                             OrderItem(
                                 productId = cartItem.productId,
                                 productTitle = cartItem.productTitle,
@@ -252,6 +316,8 @@ class CheckoutViewModel(
                                 lineTotal = cartItem.snapshotPrice * cartItem.quantity,
                             )
                         },
+                    discountAmount = currentState.discountAmountCents / 100.0,
+                    discountCode = currentState.appliedCouponCode ?: "",
                     createdAt = System.currentTimeMillis().toString(),
                     updatedAt = System.currentTimeMillis().toString(),
                 )
@@ -264,6 +330,15 @@ class CheckoutViewModel(
                     .onFailure { error ->
                         Timber.e(error, "CheckoutViewModel: failed to update order status in Firestore")
                     }
+
+                // Decrement coupon usage count after successful payment
+                val couponCode = currentState.appliedCouponCode
+                if (couponCode != null) {
+                    discountRepository.decrementCouponUsage(couponCode)
+                        .onFailure { error ->
+                            Timber.e(error, "CheckoutViewModel: failed to decrement coupon usage for $couponCode")
+                        }
+                }
 
                 // Clear the cart
                 cartRepository.clearCart(currentUserId)

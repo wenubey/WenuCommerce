@@ -12,4 +12,9 @@ sealed interface CheckoutAction {
     data object RetryPayment : CheckoutAction
     data object DismissPaymentError : CheckoutAction
     data object DismissStockError : CheckoutAction
+    // Coupon actions
+    data class UpdateCouponInput(val code: String) : CheckoutAction
+    data object ApplyCoupon : CheckoutAction
+    data object RemoveCoupon : CheckoutAction
+    data object DismissCouponError : CheckoutAction
 }
