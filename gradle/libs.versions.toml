@@ -37,6 +37,7 @@ stripe = "22.8.1"
 lottie = "6.7.1"
 turbine = "1.1.0"
 mockkAndroid = "1.13.13"
+robolectric = "4.14.1"
 
 
 [libraries]
@@ -133,6 +134,7 @@ truth = { module = "com.google.truth:truth", version.ref = "truth" }
 core-testing = { module = "android.arch.core:core-testing", version.ref = "coreTesting" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockkAndroid" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 
 [plugins]
