@@ -65,7 +65,7 @@ class AuthViewModel(
                         updateStartDestination(user.role)
                         _isInitialized.value = true
                     }
-                    authRepository.currentFirebaseUser == null -> {
+                    !authRepository.isAuthenticated -> {
                         // Not authenticated
                         Timber.d("User Not Authenticated")
                         previousUserId = null

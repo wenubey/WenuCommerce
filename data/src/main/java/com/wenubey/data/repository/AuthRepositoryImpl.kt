@@ -53,7 +53,14 @@ class AuthRepositoryImpl(
 
     private val ioDispatcher = dispatcherProvider.io()
 
-    override val currentFirebaseUser: FirebaseUser?
+    override val isAuthenticated: Boolean
+        get() = firebaseAuth.currentUser != null
+
+    override val currentAuthEmail: String?
+        get() = firebaseAuth.currentUser?.email
+
+    /** Internal alias for the live Firebase user — never crosses the interface boundary. */
+    private val currentFirebaseUser: FirebaseUser?
         get() = firebaseAuth.currentUser
 
     private val _currentUser = MutableStateFlow<User?>(null)

@@ -32,7 +32,7 @@ class OnboardingViewModel(
     private val ioDispatcher = dispatcherProvider.io()
     private val mainDispatcher = dispatcherProvider.main()
 
-    private val registrationEmail = authRepository.currentFirebaseUser?.email ?: ""
+    private val registrationEmail = authRepository.currentAuthEmail ?: ""
 
     private val _state = MutableStateFlow(OnboardingState(registrationEmail = registrationEmail))
     val state = _state.asStateFlow()

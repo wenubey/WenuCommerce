@@ -1,7 +1,6 @@
 package com.wenubey.wenucommerce.testing.fakes
 
 import androidx.credentials.GetCredentialResponse
-import com.google.firebase.auth.FirebaseUser
 import com.wenubey.domain.auth.SignInResult
 import com.wenubey.domain.auth.SignUpResult
 import com.wenubey.domain.model.user.User
@@ -17,8 +16,14 @@ class FakeAuthRepository(
     private val _currentUser = MutableStateFlow(initialUser)
     override val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    var hasFirebaseUser: Boolean = initialUser != null
-    override val currentFirebaseUser: FirebaseUser? get() = null // never touched by tests
+    /** Override to simulate "Firebase authed but profile not yet loaded". */
+    var isAuthenticatedOverride: Boolean? = null
+    override val isAuthenticated: Boolean
+        get() = isAuthenticatedOverride ?: (_currentUser.value != null)
+
+    var currentAuthEmailOverride: String? = null
+    override val currentAuthEmail: String?
+        get() = currentAuthEmailOverride ?: _currentUser.value?.email
 
     var signInResult: SignInResult = SignInResult.Failure("not stubbed")
     var signUpResult: SignUpResult = SignUpResult.Failure("not stubbed")
@@ -40,7 +45,6 @@ class FakeAuthRepository(
 
     fun emitUser(user: User?) {
         _currentUser.value = user
-        hasFirebaseUser = user != null
     }
 
     override suspend fun signIn(credentialResponse: GetCredentialResponse): Result<User> =

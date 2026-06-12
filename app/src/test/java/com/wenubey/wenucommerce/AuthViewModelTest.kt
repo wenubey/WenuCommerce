@@ -5,6 +5,7 @@ import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
 import com.wenubey.wenucommerce.navigation.AdminTab
 import com.wenubey.wenucommerce.navigation.CustomerTab
+import com.wenubey.wenucommerce.navigation.Onboarding
 import com.wenubey.wenucommerce.navigation.SellerTab
 import com.wenubey.wenucommerce.navigation.SignUp
 import com.wenubey.wenucommerce.testing.MainDispatcherRule
@@ -12,7 +13,9 @@ import com.wenubey.wenucommerce.testing.TestDispatcherProvider
 import com.wenubey.wenucommerce.testing.fakes.FakeAuthRepository
 import com.wenubey.wenucommerce.testing.fakes.FakeWishlistRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +43,7 @@ class AuthViewModelTest {
 
     @Test
     fun `unauthenticated user routes to SignUp and marks initialized`() = runTest {
-        val auth = FakeAuthRepository(initialUser = null).apply { hasFirebaseUser = false }
+        val auth = FakeAuthRepository(initialUser = null)
         val vm = newViewModel(auth = auth)
 
         advanceUntilIdle()
@@ -80,18 +83,33 @@ class AuthViewModelTest {
         assertThat(vm.startDestination.value).isEqualTo(AdminTab(0))
     }
 
-    // NOTE: The "firebase user authenticated but profile not yet loaded" branch
-    // (which trips the INIT_TIMEOUT_MS Onboarding fallback) cannot be exercised
-    // here because AuthRepository.currentFirebaseUser exposes the platform
-    // FirebaseUser type — a domain layer leak that isn't trivially instantiable
-    // in a JVM test. Tracked in PRODUCT_BUGS_AND_GAPS.md (TB-2 AuthRepository
-    // domain leak). The timeout path is therefore covered only by the
-    // unauthenticated-and-no-profile case via the "SignUp" branch, which uses
-    // the same _isInitialized = true outcome.
+    @Test
+    fun `firebase authed but profile not loaded falls back to Onboarding after timeout`() = runTest {
+        // isAuthenticated = true while currentUser flow still emits null → VM
+        // waits, then the 3-second INIT_TIMEOUT_MS coroutine flips destination
+        // to Onboarding. Unblocked by TB-2 fix (was untestable when the API
+        // exposed FirebaseUser? instead of isAuthenticated: Boolean).
+        val auth = FakeAuthRepository(initialUser = null).apply {
+            isAuthenticatedOverride = true
+        }
+        val vm = newViewModel(auth = auth)
+
+        // Before timeout — no destination change, still uninitialized.
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertThat(vm.startDestination.value).isEqualTo(SignUp)
+        assertThat(vm.isInitialized.value).isFalse()
+
+        // After timeout — fallback to Onboarding, initialized.
+        advanceTimeBy(1_500)
+        advanceUntilIdle()
+        assertThat(vm.startDestination.value).isEqualTo(Onboarding)
+        assertThat(vm.isInitialized.value).isTrue()
+    }
 
     @Test
     fun `login transition (null then user) triggers anonymous wishlist sync`() = runTest {
-        val auth = FakeAuthRepository(initialUser = null).apply { hasFirebaseUser = false }
+        val auth = FakeAuthRepository(initialUser = null)
         val wishlist = FakeWishlistRepository()
         val vm = newViewModel(auth = auth, wishlist = wishlist)
 
@@ -106,7 +124,7 @@ class AuthViewModelTest {
 
     @Test
     fun `wishlist sync failure does not block initialization`() = runTest {
-        val auth = FakeAuthRepository(initialUser = null).apply { hasFirebaseUser = false }
+        val auth = FakeAuthRepository(initialUser = null)
         val wishlist = FakeWishlistRepository().apply {
             syncAnonymousThrows = RuntimeException("sync failed")
         }
@@ -124,7 +142,7 @@ class AuthViewModelTest {
 
     @Test
     fun `wishlist sync only fires once on login transition, not on subsequent emits`() = runTest {
-        val auth = FakeAuthRepository(initialUser = null).apply { hasFirebaseUser = false }
+        val auth = FakeAuthRepository(initialUser = null)
         val wishlist = FakeWishlistRepository()
         val vm = newViewModel(auth = auth, wishlist = wishlist)
 

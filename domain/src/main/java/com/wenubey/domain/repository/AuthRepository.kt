@@ -1,14 +1,18 @@
 package com.wenubey.domain.repository
 
 import androidx.credentials.GetCredentialResponse
-import com.google.firebase.auth.FirebaseUser
 import com.wenubey.domain.auth.SignInResult
 import com.wenubey.domain.auth.SignUpResult
 import com.wenubey.domain.model.user.User
 import kotlinx.coroutines.flow.StateFlow
 
 interface AuthRepository {
-    val currentFirebaseUser: FirebaseUser?
+    /** True iff a Firebase Auth user is currently signed in. */
+    val isAuthenticated: Boolean
+
+    /** Email of the currently authenticated user, or null if signed out. */
+    val currentAuthEmail: String?
+
     val currentUser: StateFlow<User?>
 
     suspend fun signIn(credentialResponse: GetCredentialResponse): Result<User>
