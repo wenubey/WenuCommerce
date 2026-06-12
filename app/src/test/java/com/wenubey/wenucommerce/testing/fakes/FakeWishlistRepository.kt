@@ -16,9 +16,15 @@ class FakeWishlistRepository : WishlistRepository {
     val toggleCalls = mutableListOf<Pair<String?, Product>>()
     val removeCalls = mutableListOf<Pair<String, String>>()
     var syncAnonymousThrows: Throwable? = null
+    var removeThrows: Throwable? = null
+    var observeFlow: Flow<List<WishlistItem>>? = null
+
+    fun emit(userId: String, list: List<WishlistItem>) {
+        items.value = items.value + (userId to list)
+    }
 
     override fun observeWishlistItems(userId: String): Flow<List<WishlistItem>> =
-        items.asStateFlow().map { it[userId].orEmpty() }
+        observeFlow ?: items.asStateFlow().map { it[userId].orEmpty() }
 
     override fun isWishlisted(userId: String, productId: String): Flow<Boolean> =
         items.asStateFlow().map { snapshot ->
@@ -31,6 +37,7 @@ class FakeWishlistRepository : WishlistRepository {
 
     override suspend fun removeFromWishlist(userId: String, productId: String) {
         removeCalls.add(userId to productId)
+        removeThrows?.let { throw it }
     }
 
     override suspend fun syncAnonymousOnLogin(userId: String) {
