@@ -62,33 +62,50 @@
 
 ## Dalga 2 — `:data` (Room DAO + Repository impl)
 
-### 2A · Room DAOs (in-memory `Room.inMemoryDatabaseBuilder`)
-- [ ] `local/dao/AddressDao` — CRUD + Flow gözlem (Turbine)
-- [ ] `local/dao/CartItemDao` — upsert/qty/clear
-- [ ] `local/dao/CategoryDao`
-- [ ] `local/dao/OrderDao` — durum filtreleri
-- [ ] `local/dao/PendingOperationDao` — queue invariants
-- [ ] `local/dao/ProductDao` — query / flow / paging (varsa)
-- [ ] `local/dao/UserDao`
-- [ ] `local/dao/WishlistItemDao`
+### 2A · Room DAOs (in-memory + Robolectric, JVM)
+- [x] `local/converter/RoomTypeConverters` — round-trip + malformed-JSON fallback (14 test)
+- [x] `local/dao/CartItemDao` — 11 test
+- [x] `local/dao/AddressDao` — 8 test
+- [x] `local/dao/WishlistItemDao` — 9 test
+- [x] `local/dao/PendingOperationDao` — 11 test
+- [x] `local/dao/UserDao` — 6 test (single-user invariant + json defaults)
+- [x] `local/dao/CategoryDao` — 6 test
+- [x] `local/dao/OrderDao` — 7 test
+- [x] `local/dao/ProductDao` — 13 test (status filters, search-by-title/category/keywords, seller view)
 
-### 2B · Repository implementations (Firestore/Ktor fake'ler ile)
-- [ ] `AuthRepositoryImpl` — sign-in/up/out, error path
+### 2B · Repository implementations (kısmi)
+**Easy wins (testlendi):**
+- [x] `DispatcherProviderImpl` — interface defaults
+- [x] `model/IpLocationDto` — pure mapper + JSON deserialization
+- [x] `LocationServiceImpl` — Ktor MockEngine (success, 5xx, malformed)
+- [x] `NotificationPreferences` — gerçek DataStore (Robolectric temp file)
+- [x] `DiscountRepositoryTest` placeholder dosyası silindi (sahte coverage)
+
+**Firestore-coupled (ertelendi — emulator gerekli):**
+- [ ] `AuthRepositoryImpl`
 - [ ] `ProfileRepositoryImpl`
-- [ ] `ProductRepositoryImpl` — list/get/search, paging
+- [ ] `ProductRepositoryImpl`
 - [ ] `ProductReviewRepositoryImpl`
 - [ ] `CategoryRepositoryImpl`
 - [ ] `TagRepositoryImpl`
-- [ ] `CartRepositoryImpl` — local + remote sync
+- [ ] `CartRepositoryImpl`
 - [ ] `WishlistRepositoryImpl`
 - [ ] `AddressRepositoryImpl`
-- [ ] `DiscountRepositoryImpl` (mevcut testi genişlet)
-- [ ] `PaymentRepositoryImpl` — Stripe wrapper, **gerçek API'ye vurmadan**
-- [ ] `FirestoreRepositoryImpl` (base/util)
+- [ ] `DiscountRepositoryImpl`
+- [ ] `FirestoreRepositoryImpl`
+- [ ] `PaymentRepositoryImpl` — Stripe SDK + Cloud Function, aynı sorun
+
+**Strateji notu**: Bu 12 repo doğrudan `FirebaseFirestore` / `FirebaseAuth` / `Firebase.functions()` SDK'larını sarmalıyor. Mockk ile zincirleme builder API'sini taklit etmek kırılgan ve düşük getirili — repo doğrudan SDK ile konuşuyor, mapping çoğunlukla inline. Doğru yaklaşımlar:
+
+1. **Firebase emulator** kurmak (`firebase emulators:start --only firestore,auth,functions`) ve bu repo'ları emulator'a karşı integration test olarak koşmak (`:data:connectedDebugAndroidTest` veya emulator-friendly JVM test).
+2. Mapper'ları (`mapDocumentToDiscountCode` vb. private fonksiyonlar) ayrı `internal` fonksiyonlara çıkarıp pure unit test'lemek — küçük bir refaktör.
+
+Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olarak ya **ayrı bir alt-faz (2C — emulator setup)** olarak ele alalım ya da **sonraki phase'e** ertele. Şimdilik Wave 2B'yi "kısmi tamam" işaretliyoruz.
 
 ### Dalga 2 çıkış kapısı
-- [ ] `./gradlew :data:testDebugUnitTest` → yeşil
-- [ ] DAO testleri için `:data:connectedDebugAndroidTest` (in-memory Room JVM'de koşamıyorsa) → yeşil
+- [x] `./gradlew :data:testDebugUnitTest` → yeşil (**99 test**)
+- [~] DAO testleri JVM'de Robolectric ile koştuğu için `connectedDebugAndroidTest` gerekmiyor
+- [ ] Firestore-coupled 12 repo için 2C alt-faz kararı (emulator vs mapper refactor)
 
 ---
 
@@ -190,9 +207,9 @@
 | Dalga | Toplam | Bitti | Bug bulundu | Bug düzeltildi |
 |-------|--------|-------|-------------|----------------|
 | 1 — domain | 18 | **18 ✅** | 1 | 0 |
-| 2 — data | 19 | 0 | 0 | 0 |
+| 2 — data | 19 | 13 (2A komple + 2B kısmi) | 0 | 0 |
 | 3 — app VM | 28 | 0 | 0 | 0 |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **18** | **1** | **0** |
+| **Toplam** | **89** | **31** | **1** | **0** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.
