@@ -28,7 +28,7 @@
 ## Dalga 1 — `:domain` (saf Kotlin, en hızlı, en yüksek ROI)
 
 ### 1A · Util & saf fonksiyonlar
-- [ ] `util/SearchKeywordsGenerator` — n-gram / case / boş input / unicode tablo testi
+- [x] `util/SearchKeywordsGenerator` — 14 test (split/case/dedup/punct/whitespace + 2 bug pin). **Bug TB-1 bulundu** (Turkish char stripping).
 - [ ] `util/DocumentType` (enum/value class behavior)
 - [ ] `util/AuthProvider` (enum/value class behavior)
 
@@ -178,7 +178,7 @@
 
 > Format: `- [#N] feature — bir cümle — fix commit hash veya @Ignore notu`
 
-_(henüz boş)_
+- **TB-1** `SearchKeywordsGenerator` — `[^a-z0-9]` regex Turkish karakterleri silip kelimeleri bozuyor (`akıllı` → `akll`). Test ile pinlendi, fix ertelendi (search query tarafı da koordineli güncellenmeli). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-1.
 
 ---
 
@@ -186,7 +186,7 @@ _(henüz boş)_
 
 | Dalga | Toplam | Bitti | Bug bulundu | Bug düzeltildi |
 |-------|--------|-------|-------------|----------------|
-| 1 — domain | 18 | 0 | 0 | 0 |
+| 1 — domain | 18 | 1 | 1 | 0 |
 | 2 — data | 19 | 0 | 0 | 0 |
 | 3 — app VM | 28 | 0 | 0 | 0 |
 | 4 — app UI | 24 | 0 | 0 | 0 |

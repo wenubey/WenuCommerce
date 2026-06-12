@@ -1,5 +1,25 @@
 # Product & Category — Bugs and Missing Features
 
+## Bugs found during Phase 0 — Test Backfill
+
+### TB-1: `generateSearchKeywords` strips Turkish (and all non-ASCII) characters (MEDIUM)
+
+**File:** `domain/src/main/java/com/wenubey/domain/util/SearchKeywordsGenerator.kt`
+
+**Problem:** The regex `[^a-z0-9]` removes any character outside basic ASCII, so Turkish characters (`ı`, `ş`, `ç`, `ğ`, `ü`, `ö`) and any Unicode letter are silently stripped. Example mangling:
+
+- `"Akıllı Kalem"` → `["akll", "kalem"]` (should be `["akıllı", "kalem"]`)
+- `"Kırtasiye"` → `["krtasiye"]` (should be `["kırtasiye"]`)
+- `"ıı şş"` → `[]` (whole token vanishes)
+
+**Impact:** Any product, category, subcategory, or tag with Turkish characters generates broken search keywords. Search for "akıllı" will not match products whose stored keyword is `akll`.
+
+**Why not auto-fixed here:** The fix is one-line (`[^\\p{L}\\p{N}]` instead of `[^a-z0-9]`) **but** the search-query side must tokenize identically, otherwise queries and stored keywords disagree and search breaks. Need to verify all call sites (likely `SearchQueryNormalizer` or similar) match before changing this. Tests in `SearchKeywordsGeneratorTest` currently pin **buggy** behavior and must be updated in lockstep with the fix.
+
+**Action:** Pinned by tests (`bug pin -` prefix); fix coordinated separately.
+
+---
+
 ## Bugs to Fix
 
 ### Bug 1: `submitForReview` Coroutine Leak (HIGH)
