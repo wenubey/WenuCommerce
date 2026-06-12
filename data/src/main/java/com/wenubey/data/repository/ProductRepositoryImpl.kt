@@ -17,6 +17,7 @@ import com.wenubey.domain.model.product.ProductStatus
 import com.wenubey.domain.model.product.toMap
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProductRepository
+import com.wenubey.domain.util.SEARCH_KEYWORD_STRIP_REGEX
 import com.wenubey.domain.util.generateSearchKeywords
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -405,7 +406,7 @@ class ProductRepositoryImpl(
             if (normalizedQuery.isBlank()) return@safeApiCall emptyList()
 
             val tokens = normalizedQuery.split(Regex("\\s+"))
-                .map { it.replace(Regex("[^a-z0-9]"), "") }
+                .map { it.replace(SEARCH_KEYWORD_STRIP_REGEX, "") }
                 .filter { it.isNotBlank() }
             if (tokens.isEmpty()) return@safeApiCall emptyList()
 
@@ -443,7 +444,7 @@ class ProductRepositoryImpl(
             if (normalizedQuery.isBlank()) return@safeApiCall emptyList()
 
             val tokens = normalizedQuery.split(Regex("\\s+"))
-                .map { it.replace(Regex("[^a-z0-9]"), "") }
+                .map { it.replace(SEARCH_KEYWORD_STRIP_REGEX, "") }
                 .filter { it.isNotBlank() }
             if (tokens.isEmpty()) return@safeApiCall emptyList()
 

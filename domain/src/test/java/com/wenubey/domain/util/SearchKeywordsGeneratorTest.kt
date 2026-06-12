@@ -138,34 +138,54 @@ class SearchKeywordsGeneratorTest {
         assertThat(keywords).containsExactly("item", "organic", "cotton")
     }
 
-    // --- BUG documentation tests ---
-    // These tests pin CURRENT behavior, which is a known issue:
-    // the [^a-z0-9] regex strips Turkish characters (ı, ş, ç, ğ, ü, ö),
-    // mangling words. Tracked in PRODUCT_BUGS_AND_GAPS.md (Search keyword
-    // ASCII-only). If the regex is widened to support Unicode, these
-    // tests must be UPDATED in lockstep with the search query side, since
-    // the stored index and query tokenization must agree.
+    // --- Unicode coverage (regression for TB-1) ---
+    // The regex is `[^\p{L}\p{N}]`, so Turkish (ı/ş/ç/ğ/ü/ö) and other
+    // non-ASCII letters survive. The query side in
+    // ProductRepositoryImpl.{searchActiveProducts, searchAllProducts}
+    // uses the same regex via the shared SEARCH_KEYWORD_STRIP_REGEX
+    // constant — index and query MUST stay in lockstep.
 
     @Test
-    fun `bug pin - Turkish characters are stripped, mangling words`() {
+    fun `Turkish characters survive tokenization unchanged`() {
         val keywords = generateSearchKeywords(
             title = "Akıllı Kalem",
             categoryName = "Kırtasiye",
             subcategoryName = "",
             tagNames = listOf("Şahin"),
         )
-        assertThat(keywords).containsExactly("akll", "kalem", "krtasiye", "ahin")
+        assertThat(keywords).containsExactly("akıllı", "kalem", "kırtasiye", "şahin")
     }
 
     @Test
-    fun `bug pin - token that becomes single char after stripping is filtered out`() {
+    fun `Turkish two-char words survive the length-greater-than-1 filter`() {
         val keywords = generateSearchKeywords(
             title = "ıı şş",
             categoryName = "",
             subcategoryName = "",
             tagNames = emptyList(),
         )
-        // "ıı" -> "" (empty), "şş" -> "" (empty); both dropped by length > 1 filter
-        assertThat(keywords).isEmpty()
+        assertThat(keywords).containsExactly("ıı", "şş")
+    }
+
+    @Test
+    fun `punctuation around Turkish words is still stripped`() {
+        val keywords = generateSearchKeywords(
+            title = "Akıllı, kalem!!! (yeni)",
+            categoryName = "",
+            subcategoryName = "",
+            tagNames = emptyList(),
+        )
+        assertThat(keywords).containsExactly("akıllı", "kalem", "yeni")
+    }
+
+    @Test
+    fun `other non-ASCII letters and digits also survive`() {
+        val keywords = generateSearchKeywords(
+            title = "Café 1990 — naïve",
+            categoryName = "",
+            subcategoryName = "",
+            tagNames = emptyList(),
+        )
+        assertThat(keywords).containsExactly("café", "1990", "naïve")
     }
 }
