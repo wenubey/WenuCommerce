@@ -29,8 +29,8 @@
 
 ### 1A · Util & saf fonksiyonlar
 - [x] `util/SearchKeywordsGenerator` — 14 test (split/case/dedup/punct/whitespace + 2 bug pin). **Bug TB-1 bulundu** (Turkish char stripping).
-- [ ] `util/DocumentType` (enum/value class behavior)
-- [ ] `util/AuthProvider` (enum/value class behavior)
+- [x] `util/DocumentType` — name + ordering pin (persistence safety)
+- [x] `util/AuthProvider` — name + ordering pin (persistence safety)
 
 ### 1B · Modeller (validasyon / hesap / default davranış)
 - [ ] `model/discount/DiscountCode` — alan kuralları, kupon valid window
@@ -186,7 +186,7 @@
 
 | Dalga | Toplam | Bitti | Bug bulundu | Bug düzeltildi |
 |-------|--------|-------|-------------|----------------|
-| 1 — domain | 18 | 1 | 1 | 0 |
+| 1 — domain | 18 | 3 | 1 | 0 |
 | 2 — data | 19 | 0 | 0 | 0 |
 | 3 — app VM | 28 | 0 | 0 | 0 |
 | 4 — app UI | 24 | 0 | 0 | 0 |
