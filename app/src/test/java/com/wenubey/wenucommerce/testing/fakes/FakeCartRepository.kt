@@ -24,6 +24,7 @@ class FakeCartRepository : CartRepository {
     var updateQuantityThrows: Throwable? = null
     var removeFromCartThrows: Throwable? = null
     var restoreCartItemThrows: Throwable? = null
+    var addToCartThrows: Throwable? = null
     var observeCartItemsFlow: Flow<List<CartItem>>? = null
 
     fun emitCartItems(userId: String, items: List<CartItem>) {
@@ -42,6 +43,7 @@ class FakeCartRepository : CartRepository {
 
     override suspend fun addToCart(userId: String, product: Product, quantity: Int) {
         addToCartCalls.add(Triple(userId, product, quantity))
+        addToCartThrows?.let { throw it }
     }
 
     override suspend fun restoreCartItem(userId: String, cartItem: CartItem) {
