@@ -114,14 +114,14 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 > Önce **para/auth** akışı, sonra seller core, sonra customer, sonra admin.
 
 ### 3A · Para / auth (KRİTİK)
-- [ ] `AuthViewModel`
-- [ ] `sign_in/SignInViewModel`
-- [ ] `sign_up/SignUpViewModel`
-- [ ] `verify_email/VerifyEmailViewModel`
-- [ ] `customer/customer_cart/CartViewModel`
-- [ ] `customer/checkout/CheckoutViewModel` (mevcut testi genişlet — full state coverage)
-- [ ] `seller/seller_discounts/DiscountCreateEditViewModel` (mevcut testi audit + gap'leri kapat)
-- [ ] `seller/seller_discounts/DiscountListViewModel`
+- [x] `AuthViewModel` — 9 test (role routing, login transition, anon wishlist sync). Bug TB-2 raporlandı.
+- [x] `sign_in/SignInViewModel` — 14 test (Robolectric for android.util.Patterns)
+- [x] `sign_up/SignUpViewModel` — 11 test (Robolectric)
+- [x] `verify_email/VerifyEmailViewModel` — 6 test (polling loop'u her test başında durduruluyor)
+- [x] `customer/customer_cart/CartViewModel` — 19 test (state machine + computed property contracts)
+- [ ] `customer/checkout/CheckoutViewModel` — 354 satır, kendi turunu hak ediyor (placeholder dosyası hâlâ duruyor)
+- [x] `seller/seller_discounts/DiscountCreateEditViewModel` — 15 test (placeholder silindi)
+- [x] `seller/seller_discounts/DiscountListViewModel` — 9 test
 
 ### 3B · Seller core
 - [ ] `seller/seller_products/SellerProductListViewModel`
@@ -199,6 +199,7 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 > Format: `- [#N] feature — bir cümle — fix commit hash veya @Ignore notu`
 
 - **TB-1** `SearchKeywordsGenerator` — `[^a-z0-9]` regex Turkish karakterleri silip kelimeleri bozuyor (`akıllı` → `akll`). Test ile pinlendi, fix ertelendi (search query tarafı da koordineli güncellenmeli). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-1.
+- **TB-2** `AuthRepository.currentFirebaseUser: FirebaseUser?` interface'i domain'e Firebase SDK tipi sızdırıyor. ~10 satır refaktör (`isAuthenticated: Boolean` ile değiştir). `AuthViewModelTest`'te tek bir branch test edilemiyor (firebase-user-var-ama-profil-yok timeout fallback). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-2.
 
 ---
 
@@ -208,8 +209,8 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 |-------|--------|-------|-------------|----------------|
 | 1 — domain | 18 | **18 ✅** | 1 | 0 |
 | 2 — data | 19 | 13 (2A komple + 2B kısmi) | 0 | 0 |
-| 3 — app VM | 28 | 0 | 0 | 0 |
+| 3 — app VM | 28 | 7 (3A: 7/8) | 1 (TB-2) | 0 |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **31** | **1** | **0** |
+| **Toplam** | **89** | **38** | **2** | **0** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.
