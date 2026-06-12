@@ -2,7 +2,7 @@ package com.wenubey.wenucommerce.seller.seller_products
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
+import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.ProductRepository
@@ -18,7 +18,7 @@ import timber.log.Timber
 class SellerProductListViewModel(
     private val productRepository: ProductRepository,
     private val categoryRepository: CategoryRepository,
-    private val auth: FirebaseAuth,
+    private val authRepository: AuthRepository,
     dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
 
@@ -35,7 +35,7 @@ class SellerProductListViewModel(
     }
 
     private fun observeProducts() {
-        val sellerId = auth.currentUser?.uid ?: return
+        val sellerId = authRepository.currentUser.value?.uuid ?: return
         observeJob?.cancel()
         observeJob = viewModelScope.launch(mainDispatcher) {
             _state.update { it.copy(isLoading = true) }
