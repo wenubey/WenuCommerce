@@ -96,11 +96,18 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.room.testing)
+    testImplementation(libs.turbine)
+    testImplementation(libs.truth)
+    testImplementation(libs.core.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation (libs.androidx.espresso.core)
     androidTestImplementation (libs.truth)
     androidTestImplementation(libs.core.testing)
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.turbine)
+    androidTestImplementation(libs.mockk.android)
 
     // Timber
     implementation(libs.timber)

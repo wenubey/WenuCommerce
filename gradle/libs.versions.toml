@@ -35,6 +35,8 @@ playServicesAuth = "21.3.0"
 googleid = "1.1.1"
 stripe = "22.8.1"
 lottie = "6.7.1"
+turbine = "1.1.0"
+mockkAndroid = "1.13.13"
 
 
 [libraries]
@@ -129,6 +131,8 @@ mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", versio
 ktor-client-mock = {group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 core-testing = { module = "android.arch.core:core-testing", version.ref = "coreTesting" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockkAndroid" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 
 [plugins]

@@ -40,7 +40,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    testImplementation(libs.junit)
 
 
     // Paging Compose
@@ -61,6 +60,9 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.room.testing)
+    testImplementation(libs.turbine)
+    testImplementation(libs.truth)
+    testImplementation(libs.core.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation (libs.androidx.espresso.core)
