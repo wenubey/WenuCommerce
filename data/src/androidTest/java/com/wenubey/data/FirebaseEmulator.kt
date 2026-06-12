@@ -2,12 +2,11 @@ package com.wenubey.data
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.firestore.firestoreSettings
-import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import okhttp3.OkHttpClient
@@ -40,14 +39,31 @@ object FirebaseEmulator {
     @Volatile
     private var configured = false
 
+    /**
+     * Project ID the emulator accepts under singleProjectMode. Must match the
+     * project ID the Firebase CLI starts the emulators for (taken from
+     * .firebaserc / google-services.json — this codebase uses 'wenucommerce').
+     * Mismatched IDs are rejected when singleProjectMode is on.
+     */
+    private const val EMULATOR_PROJECT_ID = "wenucommerce"
+
     @Synchronized
     fun useEmulator() {
         if (configured) return
-        // Make sure FirebaseApp is initialised (instrumentation context, not
-        // the production manifest auto-init).
+        // :data is a library module without google-services.json; the SDK can't
+        // auto-init from a missing google-services config block. Provide the
+        // minimum FirebaseOptions explicitly — the emulator only checks
+        // projectId, so the other fields can be any non-null placeholder.
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
         if (FirebaseApp.getApps(ctx).isEmpty()) {
-            FirebaseApp.initializeApp(ctx)
+            FirebaseApp.initializeApp(
+                ctx,
+                FirebaseOptions.Builder()
+                    .setApplicationId("1:1:android:emulator")
+                    .setProjectId(EMULATOR_PROJECT_ID)
+                    .setApiKey("emulator-fake-api-key")
+                    .build(),
+            )
         }
         val firestore = FirebaseFirestore.getInstance()
         firestore.useEmulator(EMULATOR_HOST, FIRESTORE_PORT)
@@ -89,5 +105,5 @@ object FirebaseEmulator {
 
     private fun projectId(): String =
         FirebaseApp.getInstance().options.projectId
-            ?: error("FirebaseApp projectId is not configured")
+            ?: EMULATOR_PROJECT_ID
 }

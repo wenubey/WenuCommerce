@@ -11,8 +11,8 @@ import com.wenubey.domain.repository.DispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.BeforeClass
@@ -69,7 +69,7 @@ class DiscountRepositoryImplEmulatorTest {
     )
 
     @Test
-    fun create_writes_document_with_uppercased_code_and_zero_usage_count() = runTest {
+    fun create_writes_document_with_uppercased_code_and_zero_usage_count(): Unit = runBlocking {
         val result = repo.createDiscountCode(sampleCode(code = "save20"))
         assertThat(result.isSuccess).isTrue()
 
@@ -86,7 +86,7 @@ class DiscountRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun observe_emits_created_documents_filtered_by_seller_id() = runTest {
+    fun observe_emits_created_documents_filtered_by_seller_id(): Unit = runBlocking {
         repo.createDiscountCode(sampleCode(code = "ONE", seller = "seller-A")).getOrThrow()
         repo.createDiscountCode(sampleCode(code = "TWO", seller = "seller-A")).getOrThrow()
         repo.createDiscountCode(sampleCode(code = "OTHER", seller = "seller-B")).getOrThrow()
@@ -102,7 +102,7 @@ class DiscountRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun observe_with_empty_seller_id_returns_all_codes() = runTest {
+    fun observe_with_empty_seller_id_returns_all_codes(): Unit = runBlocking {
         repo.createDiscountCode(sampleCode(code = "A", seller = "seller-A")).getOrThrow()
         repo.createDiscountCode(sampleCode(code = "B", seller = "seller-B")).getOrThrow()
 
@@ -113,7 +113,7 @@ class DiscountRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun update_overwrites_mutable_fields_but_preserves_usage_count_and_created_at() = runTest {
+    fun update_overwrites_mutable_fields_but_preserves_usage_count_and_created_at(): Unit = runBlocking {
         repo.createDiscountCode(sampleCode(code = "EDIT")).getOrThrow()
         val before = firestore.collection("discountCodes").document("EDIT").get().await()
         val originalCreatedAt = before.getString("createdAt")
@@ -138,7 +138,7 @@ class DiscountRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun delete_removes_the_document() = runTest {
+    fun delete_removes_the_document(): Unit = runBlocking {
         repo.createDiscountCode(sampleCode(code = "DEL")).getOrThrow()
         val before = firestore.collection("discountCodes").document("DEL").get().await()
         assertThat(before.exists()).isTrue()
@@ -150,7 +150,7 @@ class DiscountRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun deactivate_flips_isActive_to_false_without_other_field_changes() = runTest {
+    fun deactivate_flips_isActive_to_false_without_other_field_changes(): Unit = runBlocking {
         repo.createDiscountCode(sampleCode(code = "OFF")).getOrThrow()
         val before = firestore.collection("discountCodes").document("OFF").get().await()
         val originalValue = before.getDouble("value")
@@ -164,7 +164,7 @@ class DiscountRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun snapshot_listener_emits_updates_after_external_change() = runTest {
+    fun snapshot_listener_emits_updates_after_external_change(): Unit = runBlocking {
         repo.createDiscountCode(sampleCode(code = "WATCH", seller = "seller-X")).getOrThrow()
 
         // First emission: the initial state.
