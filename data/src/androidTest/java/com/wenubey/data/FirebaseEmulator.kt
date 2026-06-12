@@ -9,6 +9,7 @@ import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.firestore.firestoreSettings
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -101,6 +102,20 @@ object FirebaseEmulator {
         client.newCall(
             Request.Builder().url(url).delete().build()
         ).execute().use { /* best-effort */ }
+    }
+
+    /**
+     * Signs a deterministic test user into the Auth emulator. Returns the
+     * resulting user's uid. Subsequent tests that need a different identity
+     * should call [clearAuth] and re-invoke. Idempotent on repeat calls within
+     * the same test method.
+     */
+    suspend fun signInAnonymous(): String {
+        val auth = Firebase.auth
+        val current = auth.currentUser
+        if (current != null) return current.uid
+        val result = auth.signInAnonymously().await()
+        return result.user?.uid ?: error("Anonymous sign-in returned null user")
     }
 
     private fun projectId(): String =
