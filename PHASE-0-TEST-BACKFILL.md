@@ -33,13 +33,16 @@
 - [x] `util/AuthProvider` — name + ordering pin (persistence safety)
 
 ### 1B · Modeller (validasyon / hesap / default davranış)
-- [ ] `model/discount/DiscountCode` — alan kuralları, kupon valid window
-- [ ] `model/discount/CouponValidationResult` — sealed davranış
-- [ ] `model/discount/DiscountType` — yüzde/sabit hesap (mevcut DiscountCalculationTest'i genişlet)
-- [ ] `model/order/Order` + `OrderItem` — toplam, indirim, kargo, vergi hesabı (varsa)
-- [ ] `model/order/OrderStatus` transition kuralları (varsa)
-- [ ] `model/product/Product` (+ Variant, Image, Shipping, Review) — default değerler, copy davranışı, indirimli fiyat
-- [ ] `model/product/Category` / `Subcategory` / `Tag` — eşitlik, hierarchy davranışı
+- [~] `model/discount/DiscountCode` — pure data carrier, no behavior to test (skip)
+- [~] `model/discount/CouponValidationResult` — pure data carrier (skip)
+- [x] `model/discount/DiscountType` — name pin; replaced false-positive `DiscountCalculationTest` placeholders
+- [~] `model/order/Order` + `OrderItem` — totals stored, not computed; no behavior (skip)
+- [x] `model/order/OrderStatus` — name + displayName pins
+- [x] `model/order/ShippingAddress` — label getter + toMap contract
+- [x] `model/product/Product` (+ Variant, Image, Shipping) — defaults, toMap, enum-by-name, recursive nested map
+- [x] `model/product/ProductStatus` / `ProductCondition` / `ShippingType` — name pins
+- [ ] `model/product/Category` / `Subcategory` / `Tag` — TBD
+- [ ] `model/product/ProductReview` — TBD
 - [ ] `model/user/User` + `UserRole` — rol guard'ları
 - [ ] `model/user/AdminDashboardData` / `UserManagementData` — agregate constructor'lar
 - [ ] `model/onboard/BusinessInfo` + `BusinessType` + `VerificationStatus`
@@ -186,7 +189,7 @@
 
 | Dalga | Toplam | Bitti | Bug bulundu | Bug düzeltildi |
 |-------|--------|-------|-------------|----------------|
-| 1 — domain | 18 | 3 | 1 | 0 |
+| 1 — domain | 18 | 9 | 1 | 0 |
 | 2 — data | 19 | 0 | 0 | 0 |
 | 3 — app VM | 28 | 0 | 0 | 0 |
 | 4 — app UI | 24 | 0 | 0 | 0 |
