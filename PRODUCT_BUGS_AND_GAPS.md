@@ -30,6 +30,16 @@
 
 **Action:** Deferred. Single missing branch noted in the test file. Not blocking.
 
+### TB-3: `CheckoutViewModel` hardcoded `Dispatchers.IO` instead of using `DispatcherProvider` (LOW — FIXED)
+
+**File:** `app/src/main/java/com/wenubey/wenucommerce/customer/checkout/CheckoutViewModel.kt`
+
+**Problem:** Every other ViewModel in the codebase routes IO work through the injected `DispatcherProvider` (so tests can swap in a `TestDispatcher` and use virtual time). `CheckoutViewModel` was an exception — it had no `DispatcherProvider` parameter and called `Dispatchers.IO` directly in 5 places (observeCartItems, observeSavedAddresses, applyCoupon, createPaymentIntent, handlePaymentSuccess). This made every IO-bound code path uncontrollable from tests: virtual time wouldn't advance the coroutines, `advanceUntilIdle()` returned before any IO work finished, and assertions saw stale state.
+
+**Fix applied:** Added `dispatcherProvider: DispatcherProvider` to the constructor, derived `private val ioDispatcher = dispatcherProvider.io()`, replaced 5 occurrences of `Dispatchers.IO` with `ioDispatcher`, and dropped the `Dispatchers` import. Koin's `viewModelOf(::CheckoutViewModel)` auto-resolves the new parameter from the existing `DispatcherProviderImpl` singleton — no DI module change needed. Unblocked 27 `CheckoutViewModelTest` cases in this same commit.
+
+**Action:** Fixed in the same commit that added `CheckoutViewModelTest`.
+
 ---
 
 ## Bugs to Fix

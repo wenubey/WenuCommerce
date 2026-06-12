@@ -119,7 +119,7 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - [x] `sign_up/SignUpViewModel` — 11 test (Robolectric)
 - [x] `verify_email/VerifyEmailViewModel` — 6 test (polling loop'u her test başında durduruluyor)
 - [x] `customer/customer_cart/CartViewModel` — 19 test (state machine + computed property contracts)
-- [ ] `customer/checkout/CheckoutViewModel` — 354 satır, kendi turunu hak ediyor (placeholder dosyası hâlâ duruyor)
+- [x] `customer/checkout/CheckoutViewModel` — 27 test. **Bug TB-3 bulundu + düzeltildi** (Dispatchers.IO hardcode → DispatcherProvider injection). Placeholder dosyası silinmedi (CheckoutViewModelDiscountTest hâlâ duruyor, içerik artık CheckoutViewModelTest'te)
 - [x] `seller/seller_discounts/DiscountCreateEditViewModel` — 15 test (placeholder silindi)
 - [x] `seller/seller_discounts/DiscountListViewModel` — 9 test
 
@@ -200,6 +200,7 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 
 - **TB-1** `SearchKeywordsGenerator` — `[^a-z0-9]` regex Turkish karakterleri silip kelimeleri bozuyor (`akıllı` → `akll`). Test ile pinlendi, fix ertelendi (search query tarafı da koordineli güncellenmeli). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-1.
 - **TB-2** `AuthRepository.currentFirebaseUser: FirebaseUser?` interface'i domain'e Firebase SDK tipi sızdırıyor. ~10 satır refaktör (`isAuthenticated: Boolean` ile değiştir). `AuthViewModelTest`'te tek bir branch test edilemiyor (firebase-user-var-ama-profil-yok timeout fallback). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-2.
+- **TB-3** ✅ **DÜZELTİLDİ**: `CheckoutViewModel` `Dispatchers.IO`'u hardcode'luyordu, DispatcherProvider almıyordu. Tüm IO çalışmaları test virtual time'a uyumsuz. Constructor'a DispatcherProvider eklendi, 5 `Dispatchers.IO` çağrısı `ioDispatcher`'a çevrildi. Koin auto-resolve eder, DI değişikliği gerekmedi. 27 test bu sayede koşuyor.
 
 ---
 
@@ -209,8 +210,8 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 |-------|--------|-------|-------------|----------------|
 | 1 — domain | 18 | **18 ✅** | 1 | 0 |
 | 2 — data | 19 | 13 (2A komple + 2B kısmi) | 0 | 0 |
-| 3 — app VM | 28 | 7 (3A: 7/8) | 1 (TB-2) | 0 |
+| 3 — app VM | 28 | 8 (3A komple) | 2 (TB-2, TB-3) | 1 (TB-3) |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **38** | **2** | **0** |
+| **Toplam** | **89** | **39** | **3** | **1** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.
