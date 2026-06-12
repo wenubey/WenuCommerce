@@ -123,14 +123,14 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - [x] `seller/seller_discounts/DiscountCreateEditViewModel` — 15 test (placeholder silindi)
 - [x] `seller/seller_discounts/DiscountListViewModel` — 9 test
 
-### 3B · Seller core
-- [ ] `seller/seller_products/SellerProductListViewModel`
-- [ ] `seller/seller_products/SellerProductCreateViewModel`
-- [ ] `seller/seller_products/SellerProductEditViewModel`
-- [ ] `seller/seller_categories/SellerCategoryViewModel`
-- [ ] `seller/seller_storefront/SellerStorefrontViewModel`
-- [ ] `seller/seller_verification/SellerVerificationViewModel`
-- [ ] `seller/seller_dashboard/SellerDashboardViewModel`
+### 3B · Seller core ✅ KOMPLE
+- [x] `seller/seller_products/SellerProductListViewModel` — 22 test. **TB-4 fix**: FirebaseAuth → AuthRepository.
+- [x] `seller/seller_products/SellerProductCreateViewModel` — 22 test (form validation, tag debounce, image cap, variant cap, save matrix)
+- [x] `seller/seller_products/SellerProductEditViewModel` — 24 test (DRAFT/SUSPENDED guard, image merge, status preservation, submit-with-save)
+- [x] `seller/seller_categories/SellerCategoryViewModel` — 10 test
+- [x] `seller/seller_storefront/SellerStorefrontViewModel` — 5 test
+- [x] `seller/seller_verification/SellerVerificationViewModel` — 16 test (Robolectric, Uri handling, RESUBMITTED status transition)
+- [x] `seller/seller_dashboard/SellerDashboardViewModel` — 6 test (SavedStateHandle persistence)
 
 ### 3C · Customer browse
 - [ ] `customer/customer_home/CustomerHomeViewModel`
@@ -201,6 +201,7 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - **TB-1** ✅ **DÜZELTİLDİ**: `SearchKeywordsGenerator` + `ProductRepositoryImpl.search{Active,All}Products` 3 yerde aynı `[^a-z0-9]` regex'i kullanıyordu, Türkçe kelimeleri bozuyordu. `SEARCH_KEYWORD_STRIP_REGEX = Regex("[^\\p{L}\\p{N}]")` shared constant'a çevrildi, writer + 2 reader senkron. 4 yeni Unicode regression testi.
 - **TB-2** ✅ **DÜZELTİLDİ**: `AuthRepository.currentFirebaseUser: FirebaseUser?` `:domain`'e Firebase SDK sızdırıyordu. `isAuthenticated: Boolean` + `currentAuthEmail: String?` ile değiştirildi. AuthRepositoryImpl ve 2 call site güncellendi. AuthViewModel'de daha önce test edilemeyen "firebase authed but profile not loaded → timeout → Onboarding" branch'i artık test ediliyor.
 - **TB-3** ✅ **DÜZELTİLDİ**: `CheckoutViewModel` `Dispatchers.IO`'u hardcode'luyordu, DispatcherProvider almıyordu. Tüm IO çalışmaları test virtual time'a uyumsuz. Constructor'a DispatcherProvider eklendi, 5 `Dispatchers.IO` çağrısı `ioDispatcher`'a çevrildi. 27 test bu sayede koşuyor.
+- **TB-4** ✅ **DÜZELTİLDİ**: `SellerProductListViewModel` `FirebaseAuth`'u doğrudan alıyordu. `AuthRepository` ile değiştirildi, `auth.currentUser?.uid` → `authRepository.currentUser.value?.uuid`. Koin auto-resolve, DI değişikliği gerekmedi.
 
 ---
 
@@ -210,8 +211,8 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 |-------|--------|-------|-------------|----------------|
 | 1 — domain | 18 | **18 ✅** | 1 | 0 |
 | 2 — data | 19 | 13 (2A komple + 2B kısmi) | 0 | 0 |
-| 3 — app VM | 28 | 8 (3A komple) | 2 (TB-2, TB-3) | 1 (TB-3) |
+| 3 — app VM | 28 | 15 (3A + 3B komple) | 4 (TB-2, TB-3, TB-4) | 4 (TB-1, TB-2, TB-3, TB-4) |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **39** | **3** | **3** |
+| **Toplam** | **89** | **46** | **4** | **4** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.
