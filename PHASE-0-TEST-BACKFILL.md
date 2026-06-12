@@ -198,9 +198,9 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 
 > Format: `- [#N] feature — bir cümle — fix commit hash veya @Ignore notu`
 
-- **TB-1** `SearchKeywordsGenerator` — `[^a-z0-9]` regex Turkish karakterleri silip kelimeleri bozuyor (`akıllı` → `akll`). Test ile pinlendi, fix ertelendi (search query tarafı da koordineli güncellenmeli). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-1.
-- **TB-2** `AuthRepository.currentFirebaseUser: FirebaseUser?` interface'i domain'e Firebase SDK tipi sızdırıyor. ~10 satır refaktör (`isAuthenticated: Boolean` ile değiştir). `AuthViewModelTest`'te tek bir branch test edilemiyor (firebase-user-var-ama-profil-yok timeout fallback). Detay: `PRODUCT_BUGS_AND_GAPS.md` § TB-2.
-- **TB-3** ✅ **DÜZELTİLDİ**: `CheckoutViewModel` `Dispatchers.IO`'u hardcode'luyordu, DispatcherProvider almıyordu. Tüm IO çalışmaları test virtual time'a uyumsuz. Constructor'a DispatcherProvider eklendi, 5 `Dispatchers.IO` çağrısı `ioDispatcher`'a çevrildi. Koin auto-resolve eder, DI değişikliği gerekmedi. 27 test bu sayede koşuyor.
+- **TB-1** ✅ **DÜZELTİLDİ**: `SearchKeywordsGenerator` + `ProductRepositoryImpl.search{Active,All}Products` 3 yerde aynı `[^a-z0-9]` regex'i kullanıyordu, Türkçe kelimeleri bozuyordu. `SEARCH_KEYWORD_STRIP_REGEX = Regex("[^\\p{L}\\p{N}]")` shared constant'a çevrildi, writer + 2 reader senkron. 4 yeni Unicode regression testi.
+- **TB-2** ✅ **DÜZELTİLDİ**: `AuthRepository.currentFirebaseUser: FirebaseUser?` `:domain`'e Firebase SDK sızdırıyordu. `isAuthenticated: Boolean` + `currentAuthEmail: String?` ile değiştirildi. AuthRepositoryImpl ve 2 call site güncellendi. AuthViewModel'de daha önce test edilemeyen "firebase authed but profile not loaded → timeout → Onboarding" branch'i artık test ediliyor.
+- **TB-3** ✅ **DÜZELTİLDİ**: `CheckoutViewModel` `Dispatchers.IO`'u hardcode'luyordu, DispatcherProvider almıyordu. Tüm IO çalışmaları test virtual time'a uyumsuz. Constructor'a DispatcherProvider eklendi, 5 `Dispatchers.IO` çağrısı `ioDispatcher`'a çevrildi. 27 test bu sayede koşuyor.
 
 ---
 
@@ -212,6 +212,6 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 | 2 — data | 19 | 13 (2A komple + 2B kısmi) | 0 | 0 |
 | 3 — app VM | 28 | 8 (3A komple) | 2 (TB-2, TB-3) | 1 (TB-3) |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **39** | **3** | **1** |
+| **Toplam** | **89** | **39** | **3** | **3** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.
