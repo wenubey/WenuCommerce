@@ -261,11 +261,11 @@ class CustomerHomeViewModel(
     private fun onPullToRefresh() {
         viewModelScope.launch {
             _homeState.update { it.copy(isRefreshing = true) }
-            try {
-                syncManager.manualSync()
-            } finally {
-                _homeState.update { it.copy(isRefreshing = false) }
-            }
+            runCatching { syncManager.manualSync() }
+                .onFailure { error ->
+                    Timber.e(error, "CustomerHomeViewModel: manualSync failed")
+                }
+            _homeState.update { it.copy(isRefreshing = false) }
         }
     }
 
