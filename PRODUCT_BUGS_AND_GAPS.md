@@ -18,6 +18,18 @@
 
 **Action:** Pinned by tests (`bug pin -` prefix); fix coordinated separately.
 
+### TB-2: `AuthRepository` interface leaks `FirebaseUser` into the domain layer (LOW)
+
+**File:** `domain/src/main/java/com/wenubey/domain/repository/AuthRepository.kt`
+
+**Problem:** The repository interface in `:domain` exposes `val currentFirebaseUser: FirebaseUser?` — a concrete `com.google.firebase.auth.FirebaseUser` from the Firebase Android SDK. Domain should be a pure Kotlin module with no Firebase deps, but this field forces every `:domain` consumer to pull in Firebase. It also makes the interface impossible to fake cleanly in JVM unit tests because `FirebaseUser` isn't trivially constructible.
+
+**Impact:** `AuthViewModelTest` cannot exercise the branch where `currentFirebaseUser != null` but `currentUser == null` (the "authenticated, profile not yet loaded → 3-second timeout → Onboarding fallback") because faking that combination requires a real `FirebaseUser` instance. Test coverage is missing for that one branch only; the rest of the state machine is covered.
+
+**Fix:** Replace `currentFirebaseUser: FirebaseUser?` with `isAuthenticated: Boolean` (or `currentAuthUserId: String?`) on the interface. The concrete `AuthRepositoryImpl` keeps its private reference to `FirebaseAuth`. ~10-line refactor + 1 grep for call sites.
+
+**Action:** Deferred. Single missing branch noted in the test file. Not blocking.
+
 ---
 
 ## Bugs to Fix
