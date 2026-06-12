@@ -11,8 +11,8 @@ import com.wenubey.domain.repository.AddressRepository
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.DiscountRepository
+import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.PaymentRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -31,7 +31,10 @@ class CheckoutViewModel(
     private val authRepository: AuthRepository,
     private val connectivityObserver: ConnectivityObserver,
     private val discountRepository: DiscountRepository,
+    private val dispatcherProvider: DispatcherProvider,
 ) : ViewModel() {
+
+    private val ioDispatcher = dispatcherProvider.io()
 
     private val _state = MutableStateFlow(CheckoutState())
     val state: StateFlow<CheckoutState> = _state.asStateFlow()
@@ -62,7 +65,7 @@ class CheckoutViewModel(
             _state.update { it.copy(isLoading = false) }
             return
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             cartRepository.observeCartItems(currentUserId)
                 .catch { error ->
                     Timber.e(error, "CheckoutViewModel: failed to observe cart items")
@@ -77,7 +80,7 @@ class CheckoutViewModel(
 
     private fun observeSavedAddresses() {
         val currentUserId = userId ?: return
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             addressRepository.observeSavedAddresses(currentUserId)
                 .catch { error ->
                     Timber.e(error, "CheckoutViewModel: failed to observe saved addresses")
@@ -175,7 +178,7 @@ class CheckoutViewModel(
         val input = currentState.couponInput.trim()
         if (input.isEmpty()) return
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             _state.update { it.copy(isValidatingCoupon = true, couponError = null) }
             val subtotalCents = (currentState.subtotal * 100).toInt()
             discountRepository.validateCoupon(input, currentState.cartItems, subtotalCents)
@@ -229,7 +232,7 @@ class CheckoutViewModel(
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             _state.update { it.copy(isCreatingPaymentIntent = true, paymentError = null, stockError = null) }
             paymentRepository.createPaymentIntent(
                 userId = currentUserId,
@@ -296,7 +299,7 @@ class CheckoutViewModel(
 
         _state.update { it.copy(isProcessingPayment = true) }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             runCatching {
                 // Build the confirmed order for Room persistence
                 val order = Order(
