@@ -132,10 +132,10 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - [x] `seller/seller_verification/SellerVerificationViewModel` — 16 test (Robolectric, Uri handling, RESUBMITTED status transition)
 - [x] `seller/seller_dashboard/SellerDashboardViewModel` — 6 test (SavedStateHandle persistence)
 
-### 3C · Customer browse
-- [ ] `customer/customer_home/CustomerHomeViewModel`
-- [ ] `customer/customer_products/CustomerProductDetailViewModel`
-- [ ] `customer/customer_wishlist/WishlistViewModel`
+### 3C · Customer browse ✅ KOMPLE
+- [x] `customer/customer_home/CustomerHomeViewModel` — 18 test (mockk SyncManager+ConnectivityObserver). **TB-5 fix**: runCatching for manualSync.
+- [x] `customer/customer_products/CustomerProductDetailViewModel` — 24 test (variant default selection, wishlist integration, cart prefill)
+- [x] `customer/customer_wishlist/WishlistViewModel` — 17 test (undo, anonymous gate, multi-select)
 
 ### 3D · Admin
 - [ ] `admin/AdminBadgeViewModel`
@@ -202,6 +202,7 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - **TB-2** ✅ **DÜZELTİLDİ**: `AuthRepository.currentFirebaseUser: FirebaseUser?` `:domain`'e Firebase SDK sızdırıyordu. `isAuthenticated: Boolean` + `currentAuthEmail: String?` ile değiştirildi. AuthRepositoryImpl ve 2 call site güncellendi. AuthViewModel'de daha önce test edilemeyen "firebase authed but profile not loaded → timeout → Onboarding" branch'i artık test ediliyor.
 - **TB-3** ✅ **DÜZELTİLDİ**: `CheckoutViewModel` `Dispatchers.IO`'u hardcode'luyordu, DispatcherProvider almıyordu. Tüm IO çalışmaları test virtual time'a uyumsuz. Constructor'a DispatcherProvider eklendi, 5 `Dispatchers.IO` çağrısı `ioDispatcher`'a çevrildi. 27 test bu sayede koşuyor.
 - **TB-4** ✅ **DÜZELTİLDİ**: `SellerProductListViewModel` `FirebaseAuth`'u doğrudan alıyordu. `AuthRepository` ile değiştirildi, `auth.currentUser?.uid` → `authRepository.currentUser.value?.uuid`. Koin auto-resolve, DI değişikliği gerekmedi.
+- **TB-5** ✅ **DÜZELTİLDİ**: `CustomerHomeViewModel.onPullToRefresh` `SyncManager.manualSync()` exception'ı viewModelScope'tan kaçırıyordu (try-finally pattern). `runCatching` + Timber.e ile değiştirildi — pull-to-refresh fire-and-forget UI, exception bubble olmamalı.
 
 ---
 
@@ -211,8 +212,8 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 |-------|--------|-------|-------------|----------------|
 | 1 — domain | 18 | **18 ✅** | 1 | 0 |
 | 2 — data | 19 | 13 (2A komple + 2B kısmi) | 0 | 0 |
-| 3 — app VM | 28 | 15 (3A + 3B komple) | 4 (TB-2, TB-3, TB-4) | 4 (TB-1, TB-2, TB-3, TB-4) |
+| 3 — app VM | 28 | 18 (3A + 3B + 3C komple) | 5 (TB-2..TB-5) | 5 (TB-1..TB-5) |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **46** | **4** | **4** |
+| **Toplam** | **89** | **49** | **5** | **5** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.

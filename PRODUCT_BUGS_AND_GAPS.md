@@ -40,6 +40,22 @@
 
 **Action:** Fixed in the same commit that added `CheckoutViewModelTest`.
 
+### TB-4: `SellerProductListViewModel` takes `FirebaseAuth` directly instead of `AuthRepository` (LOW — FIXED)
+
+**File:** `app/src/main/java/com/wenubey/wenucommerce/seller/seller_products/SellerProductListViewModel.kt`
+
+**Problem:** The VM took `auth: FirebaseAuth` and called `auth.currentUser?.uid`. Same anti-pattern as TB-2 (Firebase SDK leak into ViewModel layer) — it duplicated the responsibility AuthRepository already owns and made the VM impossible to fake in JVM tests without mocking FirebaseAuth.
+
+**Fix applied:** Replaced `auth: FirebaseAuth` with `authRepository: AuthRepository` and `auth.currentUser?.uid` with `authRepository.currentUser.value?.uuid`. Koin auto-resolves the new parameter; no DI module change. Unblocked SellerProductListViewModelTest (22 tests).
+
+### TB-5: `CustomerHomeViewModel.onPullToRefresh` lets `SyncManager.manualSync()` errors escape (LOW — FIXED)
+
+**File:** `app/src/main/java/com/wenubey/wenucommerce/customer/customer_home/CustomerHomeViewModel.kt`
+
+**Problem:** The pull-to-refresh handler used `try { manualSync() } finally { isRefreshing = false }`. The `finally` reset the flag correctly, but the exception then escaped `viewModelScope.launch` and propagated to the supervisor — surfacing as an uncaught exception in tests (and potentially affecting other coroutines that share the scope in production). Pull-to-refresh is fire-and-forget UI; failures should be logged, not bubbled.
+
+**Fix applied:** Replaced the try-finally with `runCatching { manualSync() }.onFailure { Timber.e(...) }` followed by the unconditional `isRefreshing = false` update. Unblocked the TB-5 regression test in CustomerHomeViewModelTest.
+
 ---
 
 ## Bugs to Fix
