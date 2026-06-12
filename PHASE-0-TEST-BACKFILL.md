@@ -41,22 +41,22 @@
 - [x] `model/order/ShippingAddress` — label getter + toMap contract
 - [x] `model/product/Product` (+ Variant, Image, Shipping) — defaults, toMap, enum-by-name, recursive nested map
 - [x] `model/product/ProductStatus` / `ProductCondition` / `ShippingType` — name pins
-- [ ] `model/product/Category` / `Subcategory` / `Tag` — TBD
-- [ ] `model/product/ProductReview` — TBD
-- [ ] `model/user/User` + `UserRole` — rol guard'ları
-- [ ] `model/user/AdminDashboardData` / `UserManagementData` — agregate constructor'lar
-- [ ] `model/onboard/BusinessInfo` + `BusinessType` + `VerificationStatus`
-- [ ] `model/CartItem` — qty, alt toplam
-- [ ] `model/WishlistItem`
-- [ ] `model/Purchase`, `Device`, `IpLocation`, `Gender`
+- [x] `model/product/Category` / `Subcategory` / `Tag` — defaults + toMap + recursive subcategory mapping
+- [x] `model/product/ProductReview` — defaults + toMap
+- [x] `model/user/User` + `UserRole` — pinned User() vs User.default() businessInfo divergence
+- [~] `model/user/AdminDashboardData` / `UserManagementData` — TODO'lu, unused aggregates (skip)
+- [x] `model/onboard/BusinessInfo` + `BusinessType` + `VerificationStatus` — name pins + toMap null-to-empty contract
+- [x] `model/CartItem` — qty default 1, isProductDeleted false
+- [x] `model/WishlistItem` — defaults
+- [x] `model/Purchase` (defaults), `Device` (toMap), `IpLocation` (all-null defaults), `Gender` (name pin), `OrderItem` (qty default 1, lineTotal stored not computed)
 
 ### 1C · Auth result types
-- [ ] `auth/SignInResult` — sealed: success / failure / cases
-- [ ] `auth/SignUpResult`
+- [x] `auth/SignInResult` — variants + sealed exhaustive when
+- [x] `auth/SignUpResult` — variants + sealed exhaustive when
 
 ### Dalga 1 çıkış kapısı
-- [ ] `./gradlew :domain:testDebugUnitTest` → yeşil
-- [ ] Coverage raporu (en az satır kapsamı raporu) — bonus
+- [x] `./gradlew :domain:testDebugUnitTest` → yeşil (**93 test**)
+- [ ] Coverage raporu (en az satır kapsamı raporu) — bonus (Dalga 4 sonu)
 
 ---
 
@@ -189,10 +189,10 @@
 
 | Dalga | Toplam | Bitti | Bug bulundu | Bug düzeltildi |
 |-------|--------|-------|-------------|----------------|
-| 1 — domain | 18 | 9 | 1 | 0 |
+| 1 — domain | 18 | **18 ✅** | 1 | 0 |
 | 2 — data | 19 | 0 | 0 | 0 |
 | 3 — app VM | 28 | 0 | 0 | 0 |
 | 4 — app UI | 24 | 0 | 0 | 0 |
-| **Toplam** | **89** | **0** | **0** | **0** |
+| **Toplam** | **89** | **18** | **1** | **0** |
 
 > Her commit sonrası bu tablo + ilgili checkbox güncellenir.
