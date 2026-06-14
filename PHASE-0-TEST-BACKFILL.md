@@ -2,14 +2,13 @@
 
 ## 🔖 Yeni oturumda devam (mola sonrası)
 
-**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 11/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
+**Şu an neredeyiz**: Wave 2C TAMAMLANDI ✅. 12/12 Firestore-coupled repo bitti + Storage emulator kuruldu. Pilot pattern çalıştı, 9 repo'da bug yok, 4 prod bug bulundu (TB-6 not, TB-7 not, TB-8 fix, TB-9 not).
 
 **Çözülen iş**: ProductReviewRepositoryImpl emulator transaction race'i ÇÖZÜLDÜ.
 - **Root cause**: Önceki test'te `seedProduct` ürünü `averageRating`/`reviewCount` alanları olmadan yazıyordu. `submitReview` transaction'ı önce `transaction.get(productRef)` ile okuyor (doc var, alanlar yok), sonra `transaction.update(productRef, mapOf("averageRating" to ..., "reviewCount" to ...))` çağırıyor. Bu update mevcut olmayan alanlara yazıyor — emulator'da bu "Can't update a document that doesn't exist" hatasını fırlatıyor (Firestore transaction update'ı seed doc'u fields-missing sebebiyle reject ediyor).
 - **Fix**: seedProduct fonksiyonu artık `averageRating: 0.0` + `reviewCount: 0` ile başlatıyor. Production kodda değişiklik yok. 8 test yeşil.
 
-**Sonra sırada (Wave 2C kalan 1 repo)**:
-1. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
+**Sıradaki**: Wave 3D (admin VMs), Wave 3E (core/cross-cutting VMs), Wave 4 (Compose UI).
 
 **Çalıştırma prereq** (tekrar başlarken):
 ```bash
@@ -26,8 +25,8 @@ adb devices  # "emulator-5554 device" görmeli
   -Pandroid.testInstrumentationRunnerArguments.class=com.wenubey.data.repository.<TestClass>
 ```
 
-**Wave 2C ilerlemesi**: 11/12 + **Storage emulator backfill** (Discount + Tag + Category + ProductReview + Auth + Firestore + Address + Wishlist + Cart + Product + Profile + Storage backfill 3 sınıf, **123 test yeşil**).
-**Tüm test toplamı**: 479 unit + 123 instrumentation = **602 test**.
+**Wave 2C TAMAM** ✅: 12/12 (Discount + Tag + Category + ProductReview + Auth + Firestore + Address + Wishlist + Cart + Product + Profile + Payment) + Storage backfill 2 sınıf, **132 test yeşil**.
+**Tüm test toplamı**: 479 unit + 132 instrumentation = **611 test**.
 
 **Storage emulator kuruldu** (commit ile):
 - `storage.rules` (emulator-permissive)
@@ -141,7 +140,7 @@ Emulator setup tamam: `firebase.json` emulator bloğu + `data/src/androidTest/..
 - [x] `WishlistRepositoryImpl` — 9 emulator test (toggle add/remove dual-write, anonymous toggle stays in Room, isWishlisted reflects state, removeFromWishlist dual-delete, syncAnonymousOnLogin migrates anon rows + pulls remote-only items + merges both). TB-7 ile aynı casing tutarsızlığı burada da var (`users/{uid}/wishlist`).
 - [x] `AddressRepositoryImpl` — 8 emulator test (save with generated UUID + caller-provided id, delete, snapshot listener backfill into Room, remote add propagation, remote delete propagation, empty userId guard, multi-user isolation). **TB-7 not**: prod kod adresleri lowercase `users/{uid}/addresses` altında tutuyor — user profile ise canonical `USERS/{uid}`. İki collection birbirinden bağımsız; sub-collection orphan değil (sadece keyed by uid) ama tutarsızlık görünürlüğü düşük olduğundan PRODUCT_BUGS_AND_GAPS.md'ye konsolide etmek gerekebilir.
 - [x] `FirestoreRepositoryImpl` — 11 emulator test (getUser hit/miss, onboardingComplete (http URI skip-upload + null-uuid failure), updateSellerApprovalStatus approve/reject with previousStatus, observeSellersByStatus filters by role+status, observePendingResubmittedSellerCount aggregates, addUserToFirestore no-op pin).
-- [ ] `PaymentRepositoryImpl` — Stripe SDK + Cloud Function
+- [x] `PaymentRepositoryImpl` — 9 emulator test (Room: createOrderInRoom/getOrderById/observeOrderById/updateOrderStatus dual-write + missing-doc failure; Cloud Function failure paths: unauthenticated, empty cart, invalid item, unknown product). Stripe happy-path skipped — requires `STRIPE_SECRET_KEY` secret + real Stripe test account. Test infra: FirebaseOptions API key fake key gerçekçi `AIzaSy...` formatına çevrildi (Functions SDK syntactic check yapıyor).
 
 **Strateji notu**: Bu 12 repo doğrudan `FirebaseFirestore` / `FirebaseAuth` / `Firebase.functions()` SDK'larını sarmalıyor. Mockk ile zincirleme builder API'sini taklit etmek kırılgan ve düşük getirili — repo doğrudan SDK ile konuşuyor, mapping çoğunlukla inline. Doğru yaklaşımlar:
 

@@ -70,7 +70,11 @@ object FirebaseEmulator {
                 FirebaseOptions.Builder()
                     .setApplicationId("1:1:android:emulator")
                     .setProjectId(EMULATOR_PROJECT_ID)
-                    .setApiKey("emulator-fake-api-key")
+                    // Functions SDK does a syntactic format check on the API
+                    // key before contacting the emulator — it must match the
+                    // canonical "AIzaSy..." Google API key shape. A short
+                    // placeholder is rejected with IllegalArgumentException.
+                    .setApiKey("REDACTED_EMULATOR_PLACEHOLDER")
                     // FirebaseStorage.getInstance() requires a bucket to be
                     // present in FirebaseOptions before any useEmulator call.
                     .setStorageBucket(STORAGE_BUCKET)
