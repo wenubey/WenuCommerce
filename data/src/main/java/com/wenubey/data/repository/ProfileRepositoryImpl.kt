@@ -295,7 +295,7 @@ class ProfileRepositoryImpl(
     private suspend fun updateSellerDocumentUri(userUid: String, newDownloadUrl: String, documentType: DocumentType) =
         withContext(ioDispatcher) {
             val updates = mapOf(
-                "businessInfo.${documentType.name.lowercase()}" to newDownloadUrl
+                "businessInfo.${businessInfoFieldName(documentType)}" to newDownloadUrl
             )
             firestore
                 .collection(USER_COLLECTION)
@@ -364,6 +364,18 @@ class ProfileRepositoryImpl(
                 }
                 .await()
         }
+
+    /**
+     * Maps a DocumentType to the camelCase BusinessInfo field that holds its
+     * Storage download URL. Onboarding writes to these field names, so
+     * updateSellerDocument must patch the same key to actually replace the
+     * URL instead of spawning a parallel snake_case field.
+     */
+    private fun businessInfoFieldName(documentType: DocumentType): String = when (documentType) {
+        DocumentType.TAX_DOCUMENTS -> "taxDocumentUri"
+        DocumentType.BUSINESS_LICENSE -> "businessLicenseDocumentUri"
+        DocumentType.IDENTITY_DOCUMENTS -> "identityDocumentUri"
+    }
 
     companion object {
         // Firebase Storage folder structure

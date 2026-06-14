@@ -218,13 +218,11 @@ class ProfileRepositoryImplStorageEmulatorTest {
             identityDocumentUri = Uri.EMPTY,
         ).getOrThrow()
 
-        // Capture old folder size
+        // Pre: one file under the tax_documents folder.
         val taxFolder = storage.reference.child("seller_info/$uid/tax_documents")
-        val before = taxFolder.listAll().await()
-        assertThat(before.items).hasSize(1)
-        val oldName = before.items.first().name
+        assertThat(taxFolder.listAll().await().items).hasSize(1)
 
-        // Replace the tax document
+        // Replace the tax document.
         val newUrl = repo.updateSellerDocument(
             userUid = uid,
             documentType = DocumentType.TAX_DOCUMENTS,
@@ -232,22 +230,23 @@ class ProfileRepositoryImplStorageEmulatorTest {
         ).getOrThrow()
 
         assertThat(newUrl).isNotEmpty()
-        // After: only the new file remains
+        // After: still exactly one file. (uploadSellerDocument names files
+        // 'tax_documents_yyyyMMdd_HHmmss.pdf' — within the same second the
+        // delete-then-upload sequence can reuse the same name and overwrite.
+        // The contract we care about is "one file, holding the new bytes",
+        // not "the file's name is different".)
         val after = taxFolder.listAll().await()
-        assertThat(after.items.map { it.name }).doesNotContain(oldName)
         assertThat(after.items).hasSize(1)
+        val newBytes = after.items.first().getBytes(1024 * 1024).await()
+        assertThat(String(newBytes)).isEqualTo("new-tax")
 
-        // TB-8 (production bug pinned): updateSellerDocument writes to
-        // 'businessInfo.${DocumentType.name.lowercase()}' (e.g.
-        // 'businessInfo.tax_documents'), but onboarding stores the same URL
-        // under the camel-cased field 'businessInfo.taxDocumentUri'. So the
-        // refresh does NOT replace the original — it spawns a parallel field
-        // and the old URL remains live. This test pins both observable
-        // outcomes so we notice when the bug is fixed.
+        // TB-8 fixed: updateSellerDocument now patches the canonical camelCase
+        // BusinessInfo field (taxDocumentUri) instead of writing a parallel
+        // snake_case field. The new URL therefore replaces the original URL.
         val doc = firestore.collection(USER_COLLECTION).document(uid).get().await()
-        assertThat(doc.getString("businessInfo.tax_documents")).isEqualTo(newUrl)
-        // Original field is untouched by the update.
-        assertThat(doc.getString("businessInfo.taxDocumentUri")).isNotEqualTo(newUrl)
+        assertThat(doc.getString("businessInfo.taxDocumentUri")).isEqualTo(newUrl)
+        // No stale parallel field was created.
+        assertThat(doc.getString("businessInfo.tax_documents")).isNull()
     }
 
     // -------- deleteSellerData --------
