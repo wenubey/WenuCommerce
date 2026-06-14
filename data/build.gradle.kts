@@ -133,6 +133,7 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.turbine)
     androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.work.testing)
 
     // Timber
     implementation(libs.timber)

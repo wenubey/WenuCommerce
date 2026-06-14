@@ -2,17 +2,16 @@
 
 ## 🔖 Yeni oturumda devam (mola sonrası)
 
-**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 8/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
+**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 9/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
 
 **Çözülen iş**: ProductReviewRepositoryImpl emulator transaction race'i ÇÖZÜLDÜ.
 - **Root cause**: Önceki test'te `seedProduct` ürünü `averageRating`/`reviewCount` alanları olmadan yazıyordu. `submitReview` transaction'ı önce `transaction.get(productRef)` ile okuyor (doc var, alanlar yok), sonra `transaction.update(productRef, mapOf("averageRating" to ..., "reviewCount" to ...))` çağırıyor. Bu update mevcut olmayan alanlara yazıyor — emulator'da bu "Can't update a document that doesn't exist" hatasını fırlatıyor (Firestore transaction update'ı seed doc'u fields-missing sebebiyle reject ediyor).
 - **Fix**: seedProduct fonksiyonu artık `averageRating: 0.0` + `reviewCount: 0` ile başlatıyor. Production kodda değişiklik yok. 8 test yeşil.
 
-**Sonra sırada (Wave 2C kalan 4 repo)**:
-1. **CartRepositoryImpl** — Room sync + Firestore + pending operations
-2. **ProductRepositoryImpl** — heavy (search + storefront + admin)
-3. **ProfileRepositoryImpl** — heavy (onboarding + seller data + documents)
-4. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
+**Sonra sırada (Wave 2C kalan 3 repo)**:
+1. **ProductRepositoryImpl** — heavy (search + storefront + admin)
+2. **ProfileRepositoryImpl** — heavy (onboarding + seller data + documents)
+3. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
 
 **Çalıştırma prereq** (tekrar başlarken):
 ```bash
@@ -29,8 +28,8 @@ adb devices  # "emulator-5554 device" görmeli
   -Pandroid.testInstrumentationRunnerArguments.class=com.wenubey.data.repository.<TestClass>
 ```
 
-**Wave 2C ilerlemesi**: 8/12 (Discount + Tag + Category + ProductReview + Auth + Firestore + Address + Wishlist, **70 test yeşil**).
-**Tüm test toplamı**: 479 unit + 70 instrumentation = **549 test**.
+**Wave 2C ilerlemesi**: 9/12 (Discount + Tag + Category + ProductReview + Auth + Firestore + Address + Wishlist + Cart, **82 test yeşil**).
+**Tüm test toplamı**: 479 unit + 82 instrumentation = **561 test**.
 
 **Wave 3D-3E + Wave 4 hâlâ bekliyor** (3D admin, 3E core/cross, 4 Compose UI).
 
@@ -129,7 +128,7 @@ Emulator setup tamam: `firebase.json` emulator bloğu + `data/src/androidTest/..
 - [x] `AuthRepositoryImpl` — 11 emulator test (signUp/signIn happy + duplicate + wrong pw, logOut/deleteAccount clear state, currentUser flow propagation, setCurrentUserAfterOnboarding, refresh/isAuth/isPhone/isEmailVerified). **TB-6 not** (prod): `firebaseAuth.addAuthStateListener` init'te kaydediliyor ama hiç remove edilmiyor — singleton DI'da pratikte sızıntı yok, ama test'lerde yeni instance başına listener birikir. Test çözümü: shared `WenuCommerceDatabase` (@BeforeClass / @AfterClass) kullanarak stale listener'ların kapalı db'ye yazmasını önlemek.
 - [ ] `ProfileRepositoryImpl`
 - [ ] `ProductRepositoryImpl`
-- [ ] `CartRepositoryImpl`
+- [x] `CartRepositoryImpl` — 12 emulator test (addToCart new/existing branches, updateQuantity positive + zero-falls-through-to-remove, removeFromCart, clearCart no-queue, restoreCartItem with addedAt preservation, observeUniqueProductCount, getCartItem, syncAddToCart/syncUpdateQuantity/syncRemoveFromCart Firestore round-trips). Test infra: `androidx.work:work-testing` eklendi + `WorkManagerTestInitHelper.initializeTestWorkManager` @BeforeClass'ta — `SyncWorker.enqueue` inline kullanılıyor.
 - [x] `WishlistRepositoryImpl` — 9 emulator test (toggle add/remove dual-write, anonymous toggle stays in Room, isWishlisted reflects state, removeFromWishlist dual-delete, syncAnonymousOnLogin migrates anon rows + pulls remote-only items + merges both). TB-7 ile aynı casing tutarsızlığı burada da var (`users/{uid}/wishlist`).
 - [x] `AddressRepositoryImpl` — 8 emulator test (save with generated UUID + caller-provided id, delete, snapshot listener backfill into Room, remote add propagation, remote delete propagation, empty userId guard, multi-user isolation). **TB-7 not**: prod kod adresleri lowercase `users/{uid}/addresses` altında tutuyor — user profile ise canonical `USERS/{uid}`. İki collection birbirinden bağımsız; sub-collection orphan değil (sadece keyed by uid) ama tutarsızlık görünürlüğü düşük olduğundan PRODUCT_BUGS_AND_GAPS.md'ye konsolide etmek gerekebilir.
 - [x] `FirestoreRepositoryImpl` — 11 emulator test (getUser hit/miss, onboardingComplete (http URI skip-upload + null-uuid failure), updateSellerApprovalStatus approve/reject with previousStatus, observeSellersByStatus filters by role+status, observePendingResubmittedSellerCount aggregates, addUserToFirestore no-op pin).
