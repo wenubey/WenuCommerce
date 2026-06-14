@@ -2,20 +2,19 @@
 
 ## 🔖 Yeni oturumda devam (mola sonrası)
 
-**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 5/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
+**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 6/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
 
 **Çözülen iş**: ProductReviewRepositoryImpl emulator transaction race'i ÇÖZÜLDÜ.
 - **Root cause**: Önceki test'te `seedProduct` ürünü `averageRating`/`reviewCount` alanları olmadan yazıyordu. `submitReview` transaction'ı önce `transaction.get(productRef)` ile okuyor (doc var, alanlar yok), sonra `transaction.update(productRef, mapOf("averageRating" to ..., "reviewCount" to ...))` çağırıyor. Bu update mevcut olmayan alanlara yazıyor — emulator'da bu "Can't update a document that doesn't exist" hatasını fırlatıyor (Firestore transaction update'ı seed doc'u fields-missing sebebiyle reject ediyor).
 - **Fix**: seedProduct fonksiyonu artık `averageRating: 0.0` + `reviewCount: 0` ile başlatıyor. Production kodda değişiklik yok. 8 test yeşil.
 
-**Sonra sırada (Wave 2C kalan 7 repo)**:
-1. **FirestoreRepositoryImpl** — base/util (sellers observe + dashboard count)
-2. **AddressRepositoryImpl** — Room sync + Firestore subcollection
-3. **WishlistRepositoryImpl** — Room sync + Firestore
-4. **CartRepositoryImpl** — Room sync + Firestore + pending operations
-5. **ProductRepositoryImpl** — heavy (search + storefront + admin)
-6. **ProfileRepositoryImpl** — heavy (onboarding + seller data + documents)
-7. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
+**Sonra sırada (Wave 2C kalan 6 repo)**:
+1. **AddressRepositoryImpl** — Room sync + Firestore subcollection
+2. **WishlistRepositoryImpl** — Room sync + Firestore
+3. **CartRepositoryImpl** — Room sync + Firestore + pending operations
+4. **ProductRepositoryImpl** — heavy (search + storefront + admin)
+5. **ProfileRepositoryImpl** — heavy (onboarding + seller data + documents)
+6. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
 
 **Çalıştırma prereq** (tekrar başlarken):
 ```bash
@@ -32,8 +31,8 @@ adb devices  # "emulator-5554 device" görmeli
   -Pandroid.testInstrumentationRunnerArguments.class=com.wenubey.data.repository.<TestClass>
 ```
 
-**Wave 2C ilerlemesi**: 5/12 (Discount + Tag + Category + ProductReview + Auth, **42 test yeşil**).
-**Tüm test toplamı**: 479 unit + 42 instrumentation = **521 test**.
+**Wave 2C ilerlemesi**: 6/12 (Discount + Tag + Category + ProductReview + Auth + Firestore, **53 test yeşil**).
+**Tüm test toplamı**: 479 unit + 53 instrumentation = **532 test**.
 
 **Wave 3D-3E + Wave 4 hâlâ bekliyor** (3D admin, 3E core/cross, 4 Compose UI).
 
@@ -135,7 +134,7 @@ Emulator setup tamam: `firebase.json` emulator bloğu + `data/src/androidTest/..
 - [ ] `CartRepositoryImpl`
 - [ ] `WishlistRepositoryImpl`
 - [ ] `AddressRepositoryImpl`
-- [ ] `FirestoreRepositoryImpl`
+- [x] `FirestoreRepositoryImpl` — 11 emulator test (getUser hit/miss, onboardingComplete (http URI skip-upload + null-uuid failure), updateSellerApprovalStatus approve/reject with previousStatus, observeSellersByStatus filters by role+status, observePendingResubmittedSellerCount aggregates, addUserToFirestore no-op pin).
 - [ ] `PaymentRepositoryImpl` — Stripe SDK + Cloud Function
 
 **Strateji notu**: Bu 12 repo doğrudan `FirebaseFirestore` / `FirebaseAuth` / `Firebase.functions()` SDK'larını sarmalıyor. Mockk ile zincirleme builder API'sini taklit etmek kırılgan ve düşük getirili — repo doğrudan SDK ile konuşuyor, mapping çoğunlukla inline. Doğru yaklaşımlar:
