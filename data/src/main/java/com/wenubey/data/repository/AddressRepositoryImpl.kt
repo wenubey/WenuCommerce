@@ -5,6 +5,7 @@ import com.wenubey.data.local.dao.AddressDao
 import com.wenubey.data.local.entity.AddressEntity
 import com.wenubey.data.local.mapper.toDomain
 import com.wenubey.data.local.mapper.toEntity
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.domain.model.order.ShippingAddress
 import com.wenubey.domain.repository.AddressRepository
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +46,7 @@ class AddressRepositoryImpl(
         if (userId.isEmpty() || activeListeners.containsKey(userId)) return
 
         val registration = firestore
-            .collection("users")
+            .collection(USER_COLLECTION)
             .document(userId)
             .collection("addresses")
             .addSnapshotListener { snapshot, error ->
@@ -92,7 +93,7 @@ class AddressRepositoryImpl(
 
         // Write to Firestore
         try {
-            firestore.collection("users")
+            firestore.collection(USER_COLLECTION)
                 .document(userId)
                 .collection("addresses")
                 .document(addressId)
@@ -109,7 +110,7 @@ class AddressRepositoryImpl(
     override suspend fun deleteAddress(userId: String, addressId: String) {
         // Delete from Firestore
         try {
-            firestore.collection("users")
+            firestore.collection(USER_COLLECTION)
                 .document(userId)
                 .collection("addresses")
                 .document(addressId)

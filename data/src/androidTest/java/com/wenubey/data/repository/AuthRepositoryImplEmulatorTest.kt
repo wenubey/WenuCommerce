@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
-import org.junit.AfterClass
+import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -62,28 +62,10 @@ import java.util.UUID
 class AuthRepositoryImplEmulatorTest {
 
     companion object {
-        private lateinit var sharedDb: WenuCommerceDatabase
-
         @JvmStatic
         @BeforeClass
         fun configureSdk() {
             FirebaseEmulator.useEmulator()
-            val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-            // Single Room db across the whole test class. Each AuthRepositoryImpl
-            // instance registers a FirebaseAuth state listener that is never
-            // unregistered (no cleanup hook in production code). When the next
-            // test signs out, every leaked listener fires and writes to its dao.
-            // Closing the db between tests crashed those callbacks; sharing it
-            // keeps stale callbacks harmless.
-            sharedDb = Room.inMemoryDatabaseBuilder(ctx, WenuCommerceDatabase::class.java)
-                .allowMainThreadQueries()
-                .build()
-        }
-
-        @JvmStatic
-        @AfterClass
-        fun tearDownClass() {
-            sharedDb.close()
         }
     }
 
@@ -103,7 +85,7 @@ class AuthRepositoryImplEmulatorTest {
             .build()
     }
 
-    private val db get() = sharedDb
+    private lateinit var db: WenuCommerceDatabase
     private lateinit var fakeFirestoreRepo: FakeFirestoreRepository
     private lateinit var repo: AuthRepositoryImpl
 
@@ -112,8 +94,10 @@ class AuthRepositoryImplEmulatorTest {
         FirebaseEmulator.clearAuth()
         FirebaseEmulator.clearFirestore()
         auth.signOut()
-        sharedDb.userDao().clearAll()
 
+        db = Room.inMemoryDatabaseBuilder(ctx, WenuCommerceDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
         fakeFirestoreRepo = FakeFirestoreRepository()
         repo = AuthRepositoryImpl(
             credentialManager = credentialManager,
@@ -123,8 +107,20 @@ class AuthRepositoryImplEmulatorTest {
             dispatcherProvider = dispatcherProvider,
             firestoreRepository = fakeFirestoreRepo,
             firestore = firestore,
-            userDao = sharedDb.userDao(),
+            userDao = db.userDao(),
         )
+        // FirebaseAuth posts the initial state-listener fire to the main
+        // looper; without draining we race the test code below and the
+        // listener can clobber state set inside a test.
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    }
+
+    @After
+    fun tearDown() {
+        // TB-6 fix: explicitly remove the auth-state listener so it doesn't
+        // fire against a closed Room db in subsequent tests.
+        repo.close()
+        db.close()
     }
 
     private fun email() = "user-${UUID.randomUUID().toString().take(8)}@test.dev"

@@ -15,6 +15,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuth.AuthStateListener
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -68,6 +69,27 @@ class AuthRepositoryImpl(
 
     private var userListener: ListenerRegistration? = null
 
+    /**
+     * Retained reference to the registered FirebaseAuth state listener so it
+     * can be removed in [close]. Without this handle, each repository instance
+     * would leak an auth-state observer for the process lifetime — in DI this
+     * never matters because the repo is a singleton, but tests that build new
+     * instances stack listeners that survive past their owning instance.
+     */
+    private val authStateListener: AuthStateListener = AuthStateListener { auth ->
+        if (auth.currentUser == null) {
+            Timber.d("CurrentUser is null")
+            stopUserListener()
+            _currentUser.value = null
+            // Clear Room user cache on sign-out (auth state cleared)
+            CoroutineScope(ioDispatcher).launch {
+                userDao.clearAll()
+            }
+        } else {
+            startUserListener(auth.currentUser!!.uid)
+        }
+    }
+
     init {
         CoroutineScope(ioDispatcher).launch {
             // Load cached user from Room for immediate offline availability on cold start
@@ -77,19 +99,20 @@ class AuthRepositoryImpl(
             }
         }
         initializeUserState()
-        firebaseAuth.addAuthStateListener { auth ->
-            if (auth.currentUser == null) {
-                Timber.d("CurrentUser is null")
-                stopUserListener()
-                _currentUser.value = null
-                // Clear Room user cache on sign-out (auth state cleared)
-                CoroutineScope(ioDispatcher).launch {
-                    userDao.clearAll()
-                }
-            } else {
-                startUserListener(auth.currentUser!!.uid)
-            }
-        }
+        firebaseAuth.addAuthStateListener(authStateListener)
+    }
+
+    /**
+     * Removes both the FirebaseAuth state listener and the currently active
+     * Firestore user-document listener. Idempotent and safe to call from a
+     * non-coroutine context. Test infrastructure should call this in @After
+     * to prevent stale listeners from acting on dead state across tests.
+     * Production callers do not need to invoke this — the repo is a Koin
+     * singleton bound to the process lifetime.
+     */
+    fun close() {
+        firebaseAuth.removeAuthStateListener(authStateListener)
+        stopUserListener()
     }
 
     private fun startUserListener(uid: String) {

@@ -7,6 +7,7 @@ import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.util.DeviceInfoProvider
+import com.wenubey.data.util.PROFILE_PHOTOS_FOLDER
 import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.util.getCurrentDate
 import com.wenubey.data.util.safeApiCall
@@ -378,8 +379,8 @@ class ProfileRepositoryImpl(
     }
 
     companion object {
-        // Firebase Storage folder structure
-        private const val PROFILE_PHOTOS_FOLDER = "profile_photos"
+        // Firebase Storage folder structure. PROFILE_PHOTOS_FOLDER lives in
+        // shared Constants so FirestoreRepositoryImpl can reach it too (TB-9).
         private const val SELLER_INFO_FOLDER = "seller_info"
     }
 }

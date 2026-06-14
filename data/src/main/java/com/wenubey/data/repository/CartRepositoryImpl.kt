@@ -9,6 +9,7 @@ import com.wenubey.data.local.entity.CartItemEntity
 import com.wenubey.data.local.entity.OperationType
 import com.wenubey.data.local.entity.PendingOperationEntity
 import com.wenubey.data.local.mapper.toDomain
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.worker.SyncWorker
 import com.wenubey.domain.model.CartItem
 import com.wenubey.domain.model.product.Product
@@ -198,7 +199,7 @@ class CartRepositoryImpl(
             "updatedAt" to now
         )
         firestore
-            .collection("users").document(userId)
+            .collection(USER_COLLECTION).document(userId)
             .collection("cart").document(productId)
             .set(data)
             .await()
@@ -216,7 +217,7 @@ class CartRepositoryImpl(
             "updatedAt" to now
         )
         firestore
-            .collection("users").document(userId)
+            .collection(USER_COLLECTION).document(userId)
             .collection("cart").document(productId)
             .update(data)
             .await()
@@ -226,7 +227,7 @@ class CartRepositoryImpl(
     override suspend fun syncRemoveFromCart(userId: String, productId: String) =
         withContext(dispatcherProvider.io()) {
             firestore
-                .collection("users").document(userId)
+                .collection(USER_COLLECTION).document(userId)
                 .collection("cart").document(productId)
                 .delete()
                 .await()

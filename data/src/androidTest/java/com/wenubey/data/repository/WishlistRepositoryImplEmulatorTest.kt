@@ -8,6 +8,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.firebase.firestore.FirebaseFirestore
 import com.wenubey.data.FirebaseEmulator
 import com.wenubey.data.local.WenuCommerceDatabase
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.domain.model.product.Product
 import com.wenubey.domain.repository.DispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,9 +30,7 @@ import java.util.UUID
  * (empty userId) is held only in Room until [syncAnonymousOnLogin] migrates
  * it to a real account.
  *
- * Path note: this repo writes to lowercase 'users/{uid}/wishlist' — same
- * casing divergence as AddressRepositoryImpl (TB-7). Tests match the actual
- * production path.
+ * Path: writes go to `USERS/{uid}/wishlist` (canonical, TB-7 fix landed).
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -86,7 +85,7 @@ class WishlistRepositoryImplEmulatorTest {
     )
 
     private fun wishlistDoc(uid: String, productId: String) =
-        firestore.collection("users").document(uid)
+        firestore.collection(USER_COLLECTION).document(uid)
             .collection("wishlist").document(productId)
 
     // -------- toggleWishlist --------
@@ -201,7 +200,7 @@ class WishlistRepositoryImplEmulatorTest {
         assertThat(migrated.map { it.productTitle }).containsExactly("Anon-A", "Anon-B")
 
         // And they were written to Firestore
-        val snapshot = firestore.collection("users").document(uid)
+        val snapshot = firestore.collection(USER_COLLECTION).document(uid)
             .collection("wishlist").get().await()
         assertThat(snapshot.documents.map { it.id })
             .containsExactly(anon1.id, anon2.id)
@@ -256,7 +255,7 @@ class WishlistRepositoryImplEmulatorTest {
         // Anonymous bucket is clean
         assertThat(repo.observeWishlistItems("").first()).isEmpty()
         // Firestore now contains both
-        val snapshot = firestore.collection("users").document(uid)
+        val snapshot = firestore.collection(USER_COLLECTION).document(uid)
             .collection("wishlist").get().await()
         assertThat(snapshot.documents).hasSize(2)
     }

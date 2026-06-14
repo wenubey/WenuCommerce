@@ -9,8 +9,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import com.wenubey.data.util.AdminUtils
 import com.wenubey.data.util.DeviceInfoProvider
-import com.wenubey.data.util.IMAGE_FILE_SUFFIX
-import com.wenubey.data.util.PROFILE_IMAGES_FOLDER
+import com.wenubey.data.util.PROFILE_PHOTOS_FOLDER
 import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.data.util.safeApiCall
 import com.wenubey.domain.model.onboard.VerificationStatus
@@ -147,8 +146,15 @@ class FirestoreRepositoryImpl(
 
             val storageRef = storage.reference
 
-            val imageFileName = userUid + IMAGE_FILE_SUFFIX
-            val imageRef = storageRef.child("$PROFILE_IMAGES_FOLDER/$imageFileName")
+            val timestamp = java.text.SimpleDateFormat(
+                "yyyyMMdd_HHmmss",
+                java.util.Locale.getDefault(),
+            ).format(java.util.Date())
+            val imageFileName = "profile_image_$timestamp.jpg"
+            val imageRef = storageRef
+                .child(PROFILE_PHOTOS_FOLDER)
+                .child(userUid ?: "unknown_user")
+                .child(imageFileName)
             val uploadTask = imageRef.putFile(uri)
 
             uploadTask.addOnSuccessListener {

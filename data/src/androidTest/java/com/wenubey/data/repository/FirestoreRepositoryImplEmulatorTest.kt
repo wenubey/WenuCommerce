@@ -202,13 +202,12 @@ class FirestoreRepositoryImplEmulatorTest {
 
             assertThat(result.isSuccess).isTrue()
             val doc = firestore.collection(USER_COLLECTION).document(id).get().await()
-            // FirestoreRepositoryImpl.updateProfilePhoto uploads to
-            // 'profile_images/{uid}_profile_image.jpeg' (note: this is a
-            // different folder convention than ProfileRepositoryImpl, which
-            // uses 'profile_photos/{uid}/profile_image_{timestamp}.jpg' —
-            // see TB-9 in the backfill tracker).
+            // TB-9 fix: both FirestoreRepositoryImpl.updateProfilePhoto and
+            // ProfileRepositoryImpl.uploadProfilePhoto now upload to the
+            // canonical profile_photos/{uid}/profile_image_{timestamp}.jpg
+            // path.
             val photoUri = doc.getString("profilePhotoUri")
-            assertThat(photoUri).contains("/o/profile_images%2F${id}_profile_image.jpeg")
+            assertThat(photoUri).contains("/o/profile_photos%2F$id%2Fprofile_image_")
         } finally {
             file.delete()
         }

@@ -8,6 +8,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.firebase.firestore.FirebaseFirestore
 import com.wenubey.data.FirebaseEmulator
 import com.wenubey.data.local.WenuCommerceDatabase
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.domain.model.order.ShippingAddress
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -27,10 +28,9 @@ import java.util.UUID
  * to both stores, reads come from Room which is kept in sync by a snapshot
  * listener registered on first [observeSavedAddresses] call per user.
  *
- * Path note: this repository writes to lowercase `users/{uid}/addresses`,
- * NOT the canonical `USERS` collection that holds user profiles. The two
- * data sets are independent in current production code — this test preserves
- * that contract by reading and writing against the same lowercase path.
+ * Path: addresses live under `USERS/{uid}/addresses` (canonical, TB-7 fix
+ * landed). The subcollection is independent of the parent user document
+ * but lives under the same casing.
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -89,7 +89,7 @@ class AddressRepositoryImplEmulatorTest {
         repo.saveAddress(uid, address)
 
         // Firestore: exactly one doc under the user's addresses subcollection
-        val snapshot = firestore.collection("users").document(uid)
+        val snapshot = firestore.collection(USER_COLLECTION).document(uid)
             .collection("addresses").get().await()
         assertThat(snapshot.documents).hasSize(1)
         val doc = snapshot.documents.first()
@@ -111,7 +111,7 @@ class AddressRepositoryImplEmulatorTest {
 
         repo.saveAddress(uid, provided)
 
-        val doc = firestore.collection("users").document(uid)
+        val doc = firestore.collection(USER_COLLECTION).document(uid)
             .collection("addresses").document("fixed-addr-1").get().await()
         assertThat(doc.exists()).isTrue()
         assertThat(doc.getString("id")).isEqualTo("fixed-addr-1")
@@ -125,7 +125,7 @@ class AddressRepositoryImplEmulatorTest {
 
         repo.deleteAddress(uid, "del-1")
 
-        val remaining = firestore.collection("users").document(uid)
+        val remaining = firestore.collection(USER_COLLECTION).document(uid)
             .collection("addresses").get().await()
         assertThat(remaining.documents.map { it.id }).containsExactly("keep-1")
 
@@ -138,7 +138,7 @@ class AddressRepositoryImplEmulatorTest {
         val uid = userId()
         // Seed Firestore directly (no Room write) so we can prove the listener
         // backfills Room.
-        firestore.collection("users").document(uid)
+        firestore.collection(USER_COLLECTION).document(uid)
             .collection("addresses").document("ext-1")
             .set(sampleAddress(id = "ext-1", line1 = "9 External Way").toMap())
             .await()
@@ -162,7 +162,7 @@ class AddressRepositoryImplEmulatorTest {
         assertThat(initial).isEqualTo(emptyList<ShippingAddress>())
 
         // Add an address directly via Firestore — listener should propagate it
-        firestore.collection("users").document(uid)
+        firestore.collection(USER_COLLECTION).document(uid)
             .collection("addresses").document("late-1")
             .set(sampleAddress(id = "late-1", city = "Ankara").toMap())
             .await()
@@ -182,7 +182,7 @@ class AddressRepositoryImplEmulatorTest {
         }
         assertThat(initial?.map { it.id }).containsExactly("to-remove")
 
-        firestore.collection("users").document(uid)
+        firestore.collection(USER_COLLECTION).document(uid)
             .collection("addresses").document("to-remove")
             .delete().await()
 

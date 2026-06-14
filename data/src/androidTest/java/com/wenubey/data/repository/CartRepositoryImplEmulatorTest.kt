@@ -13,6 +13,7 @@ import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.local.entity.OperationStatus
 import com.wenubey.data.local.entity.OperationType
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.domain.model.CartItem
 import com.wenubey.domain.model.product.Product
 import com.wenubey.domain.repository.DispatcherProvider
@@ -126,7 +127,7 @@ class CartRepositoryImplEmulatorTest {
     )
 
     private fun cartDoc(uid: String, productId: String) =
-        firestore.collection("users").document(uid)
+        firestore.collection(USER_COLLECTION).document(uid)
             .collection("cart").document(productId)
 
     // -------- addToCart --------

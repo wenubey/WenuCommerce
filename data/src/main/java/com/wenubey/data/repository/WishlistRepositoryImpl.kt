@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.wenubey.data.local.dao.WishlistItemDao
 import com.wenubey.data.local.entity.WishlistItemEntity
 import com.wenubey.data.local.mapper.toDomain
+import com.wenubey.data.util.USER_COLLECTION
 import com.wenubey.domain.model.WishlistItem
 import com.wenubey.domain.model.product.Product
 import com.wenubey.domain.repository.DispatcherProvider
@@ -40,7 +41,7 @@ class WishlistRepositoryImpl(
                 if (effectiveUserId.isNotEmpty()) {
                     try {
                         firestore
-                            .collection("users")
+                            .collection(USER_COLLECTION)
                             .document(effectiveUserId)
                             .collection("wishlist")
                             .document(product.id)
@@ -73,7 +74,7 @@ class WishlistRepositoryImpl(
                             "addedAt" to entity.addedAt
                         )
                         firestore
-                            .collection("users")
+                            .collection(USER_COLLECTION)
                             .document(effectiveUserId)
                             .collection("wishlist")
                             .document(product.id)
@@ -93,7 +94,7 @@ class WishlistRepositoryImpl(
             if (userId.isNotEmpty()) {
                 try {
                     firestore
-                        .collection("users")
+                        .collection(USER_COLLECTION)
                         .document(userId)
                         .collection("wishlist")
                         .document(productId)
@@ -128,7 +129,7 @@ class WishlistRepositoryImpl(
                             "addedAt" to item.addedAt
                         )
                         firestore
-                            .collection("users")
+                            .collection(USER_COLLECTION)
                             .document(userId)
                             .collection("wishlist")
                             .document(item.productId)
@@ -153,7 +154,7 @@ class WishlistRepositoryImpl(
     private suspend fun fetchAndMergeFirestoreWishlist(userId: String) {
         try {
             val snapshot = firestore
-                .collection("users")
+                .collection(USER_COLLECTION)
                 .document(userId)
                 .collection("wishlist")
                 .get()
