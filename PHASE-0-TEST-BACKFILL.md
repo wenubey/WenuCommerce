@@ -184,12 +184,12 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - [x] `customer/customer_products/CustomerProductDetailViewModel` — 24 test (variant default selection, wishlist integration, cart prefill)
 - [x] `customer/customer_wishlist/WishlistViewModel` — 17 test (undo, anonymous gate, multi-select)
 
-### 3D · Admin
-- [ ] `admin/AdminBadgeViewModel`
-- [ ] `admin/admin_categories/AdminCategoryViewModel`
-- [ ] `admin/admin_products/AdminProductModerationViewModel`
-- [ ] `admin/admin_products/AdminProductSearchViewModel`
-- [ ] `admin/admin_seller_approval/AdminApprovalViewModel`
+### 3D · Admin ✅ KOMPLE
+- [x] `admin/AdminBadgeViewModel` — 3 test (initial state, count emit, multi-update via Turbine)
+- [x] `admin/admin_categories/AdminCategoryViewModel` — 17 test (observe + selection refresh, create/update/delete with image upload + error paths, addSubcategory selected refresh, dialog flags)
+- [x] `admin/admin_products/AdminProductModerationViewModel` — 13 test (observe PENDING_REVIEW only, dialog flags, approve/suspend happy + failure paths, blank-reason guard, no-auth/no-selection no-ops). FirebaseAuth mockk ile mock'lanıyor (yine TB-4 benzeri anti-pattern var — sonradan AuthRepository'e refactor edilebilir).
+- [x] `admin/admin_products/AdminProductSearchViewModel` — 14 test (debounce, clear, category/subcategory filters with re-search, status filter client-side, lazy category load idempotency, detail dialog)
+- [x] `admin/admin_seller_approval/AdminApprovalViewModel` — 10 test (observe by status, filter switch, dialog flags, approve/reject/requestMoreInfo with happy + failure paths)
 
 ### 3E · Core / cross-cutting
 - [ ] `core/connectivity/ConnectivityViewModel`

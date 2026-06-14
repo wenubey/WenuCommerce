@@ -25,6 +25,11 @@ class FakeProductRepository : ProductRepository {
     val unarchiveCalls = mutableListOf<String>()
     val getProductByIdCalls = mutableListOf<String>()
     val incrementViewCountCalls = mutableListOf<String>()
+    val approveCalls = mutableListOf<String>()
+    val suspendCalls = mutableListOf<Triple<String, String, String>>()
+
+    var approveProductResult: Result<Unit> = Result.success(Unit)
+    var suspendProductResult: Result<Unit> = Result.success(Unit)
 
     var createProductResult: (Product) -> Result<Product> = { Result.success(it) }
     var updateProductResult: Result<Unit> = Result.success(Unit)
@@ -108,9 +113,15 @@ class FakeProductRepository : ProductRepository {
             snapshot.values.flatten().filter { it.status == status }
         }
 
-    override suspend fun approveProduct(productId: String): Result<Unit> = Result.success(Unit)
-    override suspend fun suspendProduct(productId: String, reason: String, adminId: String): Result<Unit> =
-        Result.success(Unit)
+    override suspend fun approveProduct(productId: String): Result<Unit> {
+        approveCalls.add(productId)
+        return approveProductResult
+    }
+
+    override suspend fun suspendProduct(productId: String, reason: String, adminId: String): Result<Unit> {
+        suspendCalls.add(Triple(productId, reason, adminId))
+        return suspendProductResult
+    }
 
     override suspend fun adminUpdateProduct(product: Product): Result<Unit> = Result.success(Unit)
 
