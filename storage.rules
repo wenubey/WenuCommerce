@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules.
+//
+// The shape here is intentionally permissive — production access control
+// for object storage is enforced through the Cloud Storage emulator only.
+// The same rules file is loaded by the emulator (firebase.json -> storage)
+// to allow integration tests to upload and read fixtures without an
+// authenticated user. Tighten this before shipping rules to production.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

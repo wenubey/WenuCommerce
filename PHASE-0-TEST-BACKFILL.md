@@ -26,8 +26,19 @@ adb devices  # "emulator-5554 device" görmeli
   -Pandroid.testInstrumentationRunnerArguments.class=com.wenubey.data.repository.<TestClass>
 ```
 
-**Wave 2C ilerlemesi**: 11/12 (Discount + Tag + Category + ProductReview + Auth + Firestore + Address + Wishlist + Cart + Product + Profile, **114 test yeşil**).
-**Tüm test toplamı**: 479 unit + 114 instrumentation = **593 test**.
+**Wave 2C ilerlemesi**: 11/12 + **Storage emulator backfill** (Discount + Tag + Category + ProductReview + Auth + Firestore + Address + Wishlist + Cart + Product + Profile + Storage backfill 3 sınıf, **123 test yeşil**).
+**Tüm test toplamı**: 479 unit + 123 instrumentation = **602 test**.
+
+**Storage emulator kuruldu** (commit ile):
+- `storage.rules` (emulator-permissive)
+- `firebase.json` → storage block + port 9199
+- `FirebaseEmulator.kt` → `setStorageBucket("wenucommerce.appspot.com")` + `useEmulator` + `clearStorage()` helper
+- Restart komutu: `firebase emulators:start --only firestore,auth,functions,storage`
+
+**Yeni Storage testleri**:
+- `ProductRepositoryImplStorageEmulatorTest` — 4 test (upload → download URL + bytes round-trip, overwrite, delete, delete-missing failure)
+- `ProfileRepositoryImplStorageEmulatorTest` — 4 test (customer onboarding photo upload, seller documents 3-folder upload, updateSellerDocument replace + TB-8 pin, deleteSellerData recursive wipe)
+- `FirestoreRepositoryImplEmulatorTest` → +1 test (onboardingComplete local file URI uploads via updateProfilePhoto, 11 → 12 test)
 
 **Wave 3D-3E + Wave 4 hâlâ bekliyor** (3D admin, 3E core/cross, 4 Compose UI).
 
@@ -240,6 +251,10 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - **TB-3** ✅ **DÜZELTİLDİ**: `CheckoutViewModel` `Dispatchers.IO`'u hardcode'luyordu, DispatcherProvider almıyordu. Tüm IO çalışmaları test virtual time'a uyumsuz. Constructor'a DispatcherProvider eklendi, 5 `Dispatchers.IO` çağrısı `ioDispatcher`'a çevrildi. 27 test bu sayede koşuyor.
 - **TB-4** ✅ **DÜZELTİLDİ**: `SellerProductListViewModel` `FirebaseAuth`'u doğrudan alıyordu. `AuthRepository` ile değiştirildi, `auth.currentUser?.uid` → `authRepository.currentUser.value?.uuid`. Koin auto-resolve, DI değişikliği gerekmedi.
 - **TB-5** ✅ **DÜZELTİLDİ**: `CustomerHomeViewModel.onPullToRefresh` `SyncManager.manualSync()` exception'ı viewModelScope'tan kaçırıyordu (try-finally pattern). `runCatching` + Timber.e ile değiştirildi — pull-to-refresh fire-and-forget UI, exception bubble olmamalı.
+- **TB-6** 📝 **NOT** (prod fix gerekmiyor): `AuthRepositoryImpl.init`'te `firebaseAuth.addAuthStateListener` kayıt ediliyor ama hiç remove edilmiyor. Koin'de singleton olduğu için pratik sızıntı yok ama test'lerde her instance bir listener ekler. AuthRepositoryImplEmulatorTest shared db ile workaround uyguluyor.
+- **TB-7** 📝 **NOT** (casing tutarsızlığı): `AddressRepositoryImpl` + `WishlistRepositoryImpl` + `CartRepositoryImpl` lowercase `users/{uid}/...` altında veri tutuyor; user profili ise canonical `USERS/{uid}` koleksiyonunda. Iki collection bağımsız, veri orphan değil — sadece casing tutarsızlığı. Bir gün başka kodun yanlış path okumasına neden olabilir. PRODUCT_BUGS_AND_GAPS.md'ye eklenebilir.
+- **TB-8** 🐛 **PIN'LENDİ** (fix bekliyor): `ProfileRepositoryImpl.updateSellerDocument` → `updateSellerDocumentUri` yeni URL'i `businessInfo.${DocumentType.name.lowercase()}` (örn. `businessInfo.tax_documents`) altına yazıyor. Onboarding ise orijinal URL'i `businessInfo.taxDocumentUri` (camelCase) altında tutuyor. Sonuç: doc replace etmiyor, paralel bir field yaratıyor; eski URL hala canlı. `ProfileRepositoryImplStorageEmulatorTest.updateSellerDocument_replaces_existing_file_and_patches_firestore` testi her iki gözlemi de pin'liyor.
+- **TB-9** 📝 **NOT** (folder/naming convention çakışması): `ProfileRepositoryImpl` profile fotoğrafını `profile_photos/{uid}/profile_image_{timestamp}.jpg` altına yüklüyor. `FirestoreRepositoryImpl.updateProfilePhoto` ise `profile_images/{uid}_profile_image.jpeg` altına. İki ayrı kod yolu, iki ayrı convention. `FirestoreRepositoryImpl.updateProfilePhoto` `onboardingComplete` içinden çağrılıyor; `ProfileRepositoryImpl.uploadProfilePhoto` onboarding kendi çağrısı. Sonuç: bir kullanıcı için iki ayrı folder'da iki dosya. Test'ler ikisini de pin'liyor.
 
 ---
 

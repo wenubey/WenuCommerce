@@ -2,6 +2,7 @@ package com.wenubey.data.repository
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -176,6 +177,41 @@ class FirestoreRepositoryImplEmulatorTest {
         assertThat(doc.getString("email")).isEqualTo("buyer@test.dev")
         assertThat(doc.getString("profilePhotoUri")).isEqualTo("https://example.com/photo.jpg")
         assertThat(doc.getString("role")).isEqualTo(UserRole.CUSTOMER.name)
+    }
+
+    @Test
+    fun onboardingComplete_uploads_local_file_uri_to_profile_photos_storage(): Unit = runBlocking {
+        val id = seedAnonymousAuth()
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = java.io.File.createTempFile("photo-", ".jpg", ctx.cacheDir).apply {
+            writeBytes("local-photo-bytes".toByteArray())
+        }
+        val onboarding = User(
+            uuid = id,
+            email = "buyer@test.dev",
+            name = "Local",
+            surname = "Photo",
+            role = UserRole.CUSTOMER,
+            profilePhotoUri = file.toURI().toString(),
+            createdAt = "0",
+            updatedAt = "0",
+        )
+
+        try {
+            val result = repo.onboardingComplete(onboarding)
+
+            assertThat(result.isSuccess).isTrue()
+            val doc = firestore.collection(USER_COLLECTION).document(id).get().await()
+            // FirestoreRepositoryImpl.updateProfilePhoto uploads to
+            // 'profile_images/{uid}_profile_image.jpeg' (note: this is a
+            // different folder convention than ProfileRepositoryImpl, which
+            // uses 'profile_photos/{uid}/profile_image_{timestamp}.jpg' —
+            // see TB-9 in the backfill tracker).
+            val photoUri = doc.getString("profilePhotoUri")
+            assertThat(photoUri).contains("/o/profile_images%2F${id}_profile_image.jpeg")
+        } finally {
+            file.delete()
+        }
     }
 
     @Test

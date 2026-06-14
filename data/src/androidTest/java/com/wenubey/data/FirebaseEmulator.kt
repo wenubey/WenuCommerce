@@ -9,6 +9,7 @@ import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.firestore.firestoreSettings
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -35,6 +36,13 @@ object FirebaseEmulator {
     const val FIRESTORE_PORT = 8080
     const val AUTH_PORT = 9099
     const val FUNCTIONS_PORT = 5001
+    const val STORAGE_PORT = 9199
+
+    /**
+     * Storage bucket the emulator accepts. The emulator runs in
+     * singleProjectMode and accepts any bucket under '<projectId>.appspot.com'.
+     */
+    private const val STORAGE_BUCKET = "wenucommerce.appspot.com"
 
     /** Idempotent guard so multiple test classes don't double-point the SDK. */
     @Volatile
@@ -63,6 +71,9 @@ object FirebaseEmulator {
                     .setApplicationId("1:1:android:emulator")
                     .setProjectId(EMULATOR_PROJECT_ID)
                     .setApiKey("emulator-fake-api-key")
+                    // FirebaseStorage.getInstance() requires a bucket to be
+                    // present in FirebaseOptions before any useEmulator call.
+                    .setStorageBucket(STORAGE_BUCKET)
                     .build(),
             )
         }
@@ -74,7 +85,42 @@ object FirebaseEmulator {
         }
         Firebase.auth.useEmulator(EMULATOR_HOST, AUTH_PORT)
         Firebase.functions.useEmulator(EMULATOR_HOST, FUNCTIONS_PORT)
+        FirebaseStorage.getInstance().useEmulator(EMULATOR_HOST, STORAGE_PORT)
         configured = true
+    }
+
+    /**
+     * Wipes Storage between tests via the emulator's REST API. Recursively
+     * deletes every object stored under the bucket so each test starts clean.
+     */
+    fun clearStorage(bucket: String = STORAGE_BUCKET) {
+        val url = "http://$EMULATOR_HOST:$STORAGE_PORT/" +
+            "storage/v1/b/$bucket/o"
+        val client = OkHttpClient()
+        // List + delete-each is the only emulator-supported path; there is no
+        // bulk-delete endpoint. Best effort: if any deletion fails, the next
+        // test's clear cycle will retry.
+        val listResponse = client.newCall(
+            Request.Builder().url(url).get().build()
+        ).execute()
+        listResponse.use { resp ->
+            if (!resp.isSuccessful) return
+            val body = resp.body?.string() ?: return
+            // Extract object names with a simple regex — avoiding a JSON dep.
+            val names = Regex("\"name\"\\s*:\\s*\"([^\"]+)\"")
+                .findAll(body)
+                .map { it.groupValues[1] }
+                .toList()
+            names.forEach { name ->
+                val encoded = java.net.URLEncoder.encode(name, "UTF-8")
+                client.newCall(
+                    Request.Builder()
+                        .url("$url/$encoded")
+                        .delete()
+                        .build()
+                ).execute().close()
+            }
+        }
     }
 
     /**
