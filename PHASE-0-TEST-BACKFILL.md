@@ -2,21 +2,20 @@
 
 ## 🔖 Yeni oturumda devam (mola sonrası)
 
-**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 4/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
+**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 5/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
 
 **Çözülen iş**: ProductReviewRepositoryImpl emulator transaction race'i ÇÖZÜLDÜ.
 - **Root cause**: Önceki test'te `seedProduct` ürünü `averageRating`/`reviewCount` alanları olmadan yazıyordu. `submitReview` transaction'ı önce `transaction.get(productRef)` ile okuyor (doc var, alanlar yok), sonra `transaction.update(productRef, mapOf("averageRating" to ..., "reviewCount" to ...))` çağırıyor. Bu update mevcut olmayan alanlara yazıyor — emulator'da bu "Can't update a document that doesn't exist" hatasını fırlatıyor (Firestore transaction update'ı seed doc'u fields-missing sebebiyle reject ediyor).
 - **Fix**: seedProduct fonksiyonu artık `averageRating: 0.0` + `reviewCount: 0` ile başlatıyor. Production kodda değişiklik yok. 8 test yeşil.
 
-**Sonra sırada (Wave 2C kalan 8 repo)**:
-1. **AuthRepositoryImpl** — auth emulator + Firestore user doc'ları
-2. **FirestoreRepositoryImpl** — base/util (sellers observe + dashboard count)
-3. **AddressRepositoryImpl** — Room sync + Firestore subcollection
-4. **WishlistRepositoryImpl** — Room sync + Firestore
-5. **CartRepositoryImpl** — Room sync + Firestore + pending operations
-6. **ProductRepositoryImpl** — heavy (search + storefront + admin)
-7. **ProfileRepositoryImpl** — heavy (onboarding + seller data + documents)
-8. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
+**Sonra sırada (Wave 2C kalan 7 repo)**:
+1. **FirestoreRepositoryImpl** — base/util (sellers observe + dashboard count)
+2. **AddressRepositoryImpl** — Room sync + Firestore subcollection
+3. **WishlistRepositoryImpl** — Room sync + Firestore
+4. **CartRepositoryImpl** — Room sync + Firestore + pending operations
+5. **ProductRepositoryImpl** — heavy (search + storefront + admin)
+6. **ProfileRepositoryImpl** — heavy (onboarding + seller data + documents)
+7. **PaymentRepositoryImpl** — Cloud Functions (`functions emulator`'da `createPaymentIntent` zaten var)
 
 **Çalıştırma prereq** (tekrar başlarken):
 ```bash
@@ -33,8 +32,8 @@ adb devices  # "emulator-5554 device" görmeli
   -Pandroid.testInstrumentationRunnerArguments.class=com.wenubey.data.repository.<TestClass>
 ```
 
-**Wave 2C ilerlemesi**: 4/12 (Discount + Tag + Category + ProductReview, **31 test yeşil**).
-**Tüm test toplamı**: 479 unit + 31 instrumentation = **510 test**.
+**Wave 2C ilerlemesi**: 5/12 (Discount + Tag + Category + ProductReview + Auth, **42 test yeşil**).
+**Tüm test toplamı**: 479 unit + 42 instrumentation = **521 test**.
 
 **Wave 3D-3E + Wave 4 hâlâ bekliyor** (3D admin, 3E core/cross, 4 Compose UI).
 
@@ -130,7 +129,7 @@ Emulator setup tamam: `firebase.json` emulator bloğu + `data/src/androidTest/..
 - [x] `TagRepositoryImpl` — 8 emulator test (anonymous auth + tag CRUD + dedup)
 - [x] `CategoryRepositoryImpl` — 8 emulator test (Room cache + transactional subcategory)
 - [x] `ProductReviewRepositoryImpl` — 8 emulator test (submit + duplicate guard + avg recompute + observe + helpful + visibility). Önceki "transaction race": gerçek sebep seed product'un `averageRating`/`reviewCount` alanlarını içermemesiydi — transaction.update mevcut olmayan alanlara yazınca emulator reject ediyordu.
-- [ ] `AuthRepositoryImpl`
+- [x] `AuthRepositoryImpl` — 11 emulator test (signUp/signIn happy + duplicate + wrong pw, logOut/deleteAccount clear state, currentUser flow propagation, setCurrentUserAfterOnboarding, refresh/isAuth/isPhone/isEmailVerified). **TB-6 not** (prod): `firebaseAuth.addAuthStateListener` init'te kaydediliyor ama hiç remove edilmiyor — singleton DI'da pratikte sızıntı yok, ama test'lerde yeni instance başına listener birikir. Test çözümü: shared `WenuCommerceDatabase` (@BeforeClass / @AfterClass) kullanarak stale listener'ların kapalı db'ye yazmasını önlemek.
 - [ ] `ProfileRepositoryImpl`
 - [ ] `ProductRepositoryImpl`
 - [ ] `CartRepositoryImpl`
