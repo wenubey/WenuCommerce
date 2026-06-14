@@ -2,17 +2,11 @@
 
 ## 🔖 Yeni oturumda devam (mola sonrası)
 
-**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 3/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor (`FirebaseEmulator.useEmulator` + `runBlocking` + unique IDs).
+**Şu an neredeyiz**: Wave 2C (Firebase emulator integration tests) ortasındayız. 4/12 Firestore-coupled repo bitti. Pilot pattern çalışıyor.
 
-**İlk yapılacak iş**: ProductReviewRepositoryImpl emulator transaction race'ini çöz.
-- **Sorun**: `runTransaction { transaction.get(productRef) }` `tagsCollection.document(id).set(...).await()` ile yazılan doc'u "Can't update a document that doesn't exist" diye okuyor. Aynı test içinde write+transaction zincirinde.
-- **Denenenler**: unique IDs (collision yok), `Source.SERVER` (cache bypass), `clearFirestore()` atlama. Hiçbiri çözmedi.
-- **Hipotez**: Firestore emulator + transaction read'in offline persistence + memory cache ile etkileşimi. SDK transaction read'i lokal cache'ten yapıyor, son write'ı görmüyor.
-- **Denenecek çözümler** (sırasıyla):
-  1. Test'te `firestore.terminate(); FirebaseFirestore.getInstance()` ile SDK'yı reset et seedProduct sonrası
-  2. `setLocalCacheSettings(MemoryCacheSettings.newBuilder().build())`'i kaldır — belki default cache çalışıyor
-  3. seedProduct'tan sonra `delay(500)` veya `.get().await()` ile sync zorla
-  4. `firestore.disableNetwork().await(); enableNetwork().await()` pattern'i
+**Çözülen iş**: ProductReviewRepositoryImpl emulator transaction race'i ÇÖZÜLDÜ.
+- **Root cause**: Önceki test'te `seedProduct` ürünü `averageRating`/`reviewCount` alanları olmadan yazıyordu. `submitReview` transaction'ı önce `transaction.get(productRef)` ile okuyor (doc var, alanlar yok), sonra `transaction.update(productRef, mapOf("averageRating" to ..., "reviewCount" to ...))` çağırıyor. Bu update mevcut olmayan alanlara yazıyor — emulator'da bu "Can't update a document that doesn't exist" hatasını fırlatıyor (Firestore transaction update'ı seed doc'u fields-missing sebebiyle reject ediyor).
+- **Fix**: seedProduct fonksiyonu artık `averageRating: 0.0` + `reviewCount: 0` ile başlatıyor. Production kodda değişiklik yok. 8 test yeşil.
 
 **Sonra sırada (Wave 2C kalan 8 repo)**:
 1. **AuthRepositoryImpl** — auth emulator + Firestore user doc'ları
@@ -39,8 +33,8 @@ adb devices  # "emulator-5554 device" görmeli
   -Pandroid.testInstrumentationRunnerArguments.class=com.wenubey.data.repository.<TestClass>
 ```
 
-**Wave 2C ilerlemesi**: 3/12 (Discount + Tag + Category, **23 test yeşil**).
-**Tüm test toplamı**: 479 unit + 23 instrumentation = **502 test**.
+**Wave 2C ilerlemesi**: 4/12 (Discount + Tag + Category + ProductReview, **31 test yeşil**).
+**Tüm test toplamı**: 479 unit + 31 instrumentation = **510 test**.
 
 **Wave 3D-3E + Wave 4 hâlâ bekliyor** (3D admin, 3E core/cross, 4 Compose UI).
 
@@ -135,7 +129,7 @@ Emulator setup tamam: `firebase.json` emulator bloğu + `data/src/androidTest/..
 - [x] `DiscountRepositoryImpl` — 7 emulator test (CRUD + observe + snapshot listener)
 - [x] `TagRepositoryImpl` — 8 emulator test (anonymous auth + tag CRUD + dedup)
 - [x] `CategoryRepositoryImpl` — 8 emulator test (Room cache + transactional subcategory)
-- [⚠] `ProductReviewRepositoryImpl` — yazıldı (10 test) ama Firestore emulator transaction race'i: `runTransaction` içindeki `transaction.get(productRef)` `set().await()` ile yazılan doc'u "doesn't exist" diye okuyor. Test dosyası geçici olarak silindi, fix gerekli (bkz. **Yeni oturumda devam** notu aşağıda).
+- [x] `ProductReviewRepositoryImpl` — 8 emulator test (submit + duplicate guard + avg recompute + observe + helpful + visibility). Önceki "transaction race": gerçek sebep seed product'un `averageRating`/`reviewCount` alanlarını içermemesiydi — transaction.update mevcut olmayan alanlara yazınca emulator reject ediyordu.
 - [ ] `AuthRepositoryImpl`
 - [ ] `ProfileRepositoryImpl`
 - [ ] `ProductRepositoryImpl`
