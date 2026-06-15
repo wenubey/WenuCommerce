@@ -68,15 +68,23 @@ class OnboardingViewModel(
         validateForm()
     }
 
-    private fun photoUrlChange(photoUrl: String) = viewModelScope.launch(mainDispatcher) {
+    // TB-10 fix: field-change handlers run inline (not viewModelScope.launch).
+    // MutableStateFlow.update is already thread-safe + atomic, so the launch
+    // hop was just deferring the state update past the synchronous
+    // validateForm() call at the end of onAction(). Inline updates let
+    // validateForm see the freshly written field on the same tick — no more
+    // 'isNextButtonEnabled is one action behind' UI symptom. Only the
+    // genuinely-suspending onBoardingComplete still launches.
+
+    private fun photoUrlChange(photoUrl: String) {
         _state.update { it.copy(photoUrl = photoUrl) }
     }
 
-    private fun addressChange(address: String) = viewModelScope.launch(mainDispatcher) {
+    private fun addressChange(address: String) {
         _state.update { it.copy(address = address) }
     }
 
-    private fun dateOfBirthSelect(millis: Long?) = viewModelScope.launch(mainDispatcher) {
+    private fun dateOfBirthSelect(millis: Long?) {
         _state.update {
             it.copy(
                 dateOfBirth = millis?.convertMillisToDate(),
@@ -96,11 +104,11 @@ class OnboardingViewModel(
         return age >= 18
     }
 
-    private fun genderSelect(gender: GenderUiModel) = viewModelScope.launch(mainDispatcher) {
+    private fun genderSelect(gender: GenderUiModel) {
         _state.update { it.copy(gender = gender) }
     }
 
-    private fun roleSelect(role: UserRoleUiModel) = viewModelScope.launch(mainDispatcher) {
+    private fun roleSelect(role: UserRoleUiModel) {
         _state.update {
             it.copy(
                 role = role,
@@ -109,7 +117,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun nameChange(name: String) = viewModelScope.launch(mainDispatcher) {
+    private fun nameChange(name: String) {
         _state.update {
             it.copy(
                 name = name,
@@ -118,7 +126,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun phoneNumberChange(phoneNumber: String) = viewModelScope.launch(mainDispatcher) {
+    private fun phoneNumberChange(phoneNumber: String) {
         _state.update {
             it.copy(
                 phoneNumber = phoneNumber,
@@ -127,7 +135,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun surnameChanged(surname: String) = viewModelScope.launch(mainDispatcher) {
+    private fun surnameChanged(surname: String) {
         _state.update {
             it.copy(
                 surname = surname,
@@ -137,7 +145,7 @@ class OnboardingViewModel(
     }
 
     // Seller-specific field changes
-    private fun businessNameChange(businessName: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessNameChange(businessName: String) {
         _state.update {
             it.copy(
                 businessName = businessName,
@@ -146,7 +154,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun taxIdChange(taxId: String) = viewModelScope.launch(mainDispatcher) {
+    private fun taxIdChange(taxId: String) {
         _state.update {
             it.copy(
                 taxId = taxId,
@@ -155,7 +163,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun businessLicenseChange(businessLicense: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessLicenseChange(businessLicense: String) {
         _state.update {
             it.copy(
                 businessLicense = businessLicense,
@@ -164,7 +172,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun businessAddressChange(businessAddress: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessAddressChange(businessAddress: String) {
         _state.update {
             it.copy(
                 businessAddress = businessAddress,
@@ -173,7 +181,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun businessPhoneChange(businessPhone: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessPhoneChange(businessPhone: String) {
         _state.update {
             it.copy(
                 businessPhone = businessPhone,
@@ -182,7 +190,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun useRegistrationEmailToggle(checked: Boolean) = viewModelScope.launch(mainDispatcher) {
+    private fun useRegistrationEmailToggle(checked: Boolean) {
         _state.update {
             it.copy(
                 useRegistrationEmail = checked,
@@ -192,7 +200,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun businessEmailChange(businessEmail: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessEmailChange(businessEmail: String) {
         _state.update {
             it.copy(
                 businessEmail = businessEmail,
@@ -201,7 +209,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun bankAccountNumberChange(bankAccountNumber: String) = viewModelScope.launch(mainDispatcher) {
+    private fun bankAccountNumberChange(bankAccountNumber: String) {
         _state.update {
             it.copy(
                 bankAccountNumber = bankAccountNumber,
@@ -210,7 +218,7 @@ class OnboardingViewModel(
         }
     }
 
-    private fun routingNumberChange(routingNumber: String) = viewModelScope.launch(mainDispatcher) {
+    private fun routingNumberChange(routingNumber: String) {
         _state.update {
             it.copy(
                 routingNumber = routingNumber,
@@ -219,11 +227,11 @@ class OnboardingViewModel(
         }
     }
 
-    private fun businessTypeChange(businessType: BusinessType) = viewModelScope.launch(mainDispatcher) {
+    private fun businessTypeChange(businessType: BusinessType) {
         _state.update { it.copy(businessType = businessType) }
     }
 
-    private fun businessDescriptionChange(businessDescription: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessDescriptionChange(businessDescription: String) {
         _state.update {
             it.copy(
                 businessDescription = businessDescription,
@@ -233,15 +241,15 @@ class OnboardingViewModel(
     }
 
     // Document upload actions
-    private fun taxDocumentUpload(uri: String) = viewModelScope.launch(mainDispatcher) {
+    private fun taxDocumentUpload(uri: String) {
         _state.update { it.copy(taxDocumentUri = Uri.parse(uri)) }
     }
 
-    private fun businessLicenseDocumentUpload(uri: String) = viewModelScope.launch(mainDispatcher) {
+    private fun businessLicenseDocumentUpload(uri: String) {
         _state.update { it.copy(businessLicenseDocumentUri = Uri.parse(uri)) }
     }
 
-    private fun identityDocumentUpload(uri: String) = viewModelScope.launch(mainDispatcher) {
+    private fun identityDocumentUpload(uri: String) {
         _state.update { it.copy(identityDocumentUri = Uri.parse(uri)) }
     }
 

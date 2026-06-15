@@ -45,13 +45,7 @@ class OnboardingViewModelTest {
 
     private val maleGender: GenderUiModel = Gender.MALE.toUiModel()
 
-    /**
-     * Drives every shared field to a valid customer-onboarding state. The
-     * trailing duplicate OnNameChange flushes a final validateForm() pass
-     * after all earlier launches have applied (TB-10: each field update is
-     * dispatched async but validateForm runs synchronously, leaving
-     * isNextButtonEnabled one action behind).
-     */
+    /** Drives every shared field to a valid customer-onboarding state. */
     private fun OnboardingViewModel.fillCustomerHappyPath() {
         onAction(OnboardingAction.OnNameChange("Ada"))
         onAction(OnboardingAction.OnSurnameChange("Lovelace"))
@@ -70,14 +64,6 @@ class OnboardingViewModelTest {
         onAction(OnboardingAction.OnRoutingNumberChange("123456789"))
         onAction(OnboardingAction.OnTaxDocumentUpload("file:///tax.pdf"))
         onAction(OnboardingAction.OnIdentityDocumentUpload("file:///id.jpg"))
-    }
-
-    /**
-     * Flushes a final validateForm() pass after all previously queued field
-     * updates have applied. See TB-10 in the backfill tracker.
-     */
-    private fun OnboardingViewModel.flushValidation() {
-        onAction(OnboardingAction.OnNameChange(state.value.name))
     }
 
     // -------- init --------
@@ -289,8 +275,6 @@ class OnboardingViewModelTest {
 
         vm.fillCustomerHappyPath()
         advanceUntilIdle()
-        vm.flushValidation() // TB-10 workaround
-        advanceUntilIdle()
 
         assertThat(vm.state.value.isNextButtonEnabled).isTrue()
     }
@@ -300,14 +284,10 @@ class OnboardingViewModelTest {
         val (vm, _, _) = newViewModel()
         vm.fillSellerHappyPath()
         advanceUntilIdle()
-        vm.flushValidation()
-        advanceUntilIdle()
         assertThat(vm.state.value.isNextButtonEnabled).isTrue()
 
         // Remove a single required field — the button should re-disable.
         vm.onAction(OnboardingAction.OnTaxIdChange("12"))
-        advanceUntilIdle()
-        vm.flushValidation()
         advanceUntilIdle()
 
         assertThat(vm.state.value.isNextButtonEnabled).isFalse()
