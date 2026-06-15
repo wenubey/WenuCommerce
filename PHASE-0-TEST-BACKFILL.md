@@ -191,12 +191,12 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - [x] `admin/admin_products/AdminProductSearchViewModel` — 14 test (debounce, clear, category/subcategory filters with re-search, status filter client-side, lazy category load idempotency, detail dialog)
 - [x] `admin/admin_seller_approval/AdminApprovalViewModel` — 10 test (observe by status, filter switch, dialog flags, approve/reject/requestMoreInfo with happy + failure paths)
 
-### 3E · Core / cross-cutting
-- [ ] `core/connectivity/ConnectivityViewModel`
-- [ ] `core/connectivity/PendingSyncViewModel`
-- [ ] `core/email_verification_banner/EmailVerificationBannerViewModel`
-- [ ] `onboard/OnboardingViewModel`
-- [ ] `queue_management/QueueManagementViewModel`
+### 3E · Core / cross-cutting ✅ KOMPLE
+- [x] `core/connectivity/ConnectivityViewModel` — 3 test (initial true, upstream mirror via Turbine, retained value after subscriber leaves within 5s timeout)
+- [x] `core/connectivity/PendingSyncViewModel` — 5 test (isOnline mirror, pendingCount mirror, shouldShowBanner offline-only, dismissBanner DataStore write, isSyncing default false). Robolectric + WorkManagerTestInitHelper + tmp-file PreferenceDataStore.
+- [x] `core/email_verification_banner/EmailVerificationBannerViewModel` — 9 test (not-auth→verified, authed+unverified→visible, authed+verified→hidden, permanently-hidden suppresses, both repo failure paths treated as verified, HideForSession vs DoNotShowAgain persistence semantics, recheckEmailVerification)
+- [x] `onboard/OnboardingViewModel` — 23 test (registrationEmail bootstrap, blank-field error flags, seller 18+ age gate, validator coverage for tax/routing/bank/email, useRegistrationEmail toggle, document upload uri parsing, customer + seller form validation, onboarding success/failure routes, misc field updates). Robolectric (Patterns + Uri).
+- [x] `queue_management/QueueManagementViewModel` — 8 test (operations mapping, every OperationType display name, unknown type fallback, every OperationStatus text, malformed createdAt fallback, retryOperation queues SyncWorker + status reset, discardOperation). Robolectric + WorkManagerTestInitHelper. **TB-10 not** (prod issue): `OnboardingViewModel.validateForm()` synchronously after each `when`-block, but field updates queued via `viewModelScope.launch(mainDispatcher)`. validateForm reads stale state — `isNextButtonEnabled` is always one action behind. Test'lerde "flushValidation" helper'ı kullanılıyor. Production fix: validateForm() field update'leri ile aynı launch'a taşı veya validateForm'u da launch'la (collect on _state).
 
 ### Dalga 3 çıkış kapısı
 - [ ] `./gradlew testDebugUnitTest` (3 modül) → yeşil
@@ -254,6 +254,7 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 - **TB-7** ✅ **DÜZELTİLDİ**: `AddressRepositoryImpl` + `WishlistRepositoryImpl` + `CartRepositoryImpl` lowercase `users/{uid}/...` yerine canonical `USER_COLLECTION` (`USERS`) kullanıyor artık. 3 prod dosya + 3 test dosya path'leri güncellendi.
 - **TB-8** ✅ **DÜZELTİLDİ**: `ProfileRepositoryImpl.updateSellerDocument` → `updateSellerDocumentUri` yeni URL'i `businessInfo.${DocumentType.name.lowercase()}` (örn. `businessInfo.tax_documents`) altına yazıyordu; onboarding ise canonical camelCase `businessInfo.taxDocumentUri` kullanıyor. `businessInfoFieldName(documentType)` mapping helper'ı eklendi (TAX_DOCUMENTS → taxDocumentUri, BUSINESS_LICENSE → businessLicenseDocumentUri, IDENTITY_DOCUMENTS → identityDocumentUri). Test (`updateSellerDocument_replaces_existing_file_and_patches_firestore`) artık camelCase field replace + snake_case field yokluğunu pin'liyor.
 - **TB-9** ✅ **DÜZELTİLDİ**: `FirestoreRepositoryImpl.updateProfilePhoto` ve `ProfileRepositoryImpl.uploadProfilePhoto` artık aynı canonical convention'a yazıyor: `profile_photos/{uid}/profile_image_{yyyyMMdd_HHmmss}.jpg`. Shared `PROFILE_PHOTOS_FOLDER` constant'ı `Constants.kt`'ye taşındı; eski `profile_images` + `IMAGE_FILE_SUFFIX` constants'ı kaldırıldı. FirestoreRepository test assertion'ı yeni path'e güncellendi. Production'da eski folder'da kalmış legacy object'ler olabilir — yeni yazımlar artık üretmiyor.
+- **TB-10** 🐛 **PIN'LENDİ** (fix bekliyor): `OnboardingViewModel.onAction { ...; validateForm() }` her field-change action'ı async `viewModelScope.launch(mainDispatcher) { _state.update {} }` ile state'i güncelliyor, ama `validateForm()` aynı `onAction` içinde **synchronously** çalışıyor ve queue'daki güncelleme henüz uygulanmadan _state.value okuyor. Sonuç: `isNextButtonEnabled` her zaman bir action geriden geliyor. UI'da kullanıcı son required field'ı doldurduğunda buton hâlâ disabled. Düzeltme: ya validateForm her launch'ın sonuna eklensin, ya da action handler'lar inline `_state.update {}` yapsın (mainDispatcher launch'a gerek yok), ya da validateForm da launch'la wrap'lensin. OnboardingViewModelTest'te `flushValidation()` helper pattern'i pin'liyor.
 
 ---
 
