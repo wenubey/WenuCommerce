@@ -208,14 +208,23 @@ Her ikisi de Wave 2 kapsamı dışı kararlar. Bunu Dalga 2'nin son adımı olar
 
 > İlk turda **kritik akış** ekranları. Geri kalanlar isteğe bağlı 2. tur.
 
-### 4A · Kritik (para + auth)
-- [ ] Sign-in ekranı — validasyon, hata gösterimi, navigate-on-success
-- [ ] Sign-up ekranı
+### 4A · Kritik (para + auth) — KISMI (2/7)
+- [x] **SignInScreen** — 8 Compose UI test (renders, typing, save-credentials switch via `isToggleable()`, sign-in routes to repo, error message, navigateToVerifyEmail/Tab callbacks, sign-up navigation)
+- [x] **SignUpScreen** — 7 Compose UI test (renders, sign-up button enables on valid email, password typing, switch toggle [2 toggleable nodes, password visibility + switch — clicks 2nd], sign-up routes to repo, sign-in callback, Google button → getCredential)
 - [ ] Verify-email ekranı
 - [ ] Cart ekranı — add/remove/qty change
 - [ ] Checkout ekranı — kupon uygulama, ödeme butonu state'i
 - [ ] Discount create/edit form — full form state
 - [ ] Discount list — actions (edit/delete)
+
+**Wave 4 pilot pattern**:
+- `createComposeRule()` + inline `TestAuthRepository : AuthRepository` (minimal fake per test file)
+- `setContent { Screen(viewModel = realVm, ...) }` ile VM enjekte ediyor
+- `Dispatchers.Unconfined` ile tüm dispatcher roller
+- Find: `onNodeWithText` + `isToggleable()[index]` (Switch ≠ IconToggleButton ayrımı için)
+- Build infra: `androidx.work:work-testing` `META-INF/LICENSE.md` çakışması → `packaging { resources { pickFirsts += ... } }`
+
+**Wave 4 remaining**: 4A (5 ekran), 4B (5 ekran), 4C (3 ekran), 4D (5 ekran) = **18 screen test sınıfı**. Pattern locked, ileride aynı şekilde yürür.
 
 ### 4B · Seller core
 - [ ] Product list / create / edit

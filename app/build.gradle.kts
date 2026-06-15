@@ -54,6 +54,17 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.isReturnDefaultValues = true
     }
+    packaging {
+        resources {
+            // androidx.work:work-testing transitively pulls JUnit 5 jars which
+            // ship duplicate META-INF/LICENSE entries — pickFirsts is the
+            // canonical Compose-test fix for this conflict.
+            pickFirsts += listOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md",
+            )
+        }
+    }
 }
 
 dependencies {
