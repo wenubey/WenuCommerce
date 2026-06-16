@@ -3,7 +3,10 @@
     "source": "functions",
     "runtime": "nodejs20"
   },
-  "firestore": {},
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "storage": {
     "rules": "storage.rules"
   },
@@ -12,7 +15,7 @@
       "port": 9099
     },
     "firestore": {
-      "port": 8080
+      "port": 8085
     },
     "functions": {
       "port": 5001

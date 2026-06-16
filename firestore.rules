@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Phase 6 helpers ──────────────────────────────────────────────
+
+    // Allowed forward transitions. Mirrors OrderStatus.allowedNext() in :domain.
+    // CANCELLED only from pre-SHIPPED (PENDING/CONFIRMED).
+    function allowedNext(current) {
+      return current == 'PENDING'   ? ['CONFIRMED', 'CANCELLED']
+           : current == 'CONFIRMED' ? ['SHIPPED', 'CANCELLED']
+           : current == 'SHIPPED'   ? ['DELIVERED']
+           : [];
+    }
+
+    function isSeller(sellerOrder) {
+      return request.auth != null
+          && request.auth.uid == sellerOrder.sellerId;
+    }
+
+    function isCustomerOfParent(sellerOrder) {
+      return request.auth != null
+          && get(/databases/$(database)/documents/orders/$(sellerOrder.parentOrderId))
+               .data.userId == request.auth.uid;
+    }
+
+    function immutableFieldsUnchanged() {
+      return request.resource.data.sellerId      == resource.data.sellerId
+          && request.resource.data.parentOrderId == resource.data.parentOrderId
+          && request.resource.data.items         == resource.data.items
+          && request.resource.data.subtotal      == resource.data.subtotal
+          && request.resource.data.shippingShare == resource.data.shippingShare
+          && request.resource.data.discountShare == resource.data.discountShare;
+    }
+
+    function appendedExactlyOneStatusEntry() {
+      return request.resource.data.statusHistory.size()
+           == resource.data.statusHistory.size() + 1
+          && request.resource.data.statusHistory[resource.data.statusHistory.size()].status
+           == request.resource.data.status;
+    }
+
+    // ── /sellerOrders/{id} ───────────────────────────────────────────
+    // Create + delete are server-only (admin SDK bypasses these rules).
+    // Updates allowed only by the owning seller, only along the
+    // forward-only transition map, with immutable structural fields and
+    // an exactly-one-entry append to statusHistory.
+    match /sellerOrders/{sellerOrderId} {
+      allow read: if isSeller(resource.data) || isCustomerOfParent(resource.data);
+      allow create: if false;
+      allow delete: if false;
+      allow update: if isSeller(resource.data)
+                    && request.resource.data.status in allowedNext(resource.data.status)
+                    && immutableFieldsUnchanged()
+                    && appendedExactlyOneStatusEntry();
+    }
+
+    // ── /orders/{id} ────────────────────────────────────────────────
+    // Customer reads own parent order. All writes are server-only
+    // (created via createPaymentIntent fan-out, mutated only by the
+    // onOrderStatusChange trigger).
+    match /orders/{orderId} {
+      allow read: if request.auth != null
+                   && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+  }
+}
