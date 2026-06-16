@@ -109,6 +109,16 @@ Downstream agents MUST read these before planning/researching:
 - Sync workers fetch both for the current user (customer view) or the current seller (seller view).
 - Tests use fake DAOs + in-memory state; no real Firestore in unit tests (per CLAUDE.md rules).
 
+### AMENDMENT 2026-06-16 — D7 substituted with JSON-columns
+
+D7 originally said "new Room entities ... with a `@Relation` for one-to-many fetching." Per RESEARCH §2.5 the implementation uses JSON columns on `SellerOrderEntity` (itemsJson, statusHistoryJson) following the established `OrderEntity.itemsJson` pattern from Phases 4-5.
+
+- **Bounded sizes** (≤5 status entries, ≤~20 items per sub-order) make JSON columns lossless and fast.
+- **`@Relation` not used.** The one-to-many parent->subs fetch is handled by a separate DAO query (`SellerOrderDao.observeByParent`) and assembled in `OrderRepositoryImpl.observeOrderWithSubOrders` via Flow `combine`.
+- Trade-off: cannot ALTER schema of `statusHistory` entries via Room migrations. Mitigated by `Json { ignoreUnknownKeys = true }` already in the mapper pattern (`OrderMapper.kt:11-14`).
+
+Implemented in **06-01 Task 2** (SellerOrderEntity + DAO + Mapper + MIGRATION_5_6). See planner-revision audit for rationale.
+
 </decisions>
 
 <specifics>
