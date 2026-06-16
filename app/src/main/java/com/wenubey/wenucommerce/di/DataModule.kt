@@ -24,6 +24,7 @@ import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
 import com.wenubey.data.repository.LocationServiceImpl
+import com.wenubey.data.repository.OrderRepositoryImpl
 import com.wenubey.data.repository.PaymentRepositoryImpl
 import com.wenubey.data.repository.ProductRepositoryImpl
 import com.wenubey.data.repository.ProductReviewRepositoryImpl
@@ -40,6 +41,7 @@ import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.repository.LocationService
+import com.wenubey.domain.repository.OrderRepository
 import com.wenubey.domain.repository.PaymentRepository
 import com.wenubey.domain.repository.ProductRepository
 import com.wenubey.domain.repository.ProductReviewRepository
@@ -81,6 +83,7 @@ val repositoryModule = module {
     singleOf(::PaymentRepositoryImpl).bind<PaymentRepository>()
     singleOf(::AddressRepositoryImpl).bind<AddressRepository>()
     singleOf(::DiscountRepositoryImpl).bind<DiscountRepository>()
+    singleOf(::OrderRepositoryImpl).bind<OrderRepository>()
 }
 
 val dispatcherModule = module {
