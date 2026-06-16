@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: context exhaustion at 75% (2026-06-12)
-last_updated: "2026-06-12T19:31:34.336Z"
-last_activity: 2026-06-04 - Phase 5 complete
+last_updated: "2026-06-16T16:30:00.000Z"
+last_activity: 2026-06-16 - Phase 6 complete
 progress:
   total_phases: 11
-  completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
-  percent: 45
+  completed_phases: 6
+  total_plans: 23
+  completed_plans: 23
+  percent: 55
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-19)
 
 **Core value:** Customers can browse, search, and purchase products with a seamless offline-capable experience
-**Current focus:** Phase 5 — Discounts
+**Current focus:** Phase 6 — Order Tracking & Management
 
 ## Current Position
 
-Phase: 5 of 11 (Discounts) — COMPLETE
-Plan: 3 of 3 in current phase — ALL COMPLETE
-Status: Phase 5 complete — all 3 plans executed (data foundation, seller UI, checkout coupon)
-Last activity: 2026-06-04 - Phase 5 complete
+Phase: 6 of 11 (Order Tracking & Management) — COMPLETE
+Plan: 4 of 4 in current phase — ALL COMPLETE
+Status: Phase 6 complete — all 4 plans executed (data foundation, customer UI, seller UI, FCM trigger + deep-link)
+Last activity: 2026-06-16 - Phase 6 complete
 
-Progress: [█████░░░░░] 45%
+Progress: [██████░░░░] 55%
 
 ## Performance Metrics
 
