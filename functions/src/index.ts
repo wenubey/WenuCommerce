@@ -446,6 +446,7 @@ export const createPaymentIntent = onCall(
       const discShare = discountShares.get(sid) ?? 0;
       batch.set(db.collection("sellerOrders").doc(subId), {
         parentOrderId: orderId,
+        userId: request.auth.uid,
         sellerId: sid,
         sellerName: items[0]?.sellerName ?? "",
         sellerLogoUrl: items[0]?.sellerLogoUrl ?? "",

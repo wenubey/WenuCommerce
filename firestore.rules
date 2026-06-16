@@ -46,7 +46,14 @@ service cloud.firestore {
     // forward-only transition map, with immutable structural fields and
     // an exactly-one-entry append to statusHistory.
     match /sellerOrders/{sellerOrderId} {
-      allow read: if isSeller(resource.data) || isCustomerOfParent(resource.data);
+      // Single-doc reads: seller of the doc OR the customer who owns the parent.
+      // get() is allowed in `get` rules but NOT in `list` queries — split required.
+      allow get: if isSeller(resource.data) || isCustomerOfParent(resource.data);
+      // Collection queries: rely on denormalized fields (no cross-doc get()).
+      // Seller lists own sub-orders; customer lists by denormalized userId.
+      allow list: if request.auth != null
+                   && (resource.data.sellerId == request.auth.uid
+                       || resource.data.userId   == request.auth.uid);
       allow create: if false;
       allow delete: if false;
       allow update: if isSeller(resource.data)
