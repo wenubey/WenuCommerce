@@ -1,5 +1,6 @@
 package com.wenubey.wenucommerce
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,7 +17,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,8 +33,12 @@ import com.wenubey.data.local.SyncEvent
 import com.wenubey.data.local.SyncManager
 import com.wenubey.wenucommerce.core.connectivity.PendingSyncViewModel
 import com.wenubey.wenucommerce.core.connectivity.PendingSyncBanner
+import com.wenubey.wenucommerce.navigation.OrderDetail
 import com.wenubey.wenucommerce.navigation.QueueManagement
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
+import com.wenubey.wenucommerce.notification.EXTRA_NAV_TARGET
+import com.wenubey.wenucommerce.notification.EXTRA_ORDER_ID
+import com.wenubey.wenucommerce.notification.NAV_TARGET_ORDER_DETAIL
 import com.wenubey.wenucommerce.ui.theme.WenuCommerceTheme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -42,6 +49,25 @@ class MainActivity : ComponentActivity() {
     private lateinit var navController: NavHostController
     private val viewModel: AuthViewModel by viewModel()
 
+    /**
+     * Phase 6 Plan 04 — deep-link version key.
+     *
+     * Increments every time [onNewIntent] receives a new intent (FCM tap
+     * while the activity is in the back stack). The `LaunchedEffect`
+     * inside `setContent` keys on this so it re-runs and consumes the
+     * fresh extras. Starts at 0 so the cold-start case (extras attached
+     * to the launching intent) still fires once on first composition.
+     */
+    private var intentVersion by mutableIntStateOf(0)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // setIntent() is critical — without it, `this.intent` keeps returning
+        // the original launching intent and Compose never sees the new extras.
+        setIntent(intent)
+        intentVersion++
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // TODO research this topBar issue and fix it
@@ -51,6 +77,25 @@ class MainActivity : ComponentActivity() {
             KoinContext {
                 WenuCommerceTheme {
                     navController = rememberNavController()
+
+                    // Phase 6 Plan 04 — FCM deep-link consumer.
+                    // Keyed on intentVersion so onNewIntent reliably retriggers.
+                    // Cold-start case is covered because intentVersion starts
+                    // at 0 and LaunchedEffect runs once on first composition.
+                    LaunchedEffect(intentVersion) {
+                        val target = intent.getStringExtra(EXTRA_NAV_TARGET)
+                        val orderId = intent.getStringExtra(EXTRA_ORDER_ID)
+                        if (target == NAV_TARGET_ORDER_DETAIL &&
+                            !orderId.isNullOrBlank()
+                        ) {
+                            navController.navigate(OrderDetail(orderId))
+                            // Clear so rotation / recomposition does not
+                            // re-navigate.
+                            intent.removeExtra(EXTRA_NAV_TARGET)
+                            intent.removeExtra(EXTRA_ORDER_ID)
+                        }
+                    }
+
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val isOnQueueManagementScreen = with(NavDestination) {
                         currentBackStackEntry?.destination?.hasRoute(QueueManagement::class) == true
