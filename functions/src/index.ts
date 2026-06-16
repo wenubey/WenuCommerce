@@ -1,7 +1,13 @@
+// Verified collection names (Plan 06-01 Task 4 step 1):
+//   data/util/Constants.kt -> USER_COLLECTION = "USERS", PRODUCTS_COLLECTION = "PRODUCTS"
+// Cloud Functions use these literal strings; keep in sync with Constants.kt.
+
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import Stripe from "stripe";
 import * as admin from "firebase-admin";
+import { getMessaging } from "firebase-admin/messaging";
 
 admin.initializeApp();
 
@@ -24,33 +30,33 @@ interface ShippingAddress {
   country: string;
 }
 
+interface EnrichedItem {
+  productId: string;
+  productTitle: string;
+  quantity: number;
+  snapshotPrice: number;
+  lineTotal: number;
+  sellerId: string;
+  sellerName: string;
+  sellerLogoUrl: string;
+}
+
 // ─── Shared discount helpers ───────────────────────────────────────────
 
-/**
- * Validates a coupon document data against cart contents.
- * Throws HttpsError with specific codes on failure.
- */
 function validateCouponData(
   data: admin.firestore.DocumentData,
   cartItems: CartItem[],
   subtotalCents: number,
 ): void {
-  // Active check — treat inactive as not found for security
   if (!data.isActive) {
     throw new HttpsError("not-found", "Code not found");
   }
-
-  // Expiry check
   if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
     throw new HttpsError("failed-precondition", "This code has expired");
   }
-
-  // Usage limit check
   if (data.usageLimit != null && data.usageCount >= data.usageLimit) {
     throw new HttpsError("resource-exhausted", "Usage limit reached");
   }
-
-  // Eligible items check (for product-scoped coupons)
   const targetProductIds: string[] = data.targetProductIds ?? [];
   if (targetProductIds.length > 0) {
     const cartProductIds = cartItems.map((i: CartItem) => i.productId);
@@ -64,8 +70,6 @@ function validateCouponData(
       );
     }
   }
-
-  // Minimum order check
   const minimumOrderCents = data.minimumOrderAmount != null
     ? Math.round(data.minimumOrderAmount * 100)
     : null;
@@ -77,10 +81,6 @@ function validateCouponData(
   }
 }
 
-/**
- * Computes the discount amount in cents based on coupon type.
- * For product-scoped coupons, only eligible items contribute to the discount base.
- */
 function computeDiscount(
   couponData: admin.firestore.DocumentData,
   cartItems: CartItem[],
@@ -91,7 +91,6 @@ function computeDiscount(
   const value: number = couponData.value ?? 0;
   const targetProductIds: string[] = couponData.targetProductIds ?? [];
 
-  // For product-scoped coupons, compute eligible subtotal
   let eligibleSubtotalCents = subtotalCents;
   if (targetProductIds.length > 0) {
     eligibleSubtotalCents = cartItems
@@ -122,15 +121,11 @@ function computeDiscount(
   }
 }
 
-/**
- * Builds a human-readable description for a coupon.
- */
 function buildDiscountDescription(
   data: admin.firestore.DocumentData,
 ): string {
   const type: string = data.type;
   const value: number = data.value ?? 0;
-
   switch (type) {
     case "PERCENTAGE":
       return `${value}% off`;
@@ -148,40 +143,26 @@ function buildDiscountDescription(
 export const validateCoupon = onCall(
   { secrets: [stripeSecretKey] },
   async (request) => {
-    // Auth check
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Must be signed in");
     }
-
     const { couponCode, cartItems, subtotalCents } = request.data as {
       couponCode: string;
       cartItems: CartItem[];
       subtotalCents: number;
     };
-
     if (!couponCode || typeof couponCode !== "string") {
       throw new HttpsError("invalid-argument", "Coupon code is required");
     }
-
-    // Normalize
     const normalized = couponCode.trim().toUpperCase();
-
-    // Fetch document (O(1) lookup by doc ID)
     const db = admin.firestore();
     const doc = await db.collection("discountCodes").doc(normalized).get();
-
     if (!doc.exists) {
       throw new HttpsError("not-found", "Code not found");
     }
-
     const data = doc.data()!;
-
-    // Validate
     validateCouponData(data, cartItems, subtotalCents);
-
-    // Compute discount (shippingCents = 0 for preview)
     const discountCents = computeDiscount(data, cartItems, subtotalCents, 0);
-
     return {
       code: normalized,
       type: data.type,
@@ -196,44 +177,104 @@ export const validateCoupon = onCall(
 export const decrementCouponUsage = onCall(
   { secrets: [stripeSecretKey] },
   async (request) => {
-    // Auth check
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Must be signed in");
     }
-
     const { couponCode } = request.data as { couponCode: string };
-
     if (!couponCode || typeof couponCode !== "string") {
       throw new HttpsError("invalid-argument", "Coupon code is required");
     }
-
     const normalized = couponCode.trim().toUpperCase();
     const db = admin.firestore();
-
-    // Atomic increment — race-condition-free
     await db.collection("discountCodes").doc(normalized).update({
       usageCount: admin.firestore.FieldValue.increment(1),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-
     return { success: true };
   },
 );
 
-// ─── createPaymentIntent Cloud Function ────────────────────────────────
+// ─── Per-seller allocation helpers (Phase 6 fan-out) ───────────────────
+
+/**
+ * Pro-rata allocation of a total amount across sellers by their subtotal share.
+ * Last seller (iteration order) receives the remainder so sum equals the total.
+ * Returns Map<sellerId, allocatedCents>.
+ */
+export function allocateProRata(
+  sellerSubtotals: Map<string, number>,
+  totalSubtotalCents: number,
+  totalAmountCents: number,
+): Map<string, number> {
+  const sellerIds = Array.from(sellerSubtotals.keys());
+  const result = new Map<string, number>();
+  if (totalAmountCents === 0 || sellerIds.length === 0) {
+    sellerIds.forEach((id) => result.set(id, 0));
+    return result;
+  }
+  let allocated = 0;
+  for (let i = 0; i < sellerIds.length - 1; i++) {
+    const sid = sellerIds[i];
+    const share = totalSubtotalCents === 0
+      ? Math.floor(totalAmountCents / sellerIds.length)
+      : Math.round(
+        totalAmountCents * (sellerSubtotals.get(sid) ?? 0) / totalSubtotalCents,
+      );
+    result.set(sid, share);
+    allocated += share;
+  }
+  // Last seller eats remainder so sum == totalAmountCents exactly.
+  result.set(sellerIds[sellerIds.length - 1], totalAmountCents - allocated);
+  return result;
+}
+
+/**
+ * Discount allocation respecting Phase 5 single-seller coupon scope.
+ * If `targetProductIds` is non-empty and matches items from exactly one seller,
+ * the entire discount lands on that seller. Otherwise pro-rata by subtotal.
+ */
+export function allocateDiscount(
+  itemsBySeller: Map<string, EnrichedItem[]>,
+  sellerSubtotals: Map<string, number>,
+  totalSubtotalCents: number,
+  totalDiscountCents: number,
+  targetProductIds: string[],
+): Map<string, number> {
+  const sellerIds = Array.from(itemsBySeller.keys());
+  const result = new Map<string, number>();
+  if (totalDiscountCents === 0 || sellerIds.length === 0) {
+    sellerIds.forEach((id) => result.set(id, 0));
+    return result;
+  }
+  if (targetProductIds.length > 0) {
+    // Single-seller coupon: assign entire discount to seller(s) owning a target product.
+    const targetSellers = sellerIds.filter((sid) =>
+      (itemsBySeller.get(sid) ?? []).some((it) =>
+        targetProductIds.includes(it.productId),
+      ),
+    );
+    if (targetSellers.length === 1) {
+      sellerIds.forEach((id) =>
+        result.set(id, id === targetSellers[0] ? totalDiscountCents : 0),
+      );
+      return result;
+    }
+    // Coupon targets >1 seller's items: fall through to pro-rata.
+  }
+  return allocateProRata(sellerSubtotals, totalSubtotalCents, totalDiscountCents);
+}
+
+// ─── createPaymentIntent Cloud Function (Phase 6 fan-out) ──────────────
 
 export const createPaymentIntent = onCall(
   { secrets: [stripeSecretKey] },
   async (request) => {
-    // 1. Auth check
     if (!request.auth) {
       throw new HttpsError(
         "unauthenticated",
         "Must be signed in to checkout",
       );
     }
-
-    // 2. Extract data
     console.log("RAW request.data:", JSON.stringify(request.data));
     const { cartItems, shippingAddress } = request.data as {
       cartItems: CartItem[];
@@ -242,14 +283,12 @@ export const createPaymentIntent = onCall(
     };
     console.log("Parsed cartItems:", JSON.stringify(cartItems));
 
-    // 3. Input validation
     if (!Array.isArray(cartItems) || cartItems.length === 0) {
       throw new HttpsError(
         "invalid-argument",
         "Cart must contain at least one item",
       );
     }
-
     for (const item of cartItems) {
       if (
         !item.productId ||
@@ -268,10 +307,10 @@ export const createPaymentIntent = onCall(
       }
     }
 
-    // 4. Server-side stock validation and shipping cost fetch
     const db = admin.firestore();
     const stockFailures: string[] = [];
     let shippingCents = 0;
+    const enrichedItems: EnrichedItem[] = [];
 
     for (const item of cartItems) {
       console.log("Looking up product:", item.productId);
@@ -287,20 +326,25 @@ export const createPaymentIntent = onCall(
           `Product ${item.productTitle} not found`,
         );
       }
-
       const productData = productDoc.data();
-
-      // Stock validation
       const stockQuantity: number = productData?.totalStockQuantity ?? 0;
       if (stockQuantity < item.quantity) {
         stockFailures.push(item.productTitle);
       }
-
-      // 6. Compute shipping per product line (not per unit)
       const shippingCost: number = productData?.shipping?.shippingCost ?? 0;
       shippingCents += Math.round(shippingCost * 100);
-    }
 
+      enrichedItems.push({
+        productId: item.productId,
+        productTitle: item.productTitle,
+        quantity: item.quantity,
+        snapshotPrice: item.price,
+        lineTotal: item.price * item.quantity,
+        sellerId: productData?.sellerId ?? "",
+        sellerName: productData?.sellerName ?? "",
+        sellerLogoUrl: productData?.sellerLogoUrl ?? "",
+      });
+    }
     if (stockFailures.length > 0) {
       throw new HttpsError(
         "failed-precondition",
@@ -308,15 +352,15 @@ export const createPaymentIntent = onCall(
       );
     }
 
-    // 5. Compute subtotal in cents
     const subtotalCents = cartItems.reduce(
       (sum, item) => sum + Math.round(item.price * 100) * item.quantity,
       0,
     );
 
-    // 7. Coupon validation and discount computation
+    // Coupon validation
     let discountCents = 0;
     let appliedCouponCode = "";
+    let couponTargetProductIds: string[] = [];
 
     const rawCouponCode = (request.data as { couponCode?: string }).couponCode;
     if (rawCouponCode && typeof rawCouponCode === "string" && rawCouponCode.trim().length > 0) {
@@ -325,17 +369,11 @@ export const createPaymentIntent = onCall(
         .collection("discountCodes")
         .doc(normalized)
         .get();
-
       if (!couponDoc.exists) {
         throw new HttpsError("not-found", "Code not found");
       }
-
       const couponData = couponDoc.data()!;
-
-      // Re-validate coupon (authoritative check — never trust client)
       validateCouponData(couponData, cartItems, subtotalCents);
-
-      // Compute discount with actual shipping
       discountCents = computeDiscount(
         couponData,
         cartItems,
@@ -343,21 +381,47 @@ export const createPaymentIntent = onCall(
         shippingCents,
       );
       appliedCouponCode = normalized;
+      couponTargetProductIds = couponData.targetProductIds ?? [];
     }
 
-    // 8. Final total (Stripe minimum is 50 cents)
     const finalTotalCents = Math.max(
       50,
       subtotalCents + shippingCents - discountCents,
     );
 
-    // 9. Create Stripe PaymentIntent
-    const orderId = db.collection("orders").doc().id;
+    // ── Phase 6: per-seller grouping + allocation ──────────────────
+    const itemsBySeller = new Map<string, EnrichedItem[]>();
+    for (const it of enrichedItems) {
+      const list = itemsBySeller.get(it.sellerId) ?? [];
+      list.push(it);
+      itemsBySeller.set(it.sellerId, list);
+    }
+    const sellerSubtotals = new Map<string, number>();
+    for (const [sid, list] of itemsBySeller) {
+      const sub = list.reduce(
+        (s, it) => s + Math.round(it.snapshotPrice * 100) * it.quantity,
+        0,
+      );
+      sellerSubtotals.set(sid, sub);
+    }
+    const shippingShares = allocateProRata(
+      sellerSubtotals,
+      subtotalCents,
+      shippingCents,
+    );
+    const discountShares = allocateDiscount(
+      itemsBySeller,
+      sellerSubtotals,
+      subtotalCents,
+      discountCents,
+      couponTargetProductIds,
+    );
 
+    // Stripe PaymentIntent (single charge for the cart)
+    const orderId = db.collection("orders").doc().id;
     const stripe = new Stripe(stripeSecretKey.value(), {
       apiVersion: "2025-02-24.acacia",
     });
-
     const paymentIntent = await stripe.paymentIntents.create({
       amount: finalTotalCents,
       currency: "usd",
@@ -368,8 +432,49 @@ export const createPaymentIntent = onCall(
       },
     });
 
-    // 10. Create pending Order in Firestore
-    await db.collection("orders").doc(orderId).set({
+    // Fan-out: 1 parent + N sellerOrders in one WriteBatch
+    const batch = db.batch();
+    const orderRef = db.collection("orders").doc(orderId);
+    const sellerOrderIds: string[] = [];
+    const nowTs = admin.firestore.Timestamp.now();
+
+    for (const [sid, items] of itemsBySeller) {
+      const subId = db.collection("sellerOrders").doc().id;
+      sellerOrderIds.push(subId);
+      const sub = sellerSubtotals.get(sid) ?? 0;
+      const shipShare = shippingShares.get(sid) ?? 0;
+      const discShare = discountShares.get(sid) ?? 0;
+      batch.set(db.collection("sellerOrders").doc(subId), {
+        parentOrderId: orderId,
+        sellerId: sid,
+        sellerName: items[0]?.sellerName ?? "",
+        sellerLogoUrl: items[0]?.sellerLogoUrl ?? "",
+        items: items.map((it) => ({
+          productId: it.productId,
+          productTitle: it.productTitle,
+          quantity: it.quantity,
+          snapshotPrice: it.snapshotPrice,
+          lineTotal: it.lineTotal,
+        })),
+        subtotal: sub / 100,
+        shippingShare: shipShare / 100,
+        discountShare: discShare / 100,
+        status: "PENDING",
+        statusHistory: [{
+          status: "PENDING",
+          timestamp: nowTs,
+          note: null,
+          trackingNumber: null,
+        }],
+        trackingNumber: null,
+        refundId: null,
+        refundedAmount: 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    batch.set(orderRef, {
       userId: request.auth.uid,
       status: "PENDING",
       subtotal: subtotalCents / 100,
@@ -387,16 +492,217 @@ export const createPaymentIntent = onCall(
         snapshotPrice: item.price,
         lineTotal: item.price * item.quantity,
       })),
+      sellerOrderIds,
+      aggregateStatus: "PENDING",
+      aggregateVersion: 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 11. Return clientSecret, amountCents, orderId, and discountAmountCents
+    await batch.commit();
+
     return {
       clientSecret: paymentIntent.client_secret,
       amountCents: finalTotalCents,
       orderId,
       discountAmountCents: discountCents,
     };
+  },
+);
+
+// ─── cancelSellerOrder callable (Phase 6) ──────────────────────────────
+
+export const cancelSellerOrder = onCall(
+  { secrets: [stripeSecretKey] },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Sign in required");
+    }
+    const { sellerOrderId } = request.data as { sellerOrderId: string };
+    if (!sellerOrderId || typeof sellerOrderId !== "string") {
+      throw new HttpsError("invalid-argument", "sellerOrderId required");
+    }
+
+    const db = admin.firestore();
+    const subRef = db.collection("sellerOrders").doc(sellerOrderId);
+    const subSnap = await subRef.get();
+    if (!subSnap.exists) {
+      throw new HttpsError("not-found", "Sub-order not found");
+    }
+    const sub = subSnap.data()!;
+
+    if (sub.sellerId !== request.auth.uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only the seller can cancel",
+      );
+    }
+    if (["SHIPPED", "DELIVERED", "CANCELLED"].includes(sub.status)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Cannot cancel post-shipping",
+      );
+    }
+
+    const parentSnap = await db.collection("orders").doc(sub.parentOrderId).get();
+    if (!parentSnap.exists) {
+      throw new HttpsError("not-found", "Parent order not found");
+    }
+    const pi = parentSnap.data()!.stripePaymentIntentId as string;
+    if (!pi) {
+      throw new HttpsError(
+        "failed-precondition",
+        "No paymentIntent on parent order",
+      );
+    }
+
+    const refundCents = Math.round(
+      ((sub.subtotal ?? 0) + (sub.shippingShare ?? 0) - (sub.discountShare ?? 0)) * 100,
+    );
+
+    const stripe = new Stripe(stripeSecretKey.value(), {
+      apiVersion: "2025-02-24.acacia",
+    });
+
+    // Idempotency key — stable per sub-order, prevents double refund on retry.
+    const idempotencyKey = `cancel-${sellerOrderId}`;
+
+    let refund: Stripe.Refund;
+    try {
+      refund = await stripe.refunds.create(
+        {
+          payment_intent: pi,
+          amount: refundCents,
+          metadata: { sellerOrderId },
+        },
+        { idempotencyKey },
+      );
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === "charge_already_refunded") {
+        throw new HttpsError(
+          "failed-precondition",
+          "Refund exceeds available amount",
+        );
+      }
+      throw err;
+    }
+
+    await subRef.update({
+      status: "CANCELLED",
+      statusHistory: admin.firestore.FieldValue.arrayUnion({
+        status: "CANCELLED",
+        timestamp: admin.firestore.Timestamp.now(),
+        note: "Cancelled by seller",
+        trackingNumber: null,
+      }),
+      refundId: refund.id,
+      refundedAmount: refundCents / 100,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      refundId: refund.id,
+      refundedCents: refundCents,
+    };
+  },
+);
+
+// ─── Aggregate status helper (RESEARCH §2.8) ───────────────────────────
+
+export function computeAggregateStatus(statuses: string[]): string {
+  const order = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
+  if (statuses.length === 0) return "PENDING";
+  const hasCancelled = statuses.includes("CANCELLED");
+  const nonCancelled = statuses.filter((s) => s !== "CANCELLED");
+  if (nonCancelled.length === 0) return "CANCELLED";
+  if (hasCancelled) return "PARTIALLY_CANCELLED";
+  return nonCancelled.reduce(
+    (min, s) => (order.indexOf(s) < order.indexOf(min) ? s : min),
+    "DELIVERED",
+  );
+}
+
+function titleFor(status: string): string {
+  switch (status) {
+    case "CONFIRMED": return "Order confirmed";
+    case "SHIPPED":   return "Order shipped";
+    case "DELIVERED": return "Order delivered";
+    case "CANCELLED": return "Order cancelled";
+    default:          return "Order update";
+  }
+}
+
+// ─── onOrderStatusChange Firestore trigger (Phase 6) ───────────────────
+
+export const onOrderStatusChange = onDocumentWritten(
+  "sellerOrders/{sellerOrderId}",
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return; // delete — ignored
+    if (before && before.status === after.status) return; // not a status change
+
+    const db = admin.firestore();
+    const parentId = after.parentOrderId as string;
+    if (!parentId) return;
+    const parentRef = db.collection("orders").doc(parentId);
+
+    // W5 race mitigation: reads-before-writes inside a transaction, with
+    // monotonic aggregateVersion CAS guard on the parent doc.
+    await db.runTransaction(async (tx) => {
+      const subsQuery = db
+        .collection("sellerOrders")
+        .where("parentOrderId", "==", parentId);
+      const subsSnap = await tx.get(subsQuery);
+      const parentSnap = await tx.get(parentRef);
+      const statuses = subsSnap.docs.map((d) => d.data().status as string);
+      const aggregateStatus = computeAggregateStatus(statuses);
+      const currentVersion =
+        (parentSnap.data()?.aggregateVersion as number | undefined) ?? 0;
+      tx.update(parentRef, {
+        aggregateStatus,
+        aggregateVersion: currentVersion + 1,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    // FCM dispatch — outside the transaction; duplicates are far better than a
+    // refused transaction (push is not transactional with the aggregate write).
+    try {
+      const parentSnap = await parentRef.get();
+      const customerUid = parentSnap.data()?.userId as string | undefined;
+      if (!customerUid) return;
+      const userSnap = await db.collection("USERS").doc(customerUid).get();
+      const fcmToken = userSnap.data()?.fcmToken as string | undefined;
+      if (!fcmToken) return;
+
+      await getMessaging().send({
+        token: fcmToken,
+        notification: {
+          title: titleFor(after.status),
+          body: `Your order from ${
+            after.sellerName ?? "the seller"
+          } is ${String(after.status).toLowerCase()}.`,
+        },
+        data: {
+          type: "order_status",
+          orderId: parentId,
+          sellerOrderId: event.params.sellerOrderId,
+          newStatus: String(after.status),
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "order_status_channel",
+            clickAction: "OPEN_ORDER_DETAIL",
+          },
+        },
+      });
+    } catch (err) {
+      console.error("FCM dispatch failed for", parentId, err);
+      // Swallow — aggregate write is the contract, push is best-effort.
+    }
   },
 );
