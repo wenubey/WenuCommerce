@@ -32,6 +32,7 @@ import com.wenubey.data.repository.ProfileRepositoryImpl
 import com.wenubey.data.repository.TagRepositoryImpl
 import com.wenubey.data.util.DeviceIdProvider
 import com.wenubey.data.util.DeviceInfoProvider
+import com.wenubey.wenucommerce.notification.SyncBus
 import com.wenubey.domain.repository.AddressRepository
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DiscountRepository
@@ -164,4 +165,15 @@ val connectivityModule = module {
 
 val workerModule = module {
     worker { SyncWorker(get(), get(), get(), get(), get()) }
+}
+
+/**
+ * Notification module — Phase 6 Plan 04 (ORDR-10).
+ *
+ * Exposes [com.wenubey.wenucommerce.notification.SyncBus] as a singleton so
+ * MessagingService (FCM producer) and customer order ViewModels
+ * (sync consumers, 06-02) share the same SharedFlow instance.
+ */
+val notificationModule = module {
+    singleOf(::SyncBus)
 }

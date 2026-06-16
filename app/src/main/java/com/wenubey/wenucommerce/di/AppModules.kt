@@ -12,5 +12,6 @@ val appModules = listOf(
     dispatcherModule,
     googleIdOptionModule,
     deviceInfoModule,
-    ktorModule
+    ktorModule,
+    notificationModule,
 )
