@@ -301,11 +301,15 @@ class CheckoutViewModel(
 
         viewModelScope.launch(ioDispatcher) {
             runCatching {
-                // Build the confirmed order for Room persistence
+                // Build the pending order for Room persistence (status truth is
+                // server-side now: starts PENDING from createPaymentIntent fan-out
+                // and advances only via seller action + onOrderStatusChange trigger
+                // per Phase 6 CONTEXT D3). Phase 4 client-side CONFIRMED leftover
+                // removed — rules block direct /orders writes.
                 val order = Order(
                     id = orderId,
                     userId = currentUserId,
-                    status = OrderStatus.CONFIRMED,
+                    status = OrderStatus.PENDING,
                     subtotal = currentState.subtotal,
                     shippingTotal = currentState.shippingTotal,
                     totalAmount = currentState.total,
@@ -325,14 +329,16 @@ class CheckoutViewModel(
                     updatedAt = System.currentTimeMillis().toString(),
                 )
 
-                // Persist the confirmed order to Room
+                // Persist the pending order to Room for immediate UI feedback;
+                // syncCustomerOrders will reconcile against Firestore truth and
+                // add the per-seller sub-orders (OrderRepositoryImpl).
                 paymentRepository.createOrderInRoom(order)
 
-                // Update Firestore order status from PENDING to CONFIRMED
-                paymentRepository.updateOrderStatus(orderId, OrderStatus.CONFIRMED)
-                    .onFailure { error ->
-                        Timber.e(error, "CheckoutViewModel: failed to update order status in Firestore")
-                    }
+                // NOTE: Phase 4 used to call paymentRepository.updateOrderStatus
+                // here to flip Firestore /orders/{id} from PENDING to CONFIRMED.
+                // Phase 6 forbids client-side /orders writes (rules: server-only).
+                // Status now advances exclusively via seller action +
+                // onOrderStatusChange Firestore trigger.
 
                 // Decrement coupon usage count after successful payment
                 val couponCode = currentState.appliedCouponCode
