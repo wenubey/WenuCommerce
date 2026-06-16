@@ -1,6 +1,7 @@
 package com.wenubey.data.local.mapper
 
 import com.wenubey.data.local.entity.OrderEntity
+import com.wenubey.domain.model.order.AggregateOrderStatus
 import com.wenubey.domain.model.order.Order
 import com.wenubey.domain.model.order.OrderItem
 import com.wenubey.domain.model.order.OrderStatus
@@ -31,7 +32,13 @@ fun OrderEntity.toDomain(): Order = Order(
     discountAmount = discountAmount,
     discountCode = discountCode,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    sellerOrderIds = runCatching {
+        json.decodeFromString<List<String>>(sellerOrderIdsJson)
+    }.getOrElse { emptyList() },
+    aggregateStatus = runCatching {
+        AggregateOrderStatus.valueOf(aggregateStatus)
+    }.getOrElse { AggregateOrderStatus.PENDING }
 )
 
 fun Order.toEntity(): OrderEntity = OrderEntity(
@@ -48,5 +55,7 @@ fun Order.toEntity(): OrderEntity = OrderEntity(
     discountAmount = discountAmount,
     discountCode = discountCode,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    sellerOrderIdsJson = json.encodeToString(sellerOrderIds),
+    aggregateStatus = aggregateStatus.name
 )

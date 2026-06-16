@@ -12,6 +12,7 @@ import com.wenubey.data.local.dao.CategoryDao
 import com.wenubey.data.local.dao.OrderDao
 import com.wenubey.data.local.dao.PendingOperationDao
 import com.wenubey.data.local.dao.ProductDao
+import com.wenubey.data.local.dao.SellerOrderDao
 import com.wenubey.data.local.dao.UserDao
 import com.wenubey.data.local.dao.WishlistItemDao
 import com.wenubey.data.local.entity.AddressEntity
@@ -20,6 +21,7 @@ import com.wenubey.data.local.entity.CategoryEntity
 import com.wenubey.data.local.entity.OrderEntity
 import com.wenubey.data.local.entity.PendingOperationEntity
 import com.wenubey.data.local.entity.ProductEntity
+import com.wenubey.data.local.entity.SellerOrderEntity
 import com.wenubey.data.local.entity.UserEntity
 import com.wenubey.data.local.entity.WishlistItemEntity
 
@@ -32,9 +34,10 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         CartItemEntity::class,
         WishlistItemEntity::class,
         OrderEntity::class,
-        AddressEntity::class
+        AddressEntity::class,
+        SellerOrderEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -56,13 +59,11 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
 
     abstract fun addressDao(): AddressDao
 
+    abstract fun sellerOrderDao(): SellerOrderDao
+
     companion object {
         /**
          * Migration from v1 to v2: Add pending_operations table for offline write queue.
-         *
-         * This migration is required for release builds (fallbackToDestructiveMigration
-         * is DEBUG-only per 01-01 decision). Without this migration, existing users
-         * would crash on app update.
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -86,9 +87,6 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
 
         /**
          * Migration from v2 to v3: Add cart_items and wishlist_items tables.
-         *
-         * Both tables use composite primary keys (userId, productId) to prevent
-         * duplicate entries per user/product combination.
          */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -127,14 +125,6 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Migration from v3 to v4: Add orders and addresses tables.
-         *
-         * Orders use a single primary key (id = Firestore document ID).
-         * Order items are stored as JSON in itemsJson (embedded list pattern per research).
-         * Addresses use composite primary keys (userId, addressId) matching the
-         * cart_items and wishlist_items pattern.
-         */
         /**
          * Migration from v4 to v5: Add discount fields to orders table.
          */
@@ -180,6 +170,53 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                         PRIMARY KEY(`userId`, `addressId`)
                     )
                     """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * Migration from v5 to v6: Phase 6 — add sellerOrderIds + aggregateStatus
+         * to `orders` and create the `seller_orders` table with indexes on
+         * parentOrderId and sellerId. JSON columns for items + statusHistory
+         * follow OrderEntity.itemsJson pattern (no @Relation — RESEARCH §2.5 / W6).
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `orders` ADD COLUMN `sellerOrderIdsJson` TEXT NOT NULL DEFAULT '[]'"
+                )
+                db.execSQL(
+                    "ALTER TABLE `orders` ADD COLUMN `aggregateStatus` TEXT NOT NULL DEFAULT 'PENDING'"
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `seller_orders` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `parentOrderId` TEXT NOT NULL DEFAULT '',
+                        `sellerId` TEXT NOT NULL DEFAULT '',
+                        `sellerName` TEXT NOT NULL DEFAULT '',
+                        `sellerLogoUrl` TEXT NOT NULL DEFAULT '',
+                        `subtotal` REAL NOT NULL DEFAULT 0.0,
+                        `shippingShare` REAL NOT NULL DEFAULT 0.0,
+                        `discountShare` REAL NOT NULL DEFAULT 0.0,
+                        `status` TEXT NOT NULL DEFAULT 'PENDING',
+                        `trackingNumber` TEXT,
+                        `refundId` TEXT,
+                        `refundedAmount` REAL,
+                        `itemsJson` TEXT NOT NULL DEFAULT '[]',
+                        `statusHistoryJson` TEXT NOT NULL DEFAULT '[]',
+                        `createdAt` TEXT NOT NULL DEFAULT '',
+                        `updatedAt` TEXT NOT NULL DEFAULT ''
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_seller_orders_parentOrderId` " +
+                        "ON `seller_orders` (`parentOrderId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_seller_orders_sellerId` " +
+                        "ON `seller_orders` (`sellerId`)"
                 )
             }
         }

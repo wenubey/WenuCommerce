@@ -18,5 +18,8 @@ data class OrderEntity(
     val discountAmount: Double = 0.0,
     val discountCode: String = "",
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    // ── Phase 6 additions (v5 -> v6) ──
+    val sellerOrderIdsJson: String = "[]",
+    val aggregateStatus: String = "PENDING"
 )

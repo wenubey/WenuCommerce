@@ -131,7 +131,8 @@ val databaseModule = module {
             WenuCommerceDatabase.MIGRATION_1_2,
             WenuCommerceDatabase.MIGRATION_2_3,
             WenuCommerceDatabase.MIGRATION_3_4,
-            WenuCommerceDatabase.MIGRATION_4_5
+            WenuCommerceDatabase.MIGRATION_4_5,
+            WenuCommerceDatabase.MIGRATION_5_6
         )
             .apply {
                 if (BuildConfig.DEBUG) {
@@ -147,6 +148,7 @@ val databaseModule = module {
     single { get<WenuCommerceDatabase>().wishlistItemDao() }
     single { get<WenuCommerceDatabase>().orderDao() }
     single { get<WenuCommerceDatabase>().addressDao() }
+    single { get<WenuCommerceDatabase>().sellerOrderDao() }
 }
 
 val syncModule = module {
