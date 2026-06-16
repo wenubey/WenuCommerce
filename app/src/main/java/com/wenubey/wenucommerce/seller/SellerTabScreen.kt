@@ -30,6 +30,7 @@ import com.wenubey.domain.model.user.User
 import com.wenubey.wenucommerce.AuthViewModel
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationBannerViewModel
 import com.wenubey.wenucommerce.core.email_verification_banner.EmailVerificationNotificationBar
+import com.wenubey.wenucommerce.seller.orders.SellerOrdersScreen
 import com.wenubey.wenucommerce.seller.seller_dashboard.SellerDashboardScreen
 import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountListScreen
 import kotlinx.coroutines.launch
@@ -44,6 +45,7 @@ fun SellerTabScreen(
     onNavigateToEditProduct: (String) -> Unit = {},
     onNavigateToCreateDiscount: () -> Unit = {},
     onNavigateToEditDiscount: (String) -> Unit = {},
+    onNavigateToSellerOrderDetail: (String) -> Unit = {},
     authViewModel: AuthViewModel = koinViewModel(),
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
 ) {
@@ -98,7 +100,9 @@ fun SellerTabScreen(
                         onAddProduct = onNavigateToCreateProduct,
                         onEditProduct = onNavigateToEditProduct,
                     )
-                    2 -> SellerOrdersScreen()
+                    2 -> SellerOrdersScreen(
+                        onOrderClick = onNavigateToSellerOrderDetail,
+                    )
                     3 -> SellerDiscountListScreen(
                         onNavigateToCreate = onNavigateToCreateDiscount,
                         onNavigateToEdit = onNavigateToEditDiscount,
