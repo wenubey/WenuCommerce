@@ -34,7 +34,10 @@ import androidx.compose.ui.unit.dp
 
 //TODO Refactor Later
 @Composable
-fun CustomerProfileScreen(modifier: Modifier = Modifier) {
+fun CustomerProfileScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToOrderHistory: () -> Unit = {},
+) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -82,9 +85,9 @@ fun CustomerProfileScreen(modifier: Modifier = Modifier) {
         item {
             ProfileMenuItem(
                 icon = Icons.Default.ShoppingBag,
-                title = "Order History",
+                title = "My Orders",
                 subtitle = "View your past orders"
-            ) { /* Navigate to orders */ }
+            ) { onNavigateToOrderHistory() }
         }
 
         item {

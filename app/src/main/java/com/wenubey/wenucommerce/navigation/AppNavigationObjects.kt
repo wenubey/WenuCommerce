@@ -100,3 +100,17 @@ data class OrderDetail(val orderId: String)
 // Discount screens
 @Serializable
 data class SellerDiscountCreateEdit(val code: String?, val isSeller: Boolean)
+
+// Seller order screens (Phase 6)
+@Serializable
+data object SellerOrders
+
+@Serializable
+data class SellerOrderDetail(val sellerOrderId: String)
+
+// Customer order screens (Phase 6)
+@Serializable
+data object CustomerOrderHistory
+
+@Serializable
+data class CustomerOrderDetail(val orderId: String)

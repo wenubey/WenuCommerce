@@ -11,7 +11,11 @@ import com.wenubey.wenucommerce.customer.checkout.components.AddressFormScreen
 import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailScreen
 import com.wenubey.wenucommerce.customer.order_confirmation.MinimalOrderScreen
 import com.wenubey.wenucommerce.customer.order_confirmation.OrderConfirmationScreen
+import com.wenubey.wenucommerce.customer.orders.CustomerOrderDetailScreen
+import com.wenubey.wenucommerce.customer.orders.CustomerOrderHistoryScreen
 import com.wenubey.wenucommerce.seller.SellerTabScreen
+import com.wenubey.wenucommerce.seller.orders.SellerOrderDetailScreen
+import com.wenubey.wenucommerce.seller.orders.SellerOrdersScreen
 import com.wenubey.wenucommerce.queue_management.QueueManagementScreen
 import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountCreateEditScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
@@ -29,6 +33,9 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             },
             onNavigateToCheckout = {
                 navController.navigate(Checkout)
+            },
+            onNavigateToOrderHistory = {
+                navController.navigate(CustomerOrderHistory)
             },
         )
     }
@@ -64,6 +71,25 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             onNavigateToEditDiscount = { code ->
                 navController.navigate(SellerDiscountCreateEdit(code = code, isSeller = true))
             },
+            onNavigateToSellerOrderDetail = { sellerOrderId ->
+                navController.navigate(SellerOrderDetail(sellerOrderId))
+            },
+        )
+    }
+
+    composable<SellerOrders> {
+        SellerOrdersScreen(
+            onOrderClick = { sellerOrderId ->
+                navController.navigate(SellerOrderDetail(sellerOrderId))
+            },
+        )
+    }
+
+    composable<SellerOrderDetail> { backStackEntry ->
+        val args = backStackEntry.toRoute<SellerOrderDetail>()
+        SellerOrderDetailScreen(
+            sellerOrderId = args.sellerOrderId,
+            onNavigateBack = { navController.navigateUp() },
         )
     }
 
@@ -165,6 +191,29 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
         MinimalOrderScreen(
             orderId = args.orderId,
             onNavigateBack = { navController.popBackStack() },
+        )
+    }
+
+    // Customer order tracking (Phase 6 Plan 02)
+    composable<CustomerOrderHistory> {
+        CustomerOrderHistoryScreen(
+            onOrderClick = { orderId ->
+                navController.navigate(CustomerOrderDetail(orderId))
+            },
+            onBack = { navController.popBackStack() },
+            onStartShopping = {
+                navController.navigate(CustomerTab(tabIndex = 0)) {
+                    popUpTo<CustomerTab> { inclusive = true }
+                }
+            },
+        )
+    }
+
+    composable<CustomerOrderDetail> { backStackEntry ->
+        val args = backStackEntry.toRoute<CustomerOrderDetail>()
+        CustomerOrderDetailScreen(
+            orderId = args.orderId,
+            onBack = { navController.popBackStack() },
         )
     }
 

@@ -15,6 +15,8 @@ import com.wenubey.wenucommerce.customer.customer_cart.CartViewModel
 import com.wenubey.wenucommerce.customer.customer_wishlist.WishlistViewModel
 import com.wenubey.wenucommerce.customer.customer_home.CustomerHomeViewModel
 import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailViewModel
+import com.wenubey.wenucommerce.customer.orders.CustomerOrderDetailViewModel
+import com.wenubey.wenucommerce.customer.orders.CustomerOrderHistoryViewModel
 import com.wenubey.wenucommerce.seller.seller_categories.SellerCategoryViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditViewModel
@@ -22,6 +24,8 @@ import com.wenubey.wenucommerce.seller.seller_products.SellerProductListViewMode
 import com.wenubey.wenucommerce.seller.seller_discounts.DiscountCreateEditViewModel
 import com.wenubey.wenucommerce.seller.seller_discounts.DiscountListViewModel
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontViewModel
+import com.wenubey.wenucommerce.seller.orders.SellerOrderDetailViewModel
+import com.wenubey.wenucommerce.seller.orders.SellerOrdersViewModel
 import com.wenubey.wenucommerce.seller.seller_dashboard.SellerDashboardViewModel
 import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationViewModel
 import com.wenubey.wenucommerce.sign_in.SignInViewModel
@@ -68,6 +72,12 @@ val viewModelModule = module {
     // Discount ViewModels
     viewModelOf(::DiscountListViewModel)
     viewModelOf(::DiscountCreateEditViewModel)
+    // Customer order tracking ViewModels (Phase 6)
+    viewModelOf(::CustomerOrderHistoryViewModel)
+    viewModelOf(::CustomerOrderDetailViewModel)
+    // Seller order management ViewModels (Phase 6)
+    viewModelOf(::SellerOrdersViewModel)
+    viewModelOf(::SellerOrderDetailViewModel)
     viewModel {
         EmailVerificationBannerViewModel(
             authRepository = get(),

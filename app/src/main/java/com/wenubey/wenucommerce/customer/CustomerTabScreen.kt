@@ -36,6 +36,7 @@ fun CustomerTabScreen(
     tabIndex: Int,
     onProductClick: (String) -> Unit = {},
     onNavigateToCheckout: () -> Unit = {},
+    onNavigateToOrderHistory: () -> Unit = {},
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
     cartRepository: CartRepository = koinInject(),
     authRepository: AuthRepository = koinInject(),
@@ -103,7 +104,7 @@ fun CustomerTabScreen(
                         scope.launch { pagerState.animateScrollToPage(CustomerTabs.Home.ordinal) }
                     },
                 )
-                3 -> CustomerProfileScreen()
+                3 -> CustomerProfileScreen(onNavigateToOrderHistory = onNavigateToOrderHistory)
             }
         }
     }
