@@ -642,12 +642,30 @@ export const onOrderStatusChange = onDocumentWritten(
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
-    if (!after) return; // delete — ignored
-    if (before && before.status === after.status) return; // not a status change
+    console.log("[trigger] fired", {
+      sellerOrderId: event.params.sellerOrderId,
+      beforeStatus: before?.status ?? null,
+      afterStatus: after?.status ?? null,
+    });
+    if (!after) {
+      console.log("[trigger] after=null (delete event) — skipping");
+      return;
+    }
+    if (before && before.status === after.status) {
+      console.log("[trigger] status unchanged — skipping FCM dispatch");
+      return;
+    }
 
     const db = admin.firestore();
     const parentId = after.parentOrderId as string;
-    if (!parentId) return;
+    if (!parentId) {
+      console.log("[trigger] no parentOrderId on sellerOrder doc — skipping");
+      return;
+    }
+    console.log("[trigger] processing status change", {
+      parentId,
+      newStatus: after.status,
+    });
     const parentRef = db.collection("orders").doc(parentId);
 
     // W5 race mitigation: reads-before-writes inside a transaction, with
@@ -674,12 +692,27 @@ export const onOrderStatusChange = onDocumentWritten(
     try {
       const parentSnap = await parentRef.get();
       const customerUid = parentSnap.data()?.userId as string | undefined;
-      if (!customerUid) return;
+      console.log("[fcm] customer lookup", { customerUid });
+      if (!customerUid) {
+        console.log("[fcm] no customerUid on parent — skipping");
+        return;
+      }
       const userSnap = await db.collection("USERS").doc(customerUid).get();
       const fcmToken = userSnap.data()?.fcmToken as string | undefined;
-      if (!fcmToken) return;
+      console.log("[fcm] token lookup", {
+        hasToken: !!fcmToken,
+        tokenPrefix: fcmToken?.substring(0, 16) ?? null,
+      });
+      if (!fcmToken) {
+        console.log("[fcm] no fcmToken on USERS doc — skipping send");
+        return;
+      }
 
-      await getMessaging().send({
+      console.log("[fcm] sending message", {
+        title: titleFor(after.status),
+        status: after.status,
+      });
+      const messageId = await getMessaging().send({
         token: fcmToken,
         notification: {
           title: titleFor(after.status),
@@ -701,8 +734,9 @@ export const onOrderStatusChange = onDocumentWritten(
           },
         },
       });
+      console.log("[fcm] send SUCCESS", { messageId });
     } catch (err) {
-      console.error("FCM dispatch failed for", parentId, err);
+      console.error("[fcm] dispatch FAILED for parentId", parentId, err);
       // Swallow — aggregate write is the contract, push is best-effort.
     }
   },
