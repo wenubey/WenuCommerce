@@ -2,7 +2,7 @@
 //   data/util/Constants.kt -> USER_COLLECTION = "USERS", PRODUCTS_COLLECTION = "PRODUCTS"
 // Cloud Functions use these literal strings; keep in sync with Constants.kt.
 
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import Stripe from "stripe";
@@ -12,6 +12,10 @@ import { getMessaging } from "firebase-admin/messaging";
 admin.initializeApp();
 
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+// Signing secret for the Stripe webhook endpoint (Dashboard → Developers →
+// Webhooks → your endpoint → "Signing secret", starts with whsec_). Set with:
+//   firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
 interface CartItem {
   productId: string;
@@ -264,6 +268,129 @@ export function allocateDiscount(
   return allocateProRata(sellerSubtotals, totalSubtotalCents, totalDiscountCents);
 }
 
+// ─── Checkout session + fan-out builder (payment-gated) ────────────────
+//
+// The order/sellerOrders fan-out used to happen inside createPaymentIntent,
+// i.e. BEFORE the customer actually paid — so the seller was notified (and a
+// PENDING order appeared) even if checkout was abandoned. We now stash the
+// computed payload in a `checkoutSessions/{orderId}` doc and only materialise
+// /orders + /sellerOrders from the Stripe webhook, after
+// `payment_intent.succeeded`. onNewSellerOrder therefore fires only on a real,
+// paid order.
+
+interface OrderItemPayload {
+  productId: string;
+  productTitle: string;
+  quantity: number;
+  snapshotPrice: number;
+  lineTotal: number;
+}
+
+interface SellerBreakdown {
+  sellerOrderId: string;
+  sellerId: string;
+  sellerName: string;
+  sellerLogoUrl: string;
+  items: OrderItemPayload[];
+  subtotalCents: number;
+  shippingShareCents: number;
+  discountShareCents: number;
+}
+
+interface CheckoutSession {
+  orderId: string;
+  userId: string;
+  shippingAddress: ShippingAddress;
+  items: OrderItemPayload[];
+  sellers: SellerBreakdown[];
+  subtotalCents: number;
+  shippingCents: number;
+  finalTotalCents: number;
+  discountCents: number;
+  discountCode: string;
+  stripePaymentIntentId: string;
+}
+
+interface FanoutDocs {
+  order: { id: string; data: admin.firestore.DocumentData };
+  sellerOrders: { id: string; data: admin.firestore.DocumentData }[];
+}
+
+/**
+ * Pure builder: turns a stored CheckoutSession into the exact /orders and
+ * /sellerOrders document shapes. Kept side-effect free (timestamps injected)
+ * so it can be unit-tested without Firestore. Mirrors the doc shapes the old
+ * inline fan-out wrote, so nothing downstream changes.
+ */
+export function buildFanoutDocs(
+  session: CheckoutSession,
+  serverTimestamp: unknown,
+  statusTimestamp: unknown,
+): FanoutDocs {
+  const sellerOrders = session.sellers.map((s) => ({
+    id: s.sellerOrderId,
+    data: {
+      parentOrderId: session.orderId,
+      userId: session.userId,
+      sellerId: s.sellerId,
+      sellerName: s.sellerName,
+      sellerLogoUrl: s.sellerLogoUrl,
+      items: s.items.map((it) => ({
+        productId: it.productId,
+        productTitle: it.productTitle,
+        quantity: it.quantity,
+        snapshotPrice: it.snapshotPrice,
+        lineTotal: it.lineTotal,
+      })),
+      subtotal: s.subtotalCents / 100,
+      shippingShare: s.shippingShareCents / 100,
+      discountShare: s.discountShareCents / 100,
+      status: "PENDING",
+      statusHistory: [{
+        status: "PENDING",
+        timestamp: statusTimestamp,
+        note: null,
+        trackingNumber: null,
+      }],
+      trackingNumber: null,
+      refundId: null,
+      refundedAmount: 0,
+      createdAt: serverTimestamp,
+      updatedAt: serverTimestamp,
+    },
+  }));
+
+  const order = {
+    id: session.orderId,
+    data: {
+      userId: session.userId,
+      status: "PENDING",
+      subtotal: session.subtotalCents / 100,
+      shippingTotal: session.shippingCents / 100,
+      totalAmount: session.finalTotalCents / 100,
+      discountAmount: session.discountCents / 100,
+      discountCode: session.discountCode,
+      currency: "USD",
+      stripePaymentIntentId: session.stripePaymentIntentId,
+      shippingAddress: session.shippingAddress,
+      items: session.items.map((it) => ({
+        productId: it.productId,
+        productTitle: it.productTitle,
+        quantity: it.quantity,
+        snapshotPrice: it.snapshotPrice,
+        lineTotal: it.lineTotal,
+      })),
+      sellerOrderIds: session.sellers.map((s) => s.sellerOrderId),
+      aggregateStatus: "PENDING",
+      aggregateVersion: 0,
+      createdAt: serverTimestamp,
+      updatedAt: serverTimestamp,
+    },
+  };
+
+  return { order, sellerOrders };
+}
+
 // ─── createPaymentIntent Cloud Function (Phase 6 fan-out) ──────────────
 
 export const createPaymentIntent = onCall(
@@ -432,21 +559,15 @@ export const createPaymentIntent = onCall(
       },
     });
 
-    // Fan-out: 1 parent + N sellerOrders in one WriteBatch
-    const batch = db.batch();
-    const orderRef = db.collection("orders").doc(orderId);
-    const sellerOrderIds: string[] = [];
-    const nowTs = admin.firestore.Timestamp.now();
-
+    // Payment-gated fan-out: DO NOT create /orders or /sellerOrders here.
+    // Stash the computed payload in checkoutSessions/{orderId}; the Stripe
+    // webhook materialises the real docs after payment_intent.succeeded, so
+    // the seller is only notified once the customer has actually paid.
+    const sellers: SellerBreakdown[] = [];
     for (const [sid, items] of itemsBySeller) {
       const subId = db.collection("sellerOrders").doc().id;
-      sellerOrderIds.push(subId);
-      const sub = sellerSubtotals.get(sid) ?? 0;
-      const shipShare = shippingShares.get(sid) ?? 0;
-      const discShare = discountShares.get(sid) ?? 0;
-      batch.set(db.collection("sellerOrders").doc(subId), {
-        parentOrderId: orderId,
-        userId: request.auth.uid,
+      sellers.push({
+        sellerOrderId: subId,
         sellerId: sid,
         sellerName: items[0]?.sellerName ?? "",
         sellerLogoUrl: items[0]?.sellerLogoUrl ?? "",
@@ -457,35 +578,16 @@ export const createPaymentIntent = onCall(
           snapshotPrice: it.snapshotPrice,
           lineTotal: it.lineTotal,
         })),
-        subtotal: sub / 100,
-        shippingShare: shipShare / 100,
-        discountShare: discShare / 100,
-        status: "PENDING",
-        statusHistory: [{
-          status: "PENDING",
-          timestamp: nowTs,
-          note: null,
-          trackingNumber: null,
-        }],
-        trackingNumber: null,
-        refundId: null,
-        refundedAmount: 0,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        subtotalCents: sellerSubtotals.get(sid) ?? 0,
+        shippingShareCents: shippingShares.get(sid) ?? 0,
+        discountShareCents: discountShares.get(sid) ?? 0,
       });
     }
 
-    batch.set(orderRef, {
+    const session: CheckoutSession = {
+      orderId,
       userId: request.auth.uid,
-      status: "PENDING",
-      subtotal: subtotalCents / 100,
-      shippingTotal: shippingCents / 100,
-      totalAmount: finalTotalCents / 100,
-      discountAmount: discountCents / 100,
-      discountCode: appliedCouponCode,
-      currency: "USD",
-      stripePaymentIntentId: paymentIntent.id,
-      shippingAddress: shippingAddress,
+      shippingAddress,
       items: cartItems.map((item) => ({
         productId: item.productId,
         productTitle: item.productTitle,
@@ -493,14 +595,20 @@ export const createPaymentIntent = onCall(
         snapshotPrice: item.price,
         lineTotal: item.price * item.quantity,
       })),
-      sellerOrderIds,
-      aggregateStatus: "PENDING",
-      aggregateVersion: 0,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      sellers,
+      subtotalCents,
+      shippingCents,
+      finalTotalCents,
+      discountCents,
+      discountCode: appliedCouponCode,
+      stripePaymentIntentId: paymentIntent.id,
+    };
 
-    await batch.commit();
+    await db.collection("checkoutSessions").doc(orderId).set({
+      ...session,
+      status: "AWAITING_PAYMENT",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
     return {
       clientSecret: paymentIntent.client_secret,
@@ -508,6 +616,108 @@ export const createPaymentIntent = onCall(
       orderId,
       discountAmountCents: discountCents,
     };
+  },
+);
+
+// ─── stripeWebhook: payment-confirmation fan-out ───────────────────────
+//
+// Stripe → this endpoint on every configured event. We act on
+// payment_intent.succeeded: load the stashed checkoutSessions/{orderId} and
+// materialise /orders + /sellerOrders (idempotently). That creation is what
+// fires onNewSellerOrder, so the seller is notified only after a real payment.
+// On failure/cancellation we drop the session so it does not linger.
+//
+// Setup (one-time):
+//   1. firebase deploy --only functions:stripeWebhook
+//   2. Stripe Dashboard → Developers → Webhooks → Add endpoint →
+//      URL = the function's URL, events = payment_intent.succeeded,
+//      payment_intent.payment_failed, payment_intent.canceled
+//   3. firebase functions:secrets:set STRIPE_WEBHOOK_SECRET  (paste whsec_…)
+
+export const stripeWebhook = onRequest(
+  { secrets: [stripeSecretKey, stripeWebhookSecret] },
+  async (req, res) => {
+    const stripe = new Stripe(stripeSecretKey.value(), {
+      apiVersion: "2025-02-24.acacia",
+    });
+
+    let event: Stripe.Event;
+    try {
+      const signature = req.headers["stripe-signature"];
+      event = stripe.webhooks.constructEvent(
+        req.rawBody,
+        signature as string,
+        stripeWebhookSecret.value(),
+      );
+    } catch (err) {
+      console.error("[stripeWebhook] signature verification failed", err);
+      res.status(400).send("Invalid signature");
+      return;
+    }
+
+    const db = admin.firestore();
+
+    try {
+      if (event.type === "payment_intent.succeeded") {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const orderId = pi.metadata?.orderId;
+        if (!orderId) {
+          console.warn("[stripeWebhook] succeeded event without orderId metadata");
+          res.status(200).send("ok");
+          return;
+        }
+
+        // Idempotency: Stripe may deliver the same event more than once.
+        const orderSnap = await db.collection("orders").doc(orderId).get();
+        if (orderSnap.exists) {
+          console.log("[stripeWebhook] order already materialised — skipping", { orderId });
+          res.status(200).send("ok");
+          return;
+        }
+
+        const sessionSnap = await db.collection("checkoutSessions").doc(orderId).get();
+        if (!sessionSnap.exists) {
+          console.warn("[stripeWebhook] no checkoutSession for orderId", { orderId });
+          res.status(200).send("ok");
+          return;
+        }
+
+        const session = sessionSnap.data() as CheckoutSession;
+        const docs = buildFanoutDocs(
+          session,
+          admin.firestore.FieldValue.serverTimestamp(),
+          admin.firestore.Timestamp.now(),
+        );
+
+        const batch = db.batch();
+        batch.set(db.collection("orders").doc(docs.order.id), docs.order.data);
+        for (const so of docs.sellerOrders) {
+          batch.set(db.collection("sellerOrders").doc(so.id), so.data);
+        }
+        // Consume the session so it cannot be replayed.
+        batch.delete(db.collection("checkoutSessions").doc(orderId));
+        await batch.commit();
+        console.log("[stripeWebhook] materialised order", {
+          orderId,
+          sellerOrders: docs.sellerOrders.length,
+        });
+      } else if (
+        event.type === "payment_intent.payment_failed" ||
+        event.type === "payment_intent.canceled"
+      ) {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const orderId = pi.metadata?.orderId;
+        if (orderId) {
+          await db.collection("checkoutSessions").doc(orderId).delete();
+          console.log("[stripeWebhook] dropped session for failed/canceled payment", { orderId });
+        }
+      }
+      res.status(200).send("ok");
+    } catch (err) {
+      console.error("[stripeWebhook] handler error", err);
+      // 500 tells Stripe to retry — safe because materialisation is idempotent.
+      res.status(500).send("handler error");
+    }
   },
 );
 
@@ -751,9 +961,10 @@ export const onOrderStatusChange = onDocumentWritten(
 );
 
 /**
- * Fires once when a sellerOrders/{id} doc is created (i.e., at
- * createPaymentIntent fan-out time). Sends a "New order" FCM to the
- * seller so their Orders tab refreshes without pull-to-refresh.
+ * Fires once when a sellerOrders/{id} doc is created. Since the fan-out now
+ * runs from the Stripe webhook after payment_intent.succeeded, this fires only
+ * for real, paid orders. Sends a "New order" FCM to the seller so their Orders
+ * tab refreshes without pull-to-refresh.
  *
  * Client-side consumer: MessagingService routes `data.type == "new_order"`
  * onto SyncBus.NewOrder, which SellerOrdersViewModel collects and calls

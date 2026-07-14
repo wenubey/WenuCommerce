@@ -64,6 +64,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Server-only: written by createPaymentIntent and consumed by the Stripe
+    // webhook (both via the Admin SDK, which bypasses these rules). Clients
+    // must never read or write pending-payment order payloads.
+    match /checkoutSessions/{sessionId} {
+      allow read, write: if false;
+    }
+
     // ── PRE-PHASE-6 COLLECTIONS ─────────────────────────────────────────
     // Phase 6 was the FIRST phase to ship firestore.rules. Before this,
     // the database ran on Console default rules (open to authenticated
