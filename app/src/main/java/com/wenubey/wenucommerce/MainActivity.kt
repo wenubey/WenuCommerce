@@ -50,6 +50,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
+import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
     private lateinit var navController: NavHostController
@@ -93,18 +94,24 @@ class MainActivity : ComponentActivity() {
                     val isInitialized by viewModel.isInitialized.collectAsStateWithLifecycle()
 
                     // Phase 6 Plan 04 (+ notification-routing fix) — FCM deep-link consumer.
-                    // Keyed on intentVersion AND isInitialized so:
-                    //   • warm tap: onNewIntent bumps intentVersion → re-runs.
-                    //   • cold start: the first run is skipped while the nav
-                    //     graph is not composed yet (isInitialized == false),
-                    //     then re-runs once it becomes ready.
-                    // Two delivery paths, same as before:
+                    //
+                    // Gated on `currentBackStackEntry != null`: that only turns
+                    // non-null once the NavHost has built the graph AND placed the
+                    // start destination on the back stack, so navigating is always
+                    // safe. A notification tap normally cold-starts a killed app,
+                    // and if we navigate while the graph is still composing the
+                    // link is dropped and the user lands on the start screen
+                    // (home). Keyed on intentVersion too so a warm tap (onNewIntent)
+                    // re-runs it. Re-runs after our own navigation are no-ops
+                    // because clearNotificationExtras() wipes the extras.
+                    //
+                    // Two delivery paths:
                     //   1) Foreground push → MessagingService builds a launch
                     //      intent with our namespaced extras (EXTRA_NAV_TARGET…).
                     //   2) Background / killed → FCM tray tap opens the launcher
                     //      with the raw `data` payload keyed by FCM keys.
-                    LaunchedEffect(intentVersion, isInitialized) {
-                        if (!isInitialized) return@LaunchedEffect
+                    LaunchedEffect(intentVersion, currentBackStackEntry) {
+                        if (currentBackStackEntry == null) return@LaunchedEffect
 
                         val namespacedOrderId = intent.getStringExtra(EXTRA_ORDER_ID)
                         val fcmRawOrderId = intent.getStringExtra("orderId")
@@ -120,6 +127,7 @@ class MainActivity : ComponentActivity() {
 
                         when {
                             isSellerNewOrder -> {
+                                Timber.d("FCM deep-link → seller Orders tab")
                                 navController.navigate(SellerTab(tabIndex = SellerTabs.Orders.ordinal)) {
                                     popUpTo<SellerTab> { inclusive = true }
                                 }
@@ -130,6 +138,7 @@ class MainActivity : ComponentActivity() {
                                 (target == NAV_TARGET_ORDER_DETAIL || namespacedOrderId == null) -> {
                                 // Push history first so "back" from the detail
                                 // lands on My Orders, not the notification origin.
+                                Timber.d("FCM deep-link → customer order %s", orderId)
                                 navController.navigate(CustomerOrderHistory)
                                 navController.navigate(CustomerOrderDetail(orderId))
                                 clearNotificationExtras()
