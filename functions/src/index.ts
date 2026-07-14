@@ -716,9 +716,7 @@ export const onOrderStatusChange = onDocumentWritten(
         token: fcmToken,
         notification: {
           title: titleFor(after.status),
-          body: `Your order from ${
-            after.sellerName ?? "the seller"
-          } is ${String(after.status).toLowerCase()}.`,
+          body: `Your order is ${String(after.status).toLowerCase()}.`,
         },
         data: {
           type: "order_status",
@@ -730,7 +728,10 @@ export const onOrderStatusChange = onDocumentWritten(
           priority: "high",
           notification: {
             channelId: "order_status_channel",
-            clickAction: "OPEN_ORDER_DETAIL",
+            // clickAction removed: without a matching <intent-filter> on
+            // MainActivity, some Android versions silently no-op the tap.
+            // Default launcher intent opens MainActivity with the `data`
+            // payload as raw intent extras — MainActivity reads them.
           },
         },
       });

@@ -83,16 +83,33 @@ class MainActivity : ComponentActivity() {
                     // Cold-start case is covered because intentVersion starts
                     // at 0 and LaunchedEffect runs once on first composition.
                     LaunchedEffect(intentVersion) {
+                        // Two paths deliver an order-status deep-link:
+                        //   1) Foreground push → MessagingService builds a
+                        //      launch intent with our namespaced extras
+                        //      (EXTRA_NAV_TARGET, EXTRA_ORDER_ID).
+                        //   2) Background / killed → FCM system tray shows
+                        //      the notification; tap opens the launcher
+                        //      activity with `data` payload keyed by raw
+                        //      FCM keys ("orderId", "type", ...).
+                        // Check both.
+                        val namespacedOrderId = intent.getStringExtra(EXTRA_ORDER_ID)
+                        val fcmRawOrderId = intent.getStringExtra("orderId")
+                        val fcmRawType = intent.getStringExtra("type")
                         val target = intent.getStringExtra(EXTRA_NAV_TARGET)
-                        val orderId = intent.getStringExtra(EXTRA_ORDER_ID)
-                        if (target == NAV_TARGET_ORDER_DETAIL &&
-                            !orderId.isNullOrBlank()
+
+                        val orderId = namespacedOrderId
+                            ?: fcmRawOrderId?.takeIf { fcmRawType == "order_status" }
+
+                        if (!orderId.isNullOrBlank() &&
+                            (target == NAV_TARGET_ORDER_DETAIL || namespacedOrderId == null)
                         ) {
                             navController.navigate(OrderDetail(orderId))
                             // Clear so rotation / recomposition does not
                             // re-navigate.
                             intent.removeExtra(EXTRA_NAV_TARGET)
                             intent.removeExtra(EXTRA_ORDER_ID)
+                            intent.removeExtra("orderId")
+                            intent.removeExtra("type")
                         }
                     }
 
