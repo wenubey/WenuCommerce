@@ -9,9 +9,11 @@ import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_NEW_STATUS
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_ORDER_ID
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_SELLER_ORDER_ID
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_TYPE
+import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_ORDER
 import com.wenubey.wenucommerce.notification.FCM_TYPE_ORDER_STATUS
 import com.wenubey.wenucommerce.notification.MessagingService
 import com.wenubey.wenucommerce.notification.NAV_TARGET_ORDER_DETAIL
+import com.wenubey.wenucommerce.notification.NAV_TARGET_SELLER_ORDERS
 import com.wenubey.wenucommerce.notification.SyncBus
 import com.wenubey.wenucommerce.notification.SyncEvent
 import com.wenubey.wenucommerce.testing.TestApplication
@@ -125,6 +127,44 @@ class MessagingServiceSyncBusTest {
             mapOf(
                 FCM_DATA_KEY_TYPE to FCM_TYPE_ORDER_STATUS,
                 FCM_DATA_KEY_ORDER_ID to "",
+            ),
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `buildNewOrderNotificationIntent returns Intent routing to seller orders on valid payload`() {
+        val intent = MessagingService.buildNewOrderNotificationIntent(
+            context,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_ORDER,
+                FCM_DATA_KEY_SELLER_ORDER_ID to "sub-456",
+            ),
+        )
+        assertNotNull("intent should be non-null for valid new_order payload", intent)
+        assertEquals(NAV_TARGET_SELLER_ORDERS, intent!!.getStringExtra(EXTRA_NAV_TARGET))
+        assertEquals("sub-456", intent.getStringExtra(EXTRA_SELLER_ORDER_ID))
+    }
+
+    @Test
+    fun `buildNewOrderNotificationIntent returns null when type is not new_order`() {
+        val intent = MessagingService.buildNewOrderNotificationIntent(
+            context,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_ORDER_STATUS,
+                FCM_DATA_KEY_SELLER_ORDER_ID to "sub-456",
+            ),
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `buildNewOrderNotificationIntent returns null when sellerOrderId is blank`() {
+        val intent = MessagingService.buildNewOrderNotificationIntent(
+            context,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_ORDER,
+                FCM_DATA_KEY_SELLER_ORDER_ID to "",
             ),
         )
         assertNull(intent)

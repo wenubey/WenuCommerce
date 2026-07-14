@@ -62,7 +62,7 @@ class MessagingService: FirebaseMessagingService() {
             serviceScope.launch {
                 emitSyncIfNewOrder(syncBus, data)
             }
-            showOrderStatusNotification(message)
+            showNewOrderNotification(message)
             return
         }
 
@@ -107,6 +107,36 @@ class MessagingService: FirebaseMessagingService() {
         // orderId.hashCode() so subsequent updates for the same order replace
         // rather than stack (deliberate; aggregation polish is Phase 8).
         NotificationManagerCompat.from(this).notify(orderId.hashCode(), notification)
+    }
+
+    private fun showNewOrderNotification(message: RemoteMessage) {
+        val data = message.data
+        val sellerOrderId = data[FCM_DATA_KEY_SELLER_ORDER_ID]
+        if (sellerOrderId.isNullOrBlank()) {
+            Timber.w("new_order FCM missing sellerOrderId — skip notification post")
+            return
+        }
+        val title = message.notification?.title ?: "New order"
+        val body = message.notification?.body ?: "You have a new order to fulfill."
+
+        val launchIntent = buildNewOrderNotificationIntent(this, data) ?: return
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            sellerOrderId.hashCode(),
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(this, ORDER_STATUS_CHANNEL_ID)
+            .setSmallIcon(R.drawable.notification_icon)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(this).notify(sellerOrderId.hashCode(), notification)
     }
 
     private fun showNotification(title: String, body: String) {
@@ -204,6 +234,30 @@ class MessagingService: FirebaseMessagingService() {
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
                 putExtra(EXTRA_NAV_TARGET, NAV_TARGET_ORDER_DETAIL)
                 putExtra(EXTRA_ORDER_ID, orderId)
+                putExtra(EXTRA_SELLER_ORDER_ID, sellerOrderId)
+            }
+        }
+
+        /**
+         * Builds the launch intent for a new_order (seller-side) FCM. Routes
+         * the tap to the seller Orders tab. Returns null when the payload is
+         * not actionable (wrong type / missing sellerOrderId).
+         */
+        internal fun buildNewOrderNotificationIntent(
+            context: Context,
+            data: Map<String, String>,
+        ): Intent? {
+            if (data[FCM_DATA_KEY_TYPE] != FCM_TYPE_NEW_ORDER) return null
+            val sellerOrderId = data[FCM_DATA_KEY_SELLER_ORDER_ID]
+            if (sellerOrderId.isNullOrBlank()) return null
+
+            val launch = context.packageManager
+                .getLaunchIntentForPackage(context.packageName)
+                ?: return null
+            return launch.apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(EXTRA_NAV_TARGET, NAV_TARGET_SELLER_ORDERS)
                 putExtra(EXTRA_SELLER_ORDER_ID, sellerOrderId)
             }
         }

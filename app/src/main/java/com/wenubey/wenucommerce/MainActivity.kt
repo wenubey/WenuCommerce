@@ -33,12 +33,18 @@ import com.wenubey.data.local.SyncEvent
 import com.wenubey.data.local.SyncManager
 import com.wenubey.wenucommerce.core.connectivity.PendingSyncViewModel
 import com.wenubey.wenucommerce.core.connectivity.PendingSyncBanner
-import com.wenubey.wenucommerce.navigation.OrderDetail
+import com.wenubey.wenucommerce.navigation.CustomerOrderDetail
+import com.wenubey.wenucommerce.navigation.CustomerOrderHistory
 import com.wenubey.wenucommerce.navigation.QueueManagement
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
+import com.wenubey.wenucommerce.navigation.SellerTab
 import com.wenubey.wenucommerce.notification.EXTRA_NAV_TARGET
 import com.wenubey.wenucommerce.notification.EXTRA_ORDER_ID
+import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_ORDER
+import com.wenubey.wenucommerce.notification.FCM_TYPE_ORDER_STATUS
 import com.wenubey.wenucommerce.notification.NAV_TARGET_ORDER_DETAIL
+import com.wenubey.wenucommerce.notification.NAV_TARGET_SELLER_ORDERS
+import com.wenubey.wenucommerce.seller.SellerTabs
 import com.wenubey.wenucommerce.ui.theme.WenuCommerceTheme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -78,41 +84,6 @@ class MainActivity : ComponentActivity() {
                 WenuCommerceTheme {
                     navController = rememberNavController()
 
-                    // Phase 6 Plan 04 — FCM deep-link consumer.
-                    // Keyed on intentVersion so onNewIntent reliably retriggers.
-                    // Cold-start case is covered because intentVersion starts
-                    // at 0 and LaunchedEffect runs once on first composition.
-                    LaunchedEffect(intentVersion) {
-                        // Two paths deliver an order-status deep-link:
-                        //   1) Foreground push → MessagingService builds a
-                        //      launch intent with our namespaced extras
-                        //      (EXTRA_NAV_TARGET, EXTRA_ORDER_ID).
-                        //   2) Background / killed → FCM system tray shows
-                        //      the notification; tap opens the launcher
-                        //      activity with `data` payload keyed by raw
-                        //      FCM keys ("orderId", "type", ...).
-                        // Check both.
-                        val namespacedOrderId = intent.getStringExtra(EXTRA_ORDER_ID)
-                        val fcmRawOrderId = intent.getStringExtra("orderId")
-                        val fcmRawType = intent.getStringExtra("type")
-                        val target = intent.getStringExtra(EXTRA_NAV_TARGET)
-
-                        val orderId = namespacedOrderId
-                            ?: fcmRawOrderId?.takeIf { fcmRawType == "order_status" }
-
-                        if (!orderId.isNullOrBlank() &&
-                            (target == NAV_TARGET_ORDER_DETAIL || namespacedOrderId == null)
-                        ) {
-                            navController.navigate(OrderDetail(orderId))
-                            // Clear so rotation / recomposition does not
-                            // re-navigate.
-                            intent.removeExtra(EXTRA_NAV_TARGET)
-                            intent.removeExtra(EXTRA_ORDER_ID)
-                            intent.removeExtra("orderId")
-                            intent.removeExtra("type")
-                        }
-                    }
-
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val isOnQueueManagementScreen = with(NavDestination) {
                         currentBackStackEntry?.destination?.hasRoute(QueueManagement::class) == true
@@ -120,6 +91,51 @@ class MainActivity : ComponentActivity() {
 
                     val startDestination by viewModel.startDestination.collectAsStateWithLifecycle()
                     val isInitialized by viewModel.isInitialized.collectAsStateWithLifecycle()
+
+                    // Phase 6 Plan 04 (+ notification-routing fix) — FCM deep-link consumer.
+                    // Keyed on intentVersion AND isInitialized so:
+                    //   • warm tap: onNewIntent bumps intentVersion → re-runs.
+                    //   • cold start: the first run is skipped while the nav
+                    //     graph is not composed yet (isInitialized == false),
+                    //     then re-runs once it becomes ready.
+                    // Two delivery paths, same as before:
+                    //   1) Foreground push → MessagingService builds a launch
+                    //      intent with our namespaced extras (EXTRA_NAV_TARGET…).
+                    //   2) Background / killed → FCM tray tap opens the launcher
+                    //      with the raw `data` payload keyed by FCM keys.
+                    LaunchedEffect(intentVersion, isInitialized) {
+                        if (!isInitialized) return@LaunchedEffect
+
+                        val namespacedOrderId = intent.getStringExtra(EXTRA_ORDER_ID)
+                        val fcmRawOrderId = intent.getStringExtra("orderId")
+                        val fcmRawType = intent.getStringExtra("type")
+                        val target = intent.getStringExtra(EXTRA_NAV_TARGET)
+
+                        // Seller "new order" → jump straight to the Orders tab.
+                        val isSellerNewOrder =
+                            target == NAV_TARGET_SELLER_ORDERS || fcmRawType == FCM_TYPE_NEW_ORDER
+                        // Customer "order status" → open My Orders, then the order.
+                        val orderId = namespacedOrderId
+                            ?: fcmRawOrderId?.takeIf { fcmRawType == FCM_TYPE_ORDER_STATUS }
+
+                        when {
+                            isSellerNewOrder -> {
+                                navController.navigate(SellerTab(tabIndex = SellerTabs.Orders.ordinal)) {
+                                    popUpTo<SellerTab> { inclusive = true }
+                                }
+                                clearNotificationExtras()
+                            }
+
+                            !orderId.isNullOrBlank() &&
+                                (target == NAV_TARGET_ORDER_DETAIL || namespacedOrderId == null) -> {
+                                // Push history first so "back" from the detail
+                                // lands on My Orders, not the notification origin.
+                                navController.navigate(CustomerOrderHistory)
+                                navController.navigate(CustomerOrderDetail(orderId))
+                                clearNotificationExtras()
+                            }
+                        }
+                    }
 
                     // Pending sync banner
                     val pendingSyncVm: PendingSyncViewModel = koinViewModel()
@@ -198,6 +214,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Clears the notification deep-link extras from the current intent so a
+     * rotation / recomposition does not re-navigate to the same destination.
+     */
+    private fun clearNotificationExtras() {
+        intent.removeExtra(EXTRA_NAV_TARGET)
+        intent.removeExtra(EXTRA_ORDER_ID)
+        intent.removeExtra("orderId")
+        intent.removeExtra("type")
     }
 
     private fun handleSplashScreen() {
