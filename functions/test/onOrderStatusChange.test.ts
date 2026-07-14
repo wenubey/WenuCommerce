@@ -50,10 +50,10 @@ describe("onOrderStatusChange — aggregate mapping (RESEARCH §2.8)", () => {
 
 describe("onOrderStatusChange — W5 race mitigation contract", () => {
   it("skips when status unchanged (before.status === after.status)", () => {
+    // The status-unchanged guard must early-return before dispatching FCM.
     expect(indexSrc).toMatch(
-      /before\.status\s*===\s*after\.status/,
+      /before\.status\s*===\s*after\.status\)\s*\{[\s\S]*?return;/,
     );
-    expect(indexSrc).toMatch(/return;\s*\/\/ not a status change/);
   });
 
   it("sends FCM with correct deep-link data payload + channelId", () => {
@@ -80,7 +80,7 @@ describe("onOrderStatusChange — W5 race mitigation contract", () => {
   });
 
   it("no-op (returns silently) when fcmToken missing", () => {
-    expect(indexSrc).toMatch(/if\s*\(\s*!fcmToken\s*\)\s*return;/);
+    expect(indexSrc).toMatch(/if\s*\(\s*!fcmToken\s*\)\s*\{[\s\S]*?return;/);
   });
 
   it("tx.get(<sellerOrders query>) called before tx.update(<parent>)", () => {
@@ -143,8 +143,8 @@ describe("onOrderStatusChange — FCM payload shape (Plan 06-04 contract)", () =
   });
 
   it("FCM send is skipped when user doc has no fcmToken field (early return)", () => {
-    // The guard `if (!fcmToken) return;` precedes the getMessaging().send call.
-    const guardIdx = indexSrc.search(/if\s*\(\s*!fcmToken\s*\)\s*return;/);
+    // The guard `if (!fcmToken) { … return; }` precedes the getMessaging().send call.
+    const guardIdx = indexSrc.search(/if\s*\(\s*!fcmToken\s*\)\s*\{/);
     const sendIdx = indexSrc.search(/getMessaging\(\)\.send\(/);
     expect(guardIdx).toBeGreaterThan(0);
     expect(sendIdx).toBeGreaterThan(0);
