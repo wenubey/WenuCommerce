@@ -16,10 +16,12 @@ import kotlinx.coroutines.flow.asSharedFlow
  * so the screen reflects the new aggregate status without waiting for a
  * pull-to-refresh.
  *
- * `replay = 0` — emissions before any collector subscribes are dropped on
- * purpose. The FCM payload is also delivered as a system notification, so a
- * missed bus event is recovered when the user opens the app and the screen's
- * `onStart` sync fires.
+ * `replay = 1` — a ViewModel that begins collecting shortly AFTER an FCM
+ * push arrives (common when the user taps the notification and lands on
+ * the list screen a beat later, or the user was mid-navigation when the
+ * push arrived) still receives the last emission and triggers a sync.
+ * The duplicate sync a fresh collector may cause is idempotent (Room
+ * upserts by primary key), so the small cost is worth the guarantee.
  *
  * `extraBufferCapacity = 8` — absorbs a small burst (e.g. multi-seller
  * order where every seller advances within seconds) without suspending
@@ -30,7 +32,7 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 class SyncBus {
     private val _events: MutableSharedFlow<SyncEvent> = MutableSharedFlow(
-        replay = 0,
+        replay = 1,
         extraBufferCapacity = 8,
     )
 

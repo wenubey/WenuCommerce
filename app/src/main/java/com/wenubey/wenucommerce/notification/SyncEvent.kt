@@ -18,4 +18,14 @@ sealed class SyncEvent {
         val orderId: String,
         val sellerOrderId: String,
     ) : SyncEvent()
+
+    /**
+     * Emitted by [MessagingService] when a `new_order` FCM payload is
+     * received. Consumed by SellerOrdersViewModel to trigger
+     * `OrderRepository.syncSellerOrders()` so a freshly-placed customer
+     * order appears in the seller's list without a manual pull-to-refresh.
+     */
+    data class NewOrder(
+        val sellerOrderId: String,
+    ) : SyncEvent()
 }

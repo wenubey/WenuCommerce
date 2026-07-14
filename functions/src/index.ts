@@ -3,7 +3,7 @@
 // Cloud Functions use these literal strings; keep in sync with Constants.kt.
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import Stripe from "stripe";
 import * as admin from "firebase-admin";
@@ -651,7 +651,14 @@ export const onOrderStatusChange = onDocumentWritten(
       console.log("[trigger] after=null (delete event) — skipping");
       return;
     }
-    if (before && before.status === after.status) {
+    if (!before) {
+      // Create event — onNewSellerOrder handles the seller push. Sending
+      // a "your order is PENDING" push to the customer right after they
+      // just placed the order is spammy; skip.
+      console.log("[trigger] create event (no before) — deferring to onNewSellerOrder");
+      return;
+    }
+    if (before.status === after.status) {
       console.log("[trigger] status unchanged — skipping FCM dispatch");
       return;
     }
@@ -739,6 +746,68 @@ export const onOrderStatusChange = onDocumentWritten(
     } catch (err) {
       console.error("[fcm] dispatch FAILED for parentId", parentId, err);
       // Swallow — aggregate write is the contract, push is best-effort.
+    }
+  },
+);
+
+/**
+ * Fires once when a sellerOrders/{id} doc is created (i.e., at
+ * createPaymentIntent fan-out time). Sends a "New order" FCM to the
+ * seller so their Orders tab refreshes without pull-to-refresh.
+ *
+ * Client-side consumer: MessagingService routes `data.type == "new_order"`
+ * onto SyncBus.NewOrder, which SellerOrdersViewModel collects and calls
+ * OrderRepository.syncSellerOrders(sellerId).
+ */
+export const onNewSellerOrder = onDocumentCreated(
+  "sellerOrders/{sellerOrderId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) {
+      console.log("[new_order] no data on created doc — skipping");
+      return;
+    }
+    const sellerUid = data.sellerId as string | undefined;
+    const sellerOrderId = event.params.sellerOrderId;
+    console.log("[new_order] fired", { sellerOrderId, sellerUid });
+    if (!sellerUid) {
+      console.log("[new_order] no sellerId on doc — skipping");
+      return;
+    }
+
+    const db = admin.firestore();
+    const userSnap = await db.collection("USERS").doc(sellerUid).get();
+    const fcmToken = userSnap.data()?.fcmToken as string | undefined;
+    console.log("[new_order] seller token lookup", {
+      hasToken: !!fcmToken,
+      tokenPrefix: fcmToken?.substring(0, 16) ?? null,
+    });
+    if (!fcmToken) {
+      console.log("[new_order] no fcmToken on seller USERS doc — skipping");
+      return;
+    }
+
+    try {
+      const messageId = await getMessaging().send({
+        token: fcmToken,
+        notification: {
+          title: "New order",
+          body: "You have a new order to fulfill.",
+        },
+        data: {
+          type: "new_order",
+          sellerOrderId,
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "order_status_channel",
+          },
+        },
+      });
+      console.log("[new_order] send SUCCESS", { messageId });
+    } catch (err) {
+      console.error("[new_order] dispatch FAILED for sellerOrderId", sellerOrderId, err);
     }
   },
 );

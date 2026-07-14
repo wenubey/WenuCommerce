@@ -57,6 +57,14 @@ class MessagingService: FirebaseMessagingService() {
             showOrderStatusNotification(message)
             return
         }
+        // new_order payload — seller-side sync trigger from onNewSellerOrder.
+        if (data[FCM_DATA_KEY_TYPE] == FCM_TYPE_NEW_ORDER) {
+            serviceScope.launch {
+                emitSyncIfNewOrder(syncBus, data)
+            }
+            showOrderStatusNotification(message)
+            return
+        }
 
         // Legacy device-login path (unchanged).
         message.notification?.let {
@@ -219,6 +227,23 @@ class MessagingService: FirebaseMessagingService() {
                     sellerOrderId = sellerOrderId,
                 ),
             )
+            return true
+        }
+
+        /**
+         * Emits [SyncEvent.NewOrder] when the payload is a new_order FCM
+         * with a non-blank sellerOrderId. Consumed by SellerOrdersViewModel
+         * to trigger a fresh syncSellerOrders() call so the list reflects
+         * the newly-arrived customer order without pull-to-refresh.
+         */
+        internal suspend fun emitSyncIfNewOrder(
+            syncBus: SyncBus,
+            data: Map<String, String>,
+        ): Boolean {
+            if (data[FCM_DATA_KEY_TYPE] != FCM_TYPE_NEW_ORDER) return false
+            val sellerOrderId = data[FCM_DATA_KEY_SELLER_ORDER_ID]
+            if (sellerOrderId.isNullOrBlank()) return false
+            syncBus.emit(SyncEvent.NewOrder(sellerOrderId = sellerOrderId))
             return true
         }
     }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.OrderRepository
+import com.wenubey.wenucommerce.notification.SyncBus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,7 @@ import timber.log.Timber
 class SellerOrdersViewModel(
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
+    private val syncBus: SyncBus,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SellerOrdersState())
@@ -32,6 +34,7 @@ class SellerOrdersViewModel(
 
     init {
         observeSellerOrders()
+        observeSyncBus()
         triggerSync()
     }
 
@@ -43,6 +46,24 @@ class SellerOrdersViewModel(
             }
             .onEach { orders ->
                 _state.update { it.copy(sellerOrders = orders, isLoading = false) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Collects [SyncEvent.NewOrder] (published by [MessagingService] when
+     * an onNewSellerOrder FCM arrives) AND [SyncEvent.OrderStatusChanged]
+     * (e.g., a cancellation from customer flow reaches the seller order
+     * doc via the trigger) and triggers a re-sync so the list reflects the
+     * fresh state without pull-to-refresh.
+     */
+    private fun observeSyncBus() {
+        syncBus.events
+            .onEach {
+                orderRepository.syncSellerOrders(sellerId)
+                    .onFailure { e ->
+                        Timber.w(e, "SellerOrdersViewModel: syncBus-triggered sync failed")
+                    }
             }
             .launchIn(viewModelScope)
     }

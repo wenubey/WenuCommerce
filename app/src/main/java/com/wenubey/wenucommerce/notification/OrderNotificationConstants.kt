@@ -24,6 +24,7 @@ const val EXTRA_SELLER_ORDER_ID = "wenucommerce.seller_order_id"
 const val NAV_TARGET_ORDER_DETAIL = "order_detail"
 
 const val FCM_TYPE_ORDER_STATUS = "order_status"
+const val FCM_TYPE_NEW_ORDER = "new_order"
 const val FCM_DATA_KEY_TYPE = "type"
 const val FCM_DATA_KEY_ORDER_ID = "orderId"
 const val FCM_DATA_KEY_SELLER_ORDER_ID = "sellerOrderId"
