@@ -21,6 +21,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.messaging.FirebaseMessaging
 import com.wenubey.data.local.dao.UserDao
 import com.wenubey.data.local.mapper.toDomain
 import com.wenubey.data.local.mapper.toEntity
@@ -50,6 +51,7 @@ class AuthRepositoryImpl(
     private val firestoreRepository: FirestoreRepository,
     private val firestore: FirebaseFirestore,
     private val userDao: UserDao,
+    private val firebaseMessaging: FirebaseMessaging,
 ) : AuthRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
@@ -87,6 +89,20 @@ class AuthRepositoryImpl(
             }
         } else {
             startUserListener(auth.currentUser!!.uid)
+            // FCM token refresh — MessagingService.onNewToken only fires when
+            // Firebase generates a NEW token, so a user signing in on a device
+            // that already had a token would never end up with fcmToken on
+            // their USERS doc. Fetch + persist on every auth transition so the
+            // trigger's `send()` path always has a token to hit.
+            CoroutineScope(ioDispatcher).launch {
+                runCatching {
+                    val token = firebaseMessaging.token.await()
+                    firestoreRepository.updateFcmToken(token)
+                    Timber.d("FCM token refreshed on sign-in for ${auth.currentUser?.uid}")
+                }.onFailure {
+                    Timber.w(it, "FCM token refresh on sign-in failed")
+                }
+            }
         }
     }
 
