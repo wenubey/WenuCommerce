@@ -488,18 +488,22 @@ class CheckoutViewModelTest {
         advanceUntilIdle()
         collectJob.cancel()
 
-        // Order persisted to Room with CONFIRMED status and coupon details.
+        // Order persisted to Room as PENDING and coupon details (Phase 6:
+        // status is server-side truth — starts PENDING and only advances via
+        // seller action + onOrderStatusChange trigger; client no longer writes
+        // CONFIRMED, since rules forbid direct /orders writes).
         assertThat(payment.createOrderInRoomCalls).hasSize(1)
         val saved = payment.createOrderInRoomCalls[0]
         assertThat(saved.id).isEqualTo("order-7")
-        assertThat(saved.status).isEqualTo(OrderStatus.CONFIRMED)
+        assertThat(saved.status).isEqualTo(OrderStatus.PENDING)
         assertThat(saved.discountCode).isEqualTo("SAVE")
         assertThat(saved.discountAmount).isEqualTo(2.0)
         assertThat(saved.items).hasSize(1)
         assertThat(saved.items[0].lineTotal).isEqualTo(10.0)
 
-        // Firestore order status updated, coupon usage decremented, cart cleared.
-        assertThat(payment.updateOrderStatusCalls).contains("order-7" to OrderStatus.CONFIRMED)
+        // Client no longer flips Firestore order status (server-only now);
+        // coupon usage decremented and cart cleared as before.
+        assertThat(payment.updateOrderStatusCalls).isEmpty()
         assertThat(discount.decrementCalls).contains("SAVE")
         assertThat(cart.clearCartCalls).contains(testUserId)
 

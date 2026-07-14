@@ -8,6 +8,7 @@ import com.wenubey.wenucommerce.seller.orders.SellerOrderFilter
 import com.wenubey.wenucommerce.seller.orders.SellerOrdersAction
 import com.wenubey.wenucommerce.seller.orders.SellerOrdersViewModel
 import com.wenubey.wenucommerce.seller.orders.visibleSellerOrders
+import com.wenubey.wenucommerce.notification.SyncBus
 import com.wenubey.wenucommerce.testing.MainDispatcherRule
 import com.wenubey.wenucommerce.testing.fakes.FakeAuthRepository
 import com.wenubey.wenucommerce.testing.fakes.FakeOrderRepository
@@ -30,7 +31,7 @@ class SellerOrdersViewModelTest {
     private fun newViewModel(
         order: FakeOrderRepository = FakeOrderRepository(),
         auth: FakeAuthRepository = FakeAuthRepository(initialUser = seller()),
-    ) = SellerOrdersViewModel(order, auth) to order
+    ) = SellerOrdersViewModel(order, auth, SyncBus()) to order
 
     private fun fakeOrder(
         id: String,
