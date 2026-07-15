@@ -183,8 +183,13 @@ class OrderRepositoryImpl(
                 for (parentDoc in parents.documents) {
                     val parentEntity = parentDocToEntity(parentDoc.id, parentDoc.data)
                     orderDao.upsert(parentEntity)
+                    // Filter by userId too: the tightened /sellerOrders read rule
+                    // requires the query to constrain userId (rules are not
+                    // filters), and every sub-order denormalises the customer's
+                    // userId. Two equality filters need no composite index.
                     val subs = sellerOrdersCollection
                         .whereEqualTo("parentOrderId", parentDoc.id)
+                        .whereEqualTo("userId", userId)
                         .get()
                         .await()
                     val subEntities = subs.documents.map { subDocToEntity(it.id, it.data) }

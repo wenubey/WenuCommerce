@@ -19,6 +19,7 @@ let env: RulesTestEnvironment;
 
 const seedSellerOrder = {
   parentOrderId: "ord-parent-1",
+  userId: "customer-1",
   sellerId: "seller-1",
   sellerName: "Acme",
   sellerLogoUrl: "",
@@ -216,8 +217,39 @@ describe("firestore.rules /sellerOrders", () => {
     );
   });
 
-  it("customer can read own /sellerOrders/{id} (parent.userId == auth.uid)", async () => {
+  it("customer can read own /sellerOrders/{id} (denormalised userId == auth.uid)", async () => {
     const ctx = env.authenticatedContext("customer-1");
     await assertSucceeds(ctx.firestore().doc("sellerOrders/so-1").get());
+  });
+
+  it("(S2) a foreign user (not seller, not customer) cannot read /sellerOrders/{id}", async () => {
+    const ctx = env.authenticatedContext("stranger");
+    await assertFails(ctx.firestore().doc("sellerOrders/so-1").get());
+  });
+});
+
+describe("firestore.rules /checkoutSessions (server-only)", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc("checkoutSessions/cs-1").set({
+        orderId: "cs-1",
+        userId: "customer-1",
+        shippingAddress: { line1: "secret" },
+        items: [],
+        sellers: [],
+      });
+    });
+  });
+
+  it("(T3) authenticated client cannot read a checkoutSession (PII payload)", async () => {
+    const ctx = env.authenticatedContext("customer-1");
+    await assertFails(ctx.firestore().doc("checkoutSessions/cs-1").get());
+  });
+
+  it("(T3) authenticated client cannot write a checkoutSession", async () => {
+    const ctx = env.authenticatedContext("customer-1");
+    await assertFails(
+      ctx.firestore().doc("checkoutSessions/cs-2").set({ orderId: "cs-2" }),
+    );
   });
 });

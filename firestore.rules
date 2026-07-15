@@ -46,9 +46,13 @@ service cloud.firestore {
     // forward-only transition map, with immutable structural fields and
     // an exactly-one-entry append to statusHistory.
     match /sellerOrders/{sellerOrderId} {
-      // TEMPORARY DEBUG — permissive read for any signed-in user.
-      // TODO: tighten back to seller/customer-only after smoke test passes.
-      allow read: if request.auth != null;
+      // Read: only the owning seller (sellerId) or the customer who placed the
+      // parent order (denormalised userId — no get() needed, so it works in
+      // list queries too). Clients must query with a matching sellerId or
+      // userId equality filter, or Firestore rejects the whole query.
+      allow read: if isSeller(resource.data)
+                  || (request.auth != null
+                      && resource.data.userId == request.auth.uid);
       allow create: if false;
       allow delete: if false;
       allow update: if isSeller(resource.data)
@@ -57,10 +61,12 @@ service cloud.firestore {
                     && appendedExactlyOneStatusEntry();
     }
 
-    // ALSO TEMPORARY — permissive read on parent orders so customer list query
-    // does not block the smoke loop. TODO: tighten back before merge.
+    // Read: only the customer who owns the order. The My Orders query already
+    // filters `where userId == uid`, so it stays compliant; single-doc reads
+    // are ownership-checked. Writes stay server-only (fan-out via Admin SDK).
     match /orders/{orderId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
       allow create, update, delete: if false;
     }
 
