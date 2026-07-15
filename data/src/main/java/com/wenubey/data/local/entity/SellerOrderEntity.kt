@@ -22,6 +22,10 @@ import androidx.room.PrimaryKey
 data class SellerOrderEntity(
     @PrimaryKey val id: String,
     val parentOrderId: String = "",
+    // Denormalised customer id (parent order's userId). Written by the fan-out
+    // and mirrored here so customer access + the tightened /sellerOrders read
+    // rule work without a parent lookup.
+    val userId: String = "",
     val sellerId: String = "",
     val sellerName: String = "",
     val sellerLogoUrl: String = "",

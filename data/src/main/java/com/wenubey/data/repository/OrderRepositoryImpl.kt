@@ -307,6 +307,7 @@ class OrderRepositoryImpl(
         return SellerOrderEntity(
             id = id,
             parentOrderId = (d["parentOrderId"] as? String).orEmpty(),
+            userId = (d["userId"] as? String).orEmpty(),
             sellerId = (d["sellerId"] as? String).orEmpty(),
             sellerName = (d["sellerName"] as? String).orEmpty(),
             sellerLogoUrl = (d["sellerLogoUrl"] as? String).orEmpty(),

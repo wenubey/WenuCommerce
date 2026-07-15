@@ -12,6 +12,8 @@ import kotlinx.serialization.Serializable
 data class SellerOrder(
     val id: String = "",
     val parentOrderId: String = "",
+    // Denormalised customer id (parent order's userId).
+    val userId: String = "",
     val sellerId: String = "",
     val sellerName: String = "",
     val sellerLogoUrl: String = "",

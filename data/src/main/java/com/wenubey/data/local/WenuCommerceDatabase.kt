@@ -37,7 +37,7 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         AddressEntity::class,
         SellerOrderEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -217,6 +217,19 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_seller_orders_sellerId` " +
                         "ON `seller_orders` (`sellerId`)"
+                )
+            }
+        }
+
+        /**
+         * Migration from v6 to v7: denormalise the customer `userId` onto
+         * seller_orders (DM1). ADD COLUMN appends at the end; Room validates by
+         * column name so position is irrelevant.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `seller_orders` ADD COLUMN `userId` TEXT NOT NULL DEFAULT ''"
                 )
             }
         }
