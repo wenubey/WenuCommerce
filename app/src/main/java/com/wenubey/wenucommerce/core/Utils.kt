@@ -69,7 +69,6 @@ fun generateDummyUser(): User {
         isEmailVerified = true,
         isPhoneNumberVerified = false,
         profilePhotoUri = "http://example.com/profile/john_doe.jpg",
-        purchaseHistory = listOf(),
         createdAt = "2022-05-15T10:30:00",
         updatedAt = "2023-01-01T12:00:00",
         signedAt = "2021-06-10T09:00:00",

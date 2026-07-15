@@ -37,7 +37,7 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         AddressEntity::class,
         SellerOrderEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -231,6 +231,62 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE `seller_orders` ADD COLUMN `userId` TEXT NOT NULL DEFAULT ''"
                 )
+            }
+        }
+
+        /**
+         * Migration from v7 to v8: drop the dead `purchaseHistoryJson` column
+         * from `users` (DM2). SQLite before 3.35 (reachable at minSdk 24) has no
+         * DROP COLUMN, so recreate the table without it and copy the rows.
+         * Column list mirrors the v8 `users` schema exactly (no SQL defaults —
+         * the entity uses constructor defaults, not @ColumnInfo(defaultValue)).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `users_new` (
+                        `id` TEXT NOT NULL,
+                        `role` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `surname` TEXT NOT NULL,
+                        `phoneNumber` TEXT NOT NULL,
+                        `dateOfBirth` TEXT NOT NULL,
+                        `gender` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `address` TEXT NOT NULL,
+                        `isEmailVerified` INTEGER NOT NULL,
+                        `isPhoneNumberVerified` INTEGER NOT NULL,
+                        `profilePhotoUri` TEXT NOT NULL,
+                        `createdAt` TEXT NOT NULL,
+                        `updatedAt` TEXT NOT NULL,
+                        `signedAt` TEXT NOT NULL,
+                        `signedDevicesJson` TEXT NOT NULL,
+                        `businessInfoJson` TEXT,
+                        `productsJson` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `users_new` (
+                        `id`, `role`, `name`, `surname`, `phoneNumber`, `dateOfBirth`,
+                        `gender`, `email`, `address`, `isEmailVerified`,
+                        `isPhoneNumberVerified`, `profilePhotoUri`, `createdAt`,
+                        `updatedAt`, `signedAt`, `signedDevicesJson`, `businessInfoJson`,
+                        `productsJson`
+                    ) SELECT
+                        `id`, `role`, `name`, `surname`, `phoneNumber`, `dateOfBirth`,
+                        `gender`, `email`, `address`, `isEmailVerified`,
+                        `isPhoneNumberVerified`, `profilePhotoUri`, `createdAt`,
+                        `updatedAt`, `signedAt`, `signedDevicesJson`, `businessInfoJson`,
+                        `productsJson`
+                    FROM `users`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `users`")
+                db.execSQL("ALTER TABLE `users_new` RENAME TO `users`")
             }
         }
     }

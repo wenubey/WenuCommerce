@@ -12,6 +12,8 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
+import io.mockk.mockk
 import com.wenubey.data.FirebaseEmulator
 import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.util.USER_COLLECTION
@@ -108,6 +110,7 @@ class AuthRepositoryImplEmulatorTest {
             firestoreRepository = fakeFirestoreRepo,
             firestore = firestore,
             userDao = db.userDao(),
+            firebaseMessaging = mockk<FirebaseMessaging>(relaxed = true),
         )
         // FirebaseAuth posts the initial state-listener fire to the main
         // looper; without draining we race the test code below and the

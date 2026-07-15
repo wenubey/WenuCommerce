@@ -44,6 +44,8 @@ android {
     room {
         schemaDirectory("$projectDir/schemas")
     }
+    // Expose exported schemas to MigrationTestHelper (androidTest).
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
     buildFeatures {
         buildConfig = true
     }

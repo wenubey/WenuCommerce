@@ -89,7 +89,6 @@ class UserDaoTest {
         // changes these defaults to "" would break json parsing on read.
         dao.upsert(UserEntity(id = "u-1"))
         val row = dao.getCurrentUser()!!
-        assertThat(row.purchaseHistoryJson).isEqualTo("[]")
         assertThat(row.signedDevicesJson).isEqualTo("[]")
         assertThat(row.productsJson).isEqualTo("[]")
         assertThat(row.businessInfoJson).isNull()

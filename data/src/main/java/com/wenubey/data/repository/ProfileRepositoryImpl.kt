@@ -129,7 +129,6 @@ class ProfileRepositoryImpl(
             isPhoneNumberVerified = auth.currentUser?.phoneNumber != null,
             profilePhotoUri = uploadedProfilePhotoUrl,
             businessInfo = businessInfo, // Include business info for sellers
-            purchaseHistory = listOf(),
             createdAt = getCurrentDate(),
             updatedAt = getCurrentDate(),
             signedAt = getCurrentDate(),

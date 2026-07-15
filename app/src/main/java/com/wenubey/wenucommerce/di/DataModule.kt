@@ -137,7 +137,8 @@ val databaseModule = module {
             WenuCommerceDatabase.MIGRATION_3_4,
             WenuCommerceDatabase.MIGRATION_4_5,
             WenuCommerceDatabase.MIGRATION_5_6,
-            WenuCommerceDatabase.MIGRATION_6_7
+            WenuCommerceDatabase.MIGRATION_6_7,
+            WenuCommerceDatabase.MIGRATION_7_8
         )
             .apply {
                 if (BuildConfig.DEBUG) {

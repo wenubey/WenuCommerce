@@ -2,7 +2,6 @@ package com.wenubey.data.local.converter
 
 import com.google.common.truth.Truth.assertThat
 import com.wenubey.domain.model.Device
-import com.wenubey.domain.model.Purchase
 import com.wenubey.domain.model.onboard.BusinessInfo
 import com.wenubey.domain.model.onboard.BusinessType
 import com.wenubey.domain.model.onboard.VerificationStatus
@@ -88,15 +87,6 @@ class RoomTypeConvertersTest {
         val input = listOf(Subcategory("s-1", "Tops"), Subcategory("s-2", "Bottoms"))
         val encoded = converters.fromSubcategoryList(input)
         assertThat(converters.toSubcategoryList(encoded)).isEqualTo(input)
-    }
-
-    @Test
-    fun `purchase list round-trips`() {
-        val input = listOf(
-            Purchase(purchaseId = "p-1", productId = "prod-1", quantity = 2, price = 19.99),
-        )
-        val encoded = converters.fromPurchaseList(input)
-        assertThat(converters.toPurchaseList(encoded)).isEqualTo(input)
     }
 
     @Test

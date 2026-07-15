@@ -3,7 +3,6 @@ package com.wenubey.data.local.mapper
 import com.wenubey.data.local.entity.UserEntity
 import com.wenubey.domain.model.Device
 import com.wenubey.domain.model.Gender
-import com.wenubey.domain.model.Purchase
 import com.wenubey.domain.model.onboard.BusinessInfo
 import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
@@ -31,7 +30,6 @@ fun UserEntity.toDomain(): User = User(
     createdAt = createdAt,
     updatedAt = updatedAt,
     signedAt = signedAt,
-    purchaseHistory = runCatching { json.decodeFromString<List<Purchase>>(purchaseHistoryJson) }.getOrElse { emptyList() },
     signedDevices = runCatching { json.decodeFromString<List<Device>>(signedDevicesJson) }.getOrElse { emptyList() },
     businessInfo = businessInfoJson?.let {
         runCatching { json.decodeFromString<BusinessInfo>(it) }.getOrNull()
@@ -55,7 +53,6 @@ fun User.toEntity(): UserEntity = UserEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     signedAt = signedAt,
-    purchaseHistoryJson = json.encodeToString(purchaseHistory),
     signedDevicesJson = json.encodeToString(signedDevices),
     businessInfoJson = businessInfo?.let { json.encodeToString(it) },
     productsJson = json.encodeToString(products),

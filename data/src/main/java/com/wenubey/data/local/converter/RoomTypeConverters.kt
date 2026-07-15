@@ -2,7 +2,6 @@ package com.wenubey.data.local.converter
 
 import androidx.room.TypeConverter
 import com.wenubey.domain.model.Device
-import com.wenubey.domain.model.Purchase
 import com.wenubey.domain.model.onboard.BusinessInfo
 import com.wenubey.domain.model.product.ProductImage
 import com.wenubey.domain.model.product.ProductShipping
@@ -57,14 +56,6 @@ class RoomTypeConverters {
     @TypeConverter
     fun toSubcategoryList(value: String): List<Subcategory> =
         runCatching { json.decodeFromString<List<Subcategory>>(value) }.getOrElse { emptyList() }
-
-    // List<Purchase> converters
-    @TypeConverter
-    fun fromPurchaseList(value: List<Purchase>): String = json.encodeToString(value)
-
-    @TypeConverter
-    fun toPurchaseList(value: String): List<Purchase> =
-        runCatching { json.decodeFromString<List<Purchase>>(value) }.getOrElse { emptyList() }
 
     // List<Device> converters
     @TypeConverter

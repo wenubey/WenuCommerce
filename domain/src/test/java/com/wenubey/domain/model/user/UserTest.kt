@@ -14,7 +14,6 @@ class UserTest {
         assertThat(user.role).isEqualTo(UserRole.CUSTOMER)
         assertThat(user.gender).isEqualTo(Gender.MALE)
         assertThat(user.businessInfo).isNull()
-        assertThat(user.purchaseHistory).isEmpty()
         assertThat(user.signedDevices).isEmpty()
         assertThat(user.products).isEmpty()
         assertThat(user.isEmailVerified).isFalse()

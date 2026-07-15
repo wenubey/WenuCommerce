@@ -24,7 +24,6 @@ data class UserEntity(
     val signedAt: String = "",
 
     // JSON-serialized nested types
-    val purchaseHistoryJson: String = "[]",
     val signedDevicesJson: String = "[]",
     val businessInfoJson: String? = null,
     val productsJson: String = "[]",

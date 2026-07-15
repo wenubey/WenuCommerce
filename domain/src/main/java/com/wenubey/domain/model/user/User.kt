@@ -2,7 +2,6 @@ package com.wenubey.domain.model.user
 
 import com.wenubey.domain.model.Device
 import com.wenubey.domain.model.Gender
-import com.wenubey.domain.model.Purchase
 import com.wenubey.domain.model.onboard.BusinessInfo
 import kotlinx.serialization.Serializable
 
@@ -20,7 +19,6 @@ data class User(
     val isEmailVerified: Boolean = false,
     val isPhoneNumberVerified: Boolean = false,
     val profilePhotoUri: String = "",
-    val purchaseHistory: List<Purchase> = listOf(),
     val createdAt: String = "",
     val updatedAt: String = "",
     val signedAt: String = "",
@@ -42,7 +40,6 @@ data class User(
             isEmailVerified = false,
             isPhoneNumberVerified = false,
             profilePhotoUri = "",
-            purchaseHistory = emptyList(),
             createdAt = "",
             updatedAt = "",
             signedAt = "",
