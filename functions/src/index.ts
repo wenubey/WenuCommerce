@@ -559,10 +559,19 @@ export const createPaymentIntent = onCall(
       couponTargetProductIds = couponData.targetProductIds ?? [];
     }
 
-    const finalTotalCents = Math.max(
-      50,
-      subtotalCents + shippingCents - discountCents,
-    );
+    // Stripe's minimum charge is 50¢ (USD). We used to clamp the net total up
+    // to 50, but the per-seller shares and the stored order totals were
+    // computed on the UN-clamped net — so a sub-50¢ order charged 50¢ while
+    // recording less, diverging line math and refunds. Reject instead: a
+    // coherent order cannot cost less than the minimum chargeable amount.
+    const netTotalCents = subtotalCents + shippingCents - discountCents;
+    if (netTotalCents < 50) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Order total is below the minimum chargeable amount ($0.50).",
+      );
+    }
+    const finalTotalCents = netTotalCents;
 
     // ── Phase 6: per-seller grouping + allocation ──────────────────
     const itemsBySeller = new Map<string, EnrichedItem[]>();

@@ -38,6 +38,13 @@ describe("createPaymentIntent — payment-gated (fan-out moved to webhook)", () 
     expect(body).not.toMatch(/db\.batch\(\)/);
     expect(body).not.toMatch(/batch\.set\(/);
   });
+
+  it("(N4) rejects sub-50c orders instead of silently clamping with Math.max(50)", () => {
+    // The old Math.max(50, net) clamp diverged charged vs stored totals.
+    expect(body).not.toMatch(/Math\.max\(\s*50/);
+    expect(body).toMatch(/netTotalCents\s*<\s*50/);
+    expect(body).toMatch(/below the minimum chargeable/i);
+  });
 });
 
 describe("createPaymentIntent — seller fan-out (allocators)", () => {
