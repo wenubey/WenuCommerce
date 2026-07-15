@@ -17,7 +17,6 @@ class FakeDiscountRepository : DiscountRepository {
     val deleteCalls = mutableListOf<String>()
     val deactivateCalls = mutableListOf<String>()
     val validateCalls = mutableListOf<Triple<String, List<CartItem>, Int>>()
-    val decrementCalls = mutableListOf<String>()
 
     var createResult: Result<Unit> = Result.success(Unit)
     var updateResult: Result<Unit> = Result.success(Unit)
@@ -31,7 +30,6 @@ class FakeDiscountRepository : DiscountRepository {
             description = "",
         )
     )
-    var decrementResult: Result<Unit> = Result.success(Unit)
 
     var observeFlow: Flow<List<DiscountCode>>? = null
 
@@ -77,8 +75,4 @@ class FakeDiscountRepository : DiscountRepository {
         return validateResult
     }
 
-    override suspend fun decrementCouponUsage(code: String): Result<Unit> {
-        decrementCalls.add(code)
-        return decrementResult
-    }
 }

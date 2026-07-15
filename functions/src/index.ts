@@ -17,6 +17,11 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 //   firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
+// How long an unpaid checkoutSessions doc lives before the Firestore TTL policy
+// reaps it. A real card payment completes in minutes; 24h is a safe margin that
+// still bounds abandoned-checkout PII retention.
+const CHECKOUT_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
 interface CartItem {
   productId: string;
   productTitle: string;
@@ -176,27 +181,11 @@ export const validateCoupon = onCall(
   },
 );
 
-// ─── decrementCouponUsage Cloud Function ───────────────────────────────
-
-export const decrementCouponUsage = onCall(
-  { secrets: [stripeSecretKey] },
-  async (request) => {
-    if (!request.auth) {
-      throw new HttpsError("unauthenticated", "Must be signed in");
-    }
-    const { couponCode } = request.data as { couponCode: string };
-    if (!couponCode || typeof couponCode !== "string") {
-      throw new HttpsError("invalid-argument", "Coupon code is required");
-    }
-    const normalized = couponCode.trim().toUpperCase();
-    const db = admin.firestore();
-    await db.collection("discountCodes").doc(normalized).update({
-      usageCount: admin.firestore.FieldValue.increment(1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    return { success: true };
-  },
-);
+// NOTE: the old decrementCouponUsage callable was removed. Coupon usageCount
+// is now incremented authoritatively inside the stripeWebhook materialisation
+// batch (see below) — a client-callable that blindly incremented any coupon's
+// usageCount was both dead (no caller) and an abuse vector (any signed-in user
+// could exhaust a coupon's usage limit).
 
 // ─── Per-seller allocation helpers (Phase 6 fan-out) ───────────────────
 
@@ -667,6 +656,13 @@ export const createPaymentIntent = onCall(
       ...session,
       status: "AWAITING_PAYMENT",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      // L1: TTL anchor. The webhook deletes the session on success/failure;
+      // this cleans up ABANDONED checkouts (never paid, no Stripe event) so
+      // they don't linger with PII forever. A Firestore TTL policy on the
+      // `expiresAt` field auto-deletes the doc after this instant.
+      expiresAt: admin.firestore.Timestamp.fromMillis(
+        Date.now() + CHECKOUT_SESSION_TTL_MS,
+      ),
     });
 
     return {

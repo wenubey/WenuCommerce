@@ -22,6 +22,4 @@ interface DiscountRepository {
         cartItems: List<CartItem>,
         subtotalCents: Int,
     ): Result<CouponValidationResult>
-
-    suspend fun decrementCouponUsage(code: String): Result<Unit>
 }

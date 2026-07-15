@@ -168,18 +168,6 @@ class DiscountRepositoryImpl(
         }
     }
 
-    override suspend fun decrementCouponUsage(code: String): Result<Unit> =
-        withContext(dispatcherProvider.io()) {
-            runCatching {
-                Firebase.functions
-                    .getHttpsCallable("decrementCouponUsage")
-                    .call(mapOf("couponCode" to code))
-                    .await()
-                Unit
-            }.onFailure { e ->
-                Timber.e(e, "DiscountRepository: decrementCouponUsage failed")
-            }
-        }
 
     private fun mapDocumentToDiscountCode(
         docId: String,
