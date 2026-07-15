@@ -109,6 +109,18 @@ fun CustomerOrderDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item { OrderHeaderCard(order = order) }
+                    if (state.sellerOrders.isEmpty()) {
+                        // Webhook-latency window: the paid order exists but its
+                        // per-seller sub-orders have not synced yet.
+                        item {
+                            Text(
+                                text = "We're finalizing your order — item details will appear shortly.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                    }
                     items(state.sellerOrders, key = { it.id }) { seller ->
                         SellerSection(
                             sellerOrder = seller,

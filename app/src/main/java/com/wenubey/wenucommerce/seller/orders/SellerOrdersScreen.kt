@@ -37,10 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wenubey.domain.model.order.SellerOrder
 import com.wenubey.wenucommerce.core.components.OrderStatusBadge
+import com.wenubey.wenucommerce.core.formatOrderDate
 import org.koin.androidx.compose.koinViewModel
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -189,7 +187,7 @@ private fun SellerOrderRow(order: SellerOrder, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = formatDate(order.createdAt),
+                    text = formatOrderDate(order.createdAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -203,13 +201,3 @@ private fun SellerOrderRow(order: SellerOrder, onClick: () -> Unit) {
         }
     }
 }
-
-private val DATE_FORMATTER: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US).withZone(ZoneId.systemDefault())
-
-private fun formatDate(iso: String): String =
-    try {
-        if (iso.isBlank()) "" else DATE_FORMATTER.format(Instant.parse(iso))
-    } catch (_: Exception) {
-        iso
-    }

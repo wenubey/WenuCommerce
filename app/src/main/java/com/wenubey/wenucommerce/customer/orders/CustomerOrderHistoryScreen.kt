@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.wenubey.domain.model.order.Order
 import com.wenubey.wenucommerce.core.components.OrderStatusBadge
+import com.wenubey.wenucommerce.core.formatOrderDate
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -168,7 +169,7 @@ private fun OrderRow(order: Order, onClick: () -> Unit) {
             }
             if (order.createdAt.isNotBlank()) {
                 Text(
-                    text = order.createdAt,
+                    text = formatOrderDate(order.createdAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -42,6 +42,7 @@ import com.wenubey.domain.model.order.SellerOrder
 import com.wenubey.domain.model.order.allowedNext
 import com.wenubey.wenucommerce.core.components.OrderStatusBadge
 import com.wenubey.wenucommerce.core.components.OrderStatusStepper
+import com.wenubey.wenucommerce.core.formatOrderDate
 import org.koin.androidx.compose.koinViewModel
 import java.util.Locale
 
@@ -155,7 +156,7 @@ private fun SellerOrderDetailBody(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Placed: ${order.createdAt}",
+                    text = "Placed: ${formatOrderDate(order.createdAt)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

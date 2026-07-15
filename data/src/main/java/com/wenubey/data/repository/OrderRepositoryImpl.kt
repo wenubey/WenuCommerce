@@ -1,5 +1,6 @@
 package com.wenubey.data.repository
 
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -215,6 +216,20 @@ class OrderRepositoryImpl(
 
     // ── Doc -> Entity helpers ─────────────────────────────────────────
 
+    /**
+     * Firestore stores createdAt/updatedAt and statusHistory timestamps as
+     * [com.google.firebase.Timestamp]. A raw `.toString()` yields
+     * "Timestamp(seconds=…, nanoseconds=…)", which leaked verbatim into the
+     * order list/detail UI. Normalise to ISO-8601 so dates render and sort
+     * correctly. Values already stored as a String (e.g. the client's
+     * optimistic PENDING order) pass through unchanged.
+     */
+    private fun tsToIso(value: Any?): String = when (value) {
+        is Timestamp -> value.toDate().toInstant().toString()
+        is String -> value
+        else -> ""
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun parentDocToEntity(id: String, data: Map<String, Any?>?): OrderEntity {
         val d = data ?: emptyMap()
@@ -246,8 +261,8 @@ class OrderRepositoryImpl(
             } ?: "[]",
             discountAmount = (d["discountAmount"] as? Number)?.toDouble() ?: 0.0,
             discountCode = (d["discountCode"] as? String).orEmpty(),
-            createdAt = (d["createdAt"]?.toString().orEmpty()),
-            updatedAt = (d["updatedAt"]?.toString().orEmpty()),
+            createdAt = tsToIso(d["createdAt"]),
+            updatedAt = tsToIso(d["updatedAt"]),
             sellerOrderIdsJson = (d["sellerOrderIds"] as? List<*>)?.let { ids ->
                 runCatching {
                     json.encodeToString(ids.filterIsInstance<String>())
@@ -281,7 +296,7 @@ class OrderRepositoryImpl(
                         status = runCatching {
                             OrderStatus.valueOf((m["status"] as? String) ?: "PENDING")
                         }.getOrElse { OrderStatus.PENDING },
-                        timestamp = m["timestamp"]?.toString().orEmpty(),
+                        timestamp = tsToIso(m["timestamp"]),
                         note = m["note"] as? String,
                         trackingNumber = m["trackingNumber"] as? String,
                     )
@@ -304,8 +319,8 @@ class OrderRepositoryImpl(
             refundedAmount = (d["refundedAmount"] as? Number)?.toDouble(),
             itemsJson = itemsJsonStr,
             statusHistoryJson = historyJsonStr,
-            createdAt = d["createdAt"]?.toString().orEmpty(),
-            updatedAt = d["updatedAt"]?.toString().orEmpty()
+            createdAt = tsToIso(d["createdAt"]),
+            updatedAt = tsToIso(d["updatedAt"])
         )
     }
 }

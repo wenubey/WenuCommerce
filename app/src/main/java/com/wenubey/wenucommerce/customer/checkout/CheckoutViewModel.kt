@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.Instant
 
 class CheckoutViewModel(
     private val paymentRepository: PaymentRepository,
@@ -311,7 +312,14 @@ class CheckoutViewModel(
                     userId = currentUserId,
                     status = OrderStatus.PENDING,
                     subtotal = currentState.subtotal,
-                    shippingTotal = currentState.shippingTotal,
+                    // Derive shipping so the optimistic order's totals add up
+                    // during the webhook-latency window (CheckoutState never
+                    // carries a separate shipping figure): total = subtotal +
+                    // shipping - discount → shipping = total - subtotal + discount.
+                    shippingTotal = (
+                        currentState.total - currentState.subtotal +
+                            currentState.discountAmountCents / 100.0
+                        ).coerceAtLeast(0.0),
                     totalAmount = currentState.total,
                     shippingAddress = currentState.selectedAddress ?: return@runCatching,
                     items = currentState.cartItems.map { cartItem ->
@@ -325,8 +333,11 @@ class CheckoutViewModel(
                         },
                     discountAmount = currentState.discountAmountCents / 100.0,
                     discountCode = currentState.appliedCouponCode ?: "",
-                    createdAt = System.currentTimeMillis().toString(),
-                    updatedAt = System.currentTimeMillis().toString(),
+                    // ISO-8601 (not epoch millis) so this optimistic copy sorts
+                    // and formats consistently with the webhook-materialised
+                    // order it will be reconciled against.
+                    createdAt = Instant.now().toString(),
+                    updatedAt = Instant.now().toString(),
                 )
 
                 // Persist the pending order to Room for immediate UI feedback;

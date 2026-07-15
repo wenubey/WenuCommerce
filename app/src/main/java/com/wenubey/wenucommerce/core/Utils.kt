@@ -7,8 +7,31 @@ import com.wenubey.domain.model.onboard.VerificationStatus
 import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
+
+private val ORDER_DATE_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US).withZone(ZoneId.systemDefault())
+
+/**
+ * Formats an order timestamp for display. Accepts ISO-8601 (server-materialised
+ * and normalised client orders) and, defensively, epoch-millis strings (older
+ * optimistic orders). Returns "" for blank input, or the raw value if it cannot
+ * be parsed at all.
+ */
+fun formatOrderDate(value: String): String {
+    if (value.isBlank()) return ""
+    return try {
+        ORDER_DATE_FORMATTER.format(Instant.parse(value))
+    } catch (_: Exception) {
+        value.toLongOrNull()
+            ?.let { ORDER_DATE_FORMATTER.format(Instant.ofEpochMilli(it)) }
+            ?: value
+    }
+}
 
 fun formatDate(dateString: String?): String {
     if (dateString.isNullOrEmpty()) return "N/A"
