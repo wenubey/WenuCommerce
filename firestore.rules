@@ -18,12 +18,6 @@ service cloud.firestore {
           && request.auth.uid == sellerOrder.sellerId;
     }
 
-    function isCustomerOfParent(sellerOrder) {
-      return request.auth != null
-          && get(/databases/$(database)/documents/orders/$(sellerOrder.parentOrderId))
-               .data.userId == request.auth.uid;
-    }
-
     function immutableFieldsUnchanged() {
       return request.resource.data.sellerId      == resource.data.sellerId
           && request.resource.data.parentOrderId == resource.data.parentOrderId
