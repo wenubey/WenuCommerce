@@ -340,14 +340,11 @@ class CheckoutViewModel(
                 // Status now advances exclusively via seller action +
                 // onOrderStatusChange Firestore trigger.
 
-                // Decrement coupon usage count after successful payment
-                val couponCode = currentState.appliedCouponCode
-                if (couponCode != null) {
-                    discountRepository.decrementCouponUsage(couponCode)
-                        .onFailure { error ->
-                            Timber.e(error, "CheckoutViewModel: failed to decrement coupon usage for $couponCode")
-                        }
-                }
+                // Coupon usage is NOT decremented here anymore. It was a
+                // client call decoupled from payment truth — if the client died
+                // after paying, a single-use coupon stayed reusable. The Stripe
+                // webhook now increments usageCount inside the same atomic batch
+                // that materialises the paid order (see functions/index.ts).
 
                 // Clear the cart
                 cartRepository.clearCart(currentUserId)

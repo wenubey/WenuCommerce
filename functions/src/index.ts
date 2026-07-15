@@ -391,6 +391,65 @@ export function buildFanoutDocs(
   return { order, sellerOrders };
 }
 
+/**
+ * Aggregates the cart items in a session into per-product decrement amounts.
+ * Pure so the webhook's stock logic can be unit-tested. Sums duplicate
+ * productIds defensively.
+ */
+export function buildStockDecrements(
+  session: CheckoutSession,
+): { productId: string; quantity: number }[] {
+  const byProduct = new Map<string, number>();
+  for (const it of session.items) {
+    byProduct.set(it.productId, (byProduct.get(it.productId) ?? 0) + it.quantity);
+  }
+  return Array.from(byProduct, ([productId, quantity]) => ({ productId, quantity }));
+}
+
+type WebhookAction =
+  | "materialise"
+  | "skip-no-order-id"
+  | "skip-already-done"
+  | "retry-missing-session"
+  | "drop-session"
+  | "ignore";
+
+interface WebhookOutcome {
+  action: WebhookAction;
+  status: number;
+}
+
+/**
+ * Pure decision function for the Stripe webhook — separated so every branch is
+ * unit-testable without Firestore/Stripe. `orderExists`/`sessionExists` are the
+ * results of the (side-effecting) Firestore reads the caller performs only for
+ * the succeeded branch.
+ *
+ * Key rule (M1): a succeeded payment whose session is missing returns 500 so
+ * Stripe RETRIES — the customer was charged and the order MUST eventually
+ * materialise; silently 200-acking would drop it forever.
+ */
+export function decideWebhookAction(
+  eventType: string,
+  orderId: string | undefined,
+  orderExists: boolean,
+  sessionExists: boolean,
+): WebhookOutcome {
+  if (eventType === "payment_intent.succeeded") {
+    if (!orderId) return { action: "skip-no-order-id", status: 200 };
+    if (orderExists) return { action: "skip-already-done", status: 200 };
+    if (!sessionExists) return { action: "retry-missing-session", status: 500 };
+    return { action: "materialise", status: 200 };
+  }
+  if (
+    eventType === "payment_intent.payment_failed" ||
+    eventType === "payment_intent.canceled"
+  ) {
+    return { action: "drop-session", status: 200 };
+  }
+  return { action: "ignore", status: 200 };
+}
+
 // ─── createPaymentIntent Cloud Function (Phase 6 fan-out) ──────────────
 
 export const createPaymentIntent = onCall(
@@ -656,63 +715,111 @@ export const stripeWebhook = onRequest(
     }
 
     const db = admin.firestore();
+    const pi = event.data.object as Stripe.PaymentIntent;
+    const orderId = pi?.metadata?.orderId;
 
     try {
-      if (event.type === "payment_intent.succeeded") {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        const orderId = pi.metadata?.orderId;
-        if (!orderId) {
-          console.warn("[stripeWebhook] succeeded event without orderId metadata");
-          res.status(200).send("ok");
-          return;
-        }
-
-        // Idempotency: Stripe may deliver the same event more than once.
-        const orderSnap = await db.collection("orders").doc(orderId).get();
-        if (orderSnap.exists) {
-          console.log("[stripeWebhook] order already materialised — skipping", { orderId });
-          res.status(200).send("ok");
-          return;
-        }
-
-        const sessionSnap = await db.collection("checkoutSessions").doc(orderId).get();
-        if (!sessionSnap.exists) {
-          console.warn("[stripeWebhook] no checkoutSession for orderId", { orderId });
-          res.status(200).send("ok");
-          return;
-        }
-
-        const session = sessionSnap.data() as CheckoutSession;
-        const docs = buildFanoutDocs(
-          session,
-          admin.firestore.FieldValue.serverTimestamp(),
-          admin.firestore.Timestamp.now(),
-        );
-
-        const batch = db.batch();
-        batch.set(db.collection("orders").doc(docs.order.id), docs.order.data);
-        for (const so of docs.sellerOrders) {
-          batch.set(db.collection("sellerOrders").doc(so.id), so.data);
-        }
-        // Consume the session so it cannot be replayed.
-        batch.delete(db.collection("checkoutSessions").doc(orderId));
-        await batch.commit();
-        console.log("[stripeWebhook] materialised order", {
-          orderId,
-          sellerOrders: docs.sellerOrders.length,
-        });
-      } else if (
-        event.type === "payment_intent.payment_failed" ||
-        event.type === "payment_intent.canceled"
-      ) {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        const orderId = pi.metadata?.orderId;
-        if (orderId) {
-          await db.collection("checkoutSessions").doc(orderId).delete();
-          console.log("[stripeWebhook] dropped session for failed/canceled payment", { orderId });
+      // Firestore reads are only needed to decide the succeeded branch.
+      let orderExists = false;
+      let sessionSnap: admin.firestore.DocumentSnapshot | null = null;
+      if (event.type === "payment_intent.succeeded" && orderId) {
+        orderExists = (await db.collection("orders").doc(orderId).get()).exists;
+        if (!orderExists) {
+          sessionSnap = await db.collection("checkoutSessions").doc(orderId).get();
         }
       }
-      res.status(200).send("ok");
+      const sessionExists = !!sessionSnap && sessionSnap.exists;
+
+      const outcome = decideWebhookAction(
+        event.type,
+        orderId,
+        orderExists,
+        sessionExists,
+      );
+
+      switch (outcome.action) {
+        case "materialise": {
+          const session = sessionSnap!.data() as CheckoutSession;
+          const docs = buildFanoutDocs(
+            session,
+            admin.firestore.FieldValue.serverTimestamp(),
+            admin.firestore.Timestamp.now(),
+          );
+          const decrements = buildStockDecrements(session);
+
+          // Pre-read the product + coupon docs so the atomic batch never
+          // references a doc deleted mid-checkout — that would fail the whole
+          // batch and block order creation for an already-charged customer.
+          const productRefs = decrements.map((d) =>
+            db.collection("PRODUCTS").doc(d.productId));
+          const couponRef = session.discountCode
+            ? db.collection("discountCodes").doc(session.discountCode)
+            : null;
+          const [productSnaps, couponSnap] = await Promise.all([
+            Promise.all(productRefs.map((r) => r.get())),
+            couponRef ? couponRef.get() : Promise.resolve(null),
+          ]);
+
+          const batch = db.batch();
+          batch.set(db.collection("orders").doc(docs.order.id), docs.order.data);
+          for (const so of docs.sellerOrders) {
+            batch.set(db.collection("sellerOrders").doc(so.id), so.data);
+          }
+          // M2: decrement stock atomically with order creation. Guarded by the
+          // order-exists idempotency check, so a retried delivery never
+          // double-decrements. Skip products deleted since checkout.
+          decrements.forEach((d, i) => {
+            if (productSnaps[i].exists) {
+              batch.update(productRefs[i], {
+                totalStockQuantity:
+                  admin.firestore.FieldValue.increment(-d.quantity),
+              });
+            } else {
+              console.warn("[stripeWebhook] product missing — skip stock decrement", {
+                productId: d.productId,
+              });
+            }
+          });
+          // X1: coupon usage is authoritative here now (was a client call that
+          // could be lost on client death), same idempotency guarantee.
+          if (couponRef && couponSnap && couponSnap.exists) {
+            batch.update(couponRef, {
+              usageCount: admin.firestore.FieldValue.increment(1),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+          // Consume the session so it cannot be replayed.
+          batch.delete(db.collection("checkoutSessions").doc(orderId!));
+          await batch.commit();
+          console.log("[stripeWebhook] materialised order", {
+            orderId,
+            sellerOrders: docs.sellerOrders.length,
+            stockDecremented: decrements.length,
+            couponApplied: !!(couponRef && couponSnap && couponSnap.exists),
+          });
+          break;
+        }
+        case "retry-missing-session":
+          // M1: charged but no session to build from — alert + let Stripe retry.
+          console.error("[stripeWebhook] succeeded but no checkoutSession — returning 500 to retry", { orderId });
+          break;
+        case "drop-session":
+          if (orderId) {
+            await db.collection("checkoutSessions").doc(orderId).delete();
+            console.log("[stripeWebhook] dropped session for failed/canceled payment", { orderId });
+          }
+          break;
+        case "skip-already-done":
+          console.log("[stripeWebhook] order already materialised — skipping", { orderId });
+          break;
+        case "skip-no-order-id":
+          console.warn("[stripeWebhook] succeeded event without orderId metadata");
+          break;
+        case "ignore":
+          break;
+      }
+
+      res.status(outcome.status).send(outcome.status === 200 ? "ok" : "retry");
     } catch (err) {
       console.error("[stripeWebhook] handler error", err);
       // 500 tells Stripe to retry — safe because materialisation is idempotent.

@@ -12,6 +12,33 @@ import {
   allocateProRata,
   allocateDiscount,
 } from "../src/index";
+import * as fs from "fs";
+import * as path from "path";
+
+const indexSrc = fs.readFileSync(
+  path.resolve(__dirname, "../src/index.ts"),
+  "utf-8",
+);
+
+describe("createPaymentIntent — payment-gated (fan-out moved to webhook)", () => {
+  // Isolate the createPaymentIntent function body.
+  const body = indexSrc.slice(
+    indexSrc.indexOf("export const createPaymentIntent"),
+    indexSrc.indexOf("export const stripeWebhook"),
+  );
+
+  it("stashes a checkoutSessions doc with AWAITING_PAYMENT status", () => {
+    expect(body).toMatch(/collection\("checkoutSessions"\)/);
+    expect(body).toMatch(/AWAITING_PAYMENT/);
+  });
+
+  it("does NOT materialise /orders or /sellerOrders (no batch write pre-payment)", () => {
+    // The fan-out used db.batch()/batch.set(...). Those must be gone from
+    // createPaymentIntent — order creation happens only in the webhook now.
+    expect(body).not.toMatch(/db\.batch\(\)/);
+    expect(body).not.toMatch(/batch\.set\(/);
+  });
+});
 
 describe("createPaymentIntent — seller fan-out (allocators)", () => {
   it("fans out 2 sellerOrders for a 2-seller cart (pro-rata shipping by subtotal)", () => {

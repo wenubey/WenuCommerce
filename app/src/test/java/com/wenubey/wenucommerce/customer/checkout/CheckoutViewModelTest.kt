@@ -456,7 +456,7 @@ class CheckoutViewModelTest {
     }
 
     @Test
-    fun `onPaymentResult Completed persists order, decrements coupon, clears cart, emits navigation`() = runTest {
+    fun `onPaymentResult Completed persists order, clears cart, emits navigation (no client coupon decrement)`() = runTest {
         val cart = FakeCartRepository()
         val address = FakeAddressRepository()
         val payment = FakePaymentRepository().apply {
@@ -501,10 +501,11 @@ class CheckoutViewModelTest {
         assertThat(saved.items).hasSize(1)
         assertThat(saved.items[0].lineTotal).isEqualTo(10.0)
 
-        // Client no longer flips Firestore order status (server-only now);
-        // coupon usage decremented and cart cleared as before.
+        // Client no longer flips Firestore order status NOR decrements coupon
+        // usage (both are server-only now: status via seller action, coupon
+        // usageCount via the Stripe webhook batch). Cart still cleared locally.
         assertThat(payment.updateOrderStatusCalls).isEmpty()
-        assertThat(discount.decrementCalls).contains("SAVE")
+        assertThat(discount.decrementCalls).isEmpty()
         assertThat(cart.clearCartCalls).contains(testUserId)
 
         // Navigation event fired with orderId.
