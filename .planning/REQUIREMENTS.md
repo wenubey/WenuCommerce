@@ -213,7 +213,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-04 | Phase 7 | Complete (07-02) |
 | REVW-05 | Phase 7 | Complete (07-02) |
 | REVW-06 | Phase 7 | Complete (07-02) |
-| REVW-07 | Phase 7 | Complete (07-01) |
+| REVW-07 | Phase 7 | Complete (07-01 aggregate + 07-03 card surface) |
 | NOTF-01 | Phase 8 | Pending |
 | NOTF-02 | Phase 8 | Pending |
 | NOTF-03 | Phase 8 | Pending |

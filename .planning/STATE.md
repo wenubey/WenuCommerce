@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 07-02-PLAN.md (customer review UI on product detail)
-last_updated: "2026-07-16T03:01:00.000Z"
-last_activity: 2026-07-16 - Phase 7 Plan 02 (customer review UI) complete
+stopped_at: Completed 07-03-PLAN.md (product-card rating + read-only seller review visibility)
+last_updated: "2026-07-16T03:20:00.000Z"
+last_activity: 2026-07-16 - Phase 7 Plan 03 (cards + seller visibility) complete
 progress:
   total_phases: 11
   completed_phases: 6
   total_plans: 26
-  completed_plans: 25
-  percent: 58
+  completed_plans: 26
+  percent: 60
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 
 ## Current Position
 
-Phase: 7 of 11 (Reviews & Ratings) — IN PROGRESS
-Plan: 2 of 3 in current phase — COMPLETE (07-02 customer review UI on product detail)
-Status: 07-02 code complete + :app unit suite green (445 tests, 0 failures) + Compose UI test authored (device run deferred). 07-01 still PENDING firebase deploy (indexes -> rules -> functions:submitReview,markReviewHelpful) for the write path to be live end-to-end. 07-03 (product cards + seller review visibility) next.
-Last activity: 2026-07-16 - Phase 7 Plan 02 complete
+Phase: 7 of 11 (Reviews & Ratings) — CODE COMPLETE (all 3 plans)
+Plan: 3 of 3 in current phase — COMPLETE (07-03 product-card rating + read-only seller review visibility)
+Status: 07-03 code complete + :app unit suite green (449 tests, 0 failures) + Compose UI test authored (device run deferred, no emulator). All 3 Phase 7 plans code-complete. 07-01 still PENDING firebase deploy (indexes -> rules -> functions:submitReview,markReviewHelpful) for the review WRITE path to be live end-to-end; reads/cards/seller-visibility work today. REVW-07 completed this plan (REVW-01..07 now all delivered in code). Next: 07-01 Firebase deploy + phase-gate device smoke test.
+Last activity: 2026-07-16 - Phase 7 Plan 03 complete
 
-Progress: [█████▊░░░░] 58%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 

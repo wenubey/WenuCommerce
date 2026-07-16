@@ -146,7 +146,7 @@ Plans:
 Plans:
 - [x] 07-01: ReviewEntity + ReviewDAO + ReviewRepository domain interface; ReviewRepositoryImpl; Cloud Function — submitReview (purchase verification via Firestore, one-per-product-per-customer enforcement) — complete 2026-07-16 (code + tests green; pending firebase deploy)
 - [x] 07-02: Review UI on product detail — aggregate rating display, individual review list with sort, Verified Purchase badge, write/edit review form — complete 2026-07-16 (:app unit suite 445/0 green; Compose UI test authored, device run deferred)
-- [ ] 07-03: Review count surface on product cards in browse and search; seller review visibility in seller product management
+- [x] 07-03: Review count surface on product cards in browse and search; seller review visibility in seller product management — complete 2026-07-16 (REVW-07; :app unit suite 449/0 green incl. SellerProductReviewsViewModelTest; CustomerProductCardTest authored, device run deferred)
 
 ### Phase 8: Notifications
 **Goal**: Customers and sellers receive timely push notifications for all relevant events and can view notification history in-app; Android 13+ permission is handled gracefully
