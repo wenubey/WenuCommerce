@@ -76,6 +76,7 @@ fun CustomerProductDetailScreen(
     viewModel: CustomerProductDetailViewModel = koinViewModel(),
     onNavigateBack: () -> Unit = {},
     onNavigateToCart: () -> Unit = {},
+    onWriteReview: (productId: String, existingReviewId: String?) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }

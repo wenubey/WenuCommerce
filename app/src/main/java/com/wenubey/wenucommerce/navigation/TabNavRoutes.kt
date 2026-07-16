@@ -9,6 +9,7 @@ import com.wenubey.wenucommerce.customer.CustomerTabScreen
 import com.wenubey.wenucommerce.customer.checkout.CheckoutScreen
 import com.wenubey.wenucommerce.customer.checkout.components.AddressFormScreen
 import com.wenubey.wenucommerce.customer.customer_products.CustomerProductDetailScreen
+import com.wenubey.wenucommerce.customer.customer_reviews.WriteReviewScreen
 import com.wenubey.wenucommerce.customer.order_confirmation.MinimalOrderScreen
 import com.wenubey.wenucommerce.customer.order_confirmation.OrderConfirmationScreen
 import com.wenubey.wenucommerce.customer.orders.CustomerOrderDetailScreen
@@ -132,6 +133,17 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
                     popUpTo<CustomerTab> { inclusive = true }
                 }
             },
+            onWriteReview = { productId, existingReviewId ->
+                navController.navigate(WriteReview(productId, existingReviewId))
+            },
+        )
+    }
+
+    // Write / edit review (Phase 7 — 07-02). Shares CustomerProductDetailViewModel
+    // scoped to the productId in the route args so the submit path is reused.
+    composable<WriteReview> {
+        WriteReviewScreen(
+            onNavigateBack = { navController.navigateUp() },
         )
     }
 

@@ -59,6 +59,13 @@ data class CustomerProductDetail(val productId: String)
 @Serializable
 data class SellerStorefront(val sellerId: String)
 
+// Reviews (Phase 7 — 07-02)
+@Serializable
+data class WriteReview(
+    val productId: String,
+    val existingReviewId: String? = null,
+)
+
 // Admin specific screens
 @Serializable
 data object AdminDashboard
