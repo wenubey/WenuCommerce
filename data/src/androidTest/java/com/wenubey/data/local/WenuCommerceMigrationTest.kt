@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_6_7
 import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_7_8
+import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_8_9
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,9 +32,14 @@ class WenuCommerceMigrationTest {
     @Test
     fun migrate6To7_addsUserIdToSellerOrders_preservingRows() {
         helper.createDatabase(dbName, 6).use { db ->
+            // The v6 (entity-derived) schema has no SQL defaults — every NOT NULL
+            // column must be supplied.
             db.execSQL(
-                "INSERT INTO seller_orders (id, parentOrderId, sellerId, status) " +
-                    "VALUES ('so-1', 'ord-1', 'seller-1', 'PENDING')",
+                "INSERT INTO seller_orders (id, parentOrderId, sellerId, sellerName, " +
+                    "sellerLogoUrl, subtotal, shippingShare, discountShare, status, " +
+                    "itemsJson, statusHistoryJson, createdAt, updatedAt) VALUES " +
+                    "('so-1','ord-1','seller-1','Acme','',10.0,2.0,0.0,'PENDING'," +
+                    "'[]','[]','2026-06-15T10:00:00Z','2026-06-15T10:00:00Z')",
             )
         }
         helper.runMigrationsAndValidate(dbName, 7, true, MIGRATION_6_7).use { db ->
@@ -72,8 +78,21 @@ class WenuCommerceMigrationTest {
     }
 
     @Test
-    fun migrate6To8_chainsCleanly() {
+    fun migrate8To9_createsReviewsTable() {
+        helper.createDatabase(dbName, 8).close()
+        helper.runMigrationsAndValidate(dbName, 9, true, MIGRATION_8_9).use { db ->
+            // The reviews table exists and is writable after the migration.
+            db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'").use { c ->
+                assertThat(c.moveToFirst()).isTrue()
+            }
+        }
+    }
+
+    @Test
+    fun migrate6To9_chainsCleanly() {
         helper.createDatabase(dbName, 6).close()
-        helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_6_7, MIGRATION_7_8).close()
+        helper.runMigrationsAndValidate(
+            dbName, 9, true, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        ).close()
     }
 }
