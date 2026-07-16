@@ -28,6 +28,14 @@ interface SellerOrderDao {
     @Query("SELECT * FROM seller_orders WHERE sellerId = :sellerId ORDER BY createdAt DESC")
     fun observeBySeller(sellerId: String): Flow<List<SellerOrderEntity>>
 
+    /**
+     * Backs the customer-side delivered-order gate (07-02): given a userId +
+     * status (e.g. "DELIVERED"), returns the matching seller orders so the
+     * caller can check whether any contains the target productId in itemsJson.
+     */
+    @Query("SELECT * FROM seller_orders WHERE userId = :userId AND status = :status")
+    suspend fun getByUserAndStatus(userId: String, status: String): List<SellerOrderEntity>
+
     @Query(
         "UPDATE seller_orders SET status = :status, statusHistoryJson = :historyJson, " +
             "trackingNumber = :tracking, updatedAt = :now WHERE id = :id"

@@ -12,6 +12,7 @@ import com.wenubey.data.local.dao.CategoryDao
 import com.wenubey.data.local.dao.OrderDao
 import com.wenubey.data.local.dao.PendingOperationDao
 import com.wenubey.data.local.dao.ProductDao
+import com.wenubey.data.local.dao.ReviewDao
 import com.wenubey.data.local.dao.SellerOrderDao
 import com.wenubey.data.local.dao.UserDao
 import com.wenubey.data.local.dao.WishlistItemDao
@@ -21,6 +22,7 @@ import com.wenubey.data.local.entity.CategoryEntity
 import com.wenubey.data.local.entity.OrderEntity
 import com.wenubey.data.local.entity.PendingOperationEntity
 import com.wenubey.data.local.entity.ProductEntity
+import com.wenubey.data.local.entity.ReviewEntity
 import com.wenubey.data.local.entity.SellerOrderEntity
 import com.wenubey.data.local.entity.UserEntity
 import com.wenubey.data.local.entity.WishlistItemEntity
@@ -35,9 +37,10 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         WishlistItemEntity::class,
         OrderEntity::class,
         AddressEntity::class,
-        SellerOrderEntity::class
+        SellerOrderEntity::class,
+        ReviewEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -60,6 +63,8 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
     abstract fun addressDao(): AddressDao
 
     abstract fun sellerOrderDao(): SellerOrderDao
+
+    abstract fun reviewDao(): ReviewDao
 
     companion object {
         /**
@@ -287,6 +292,46 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                 )
                 db.execSQL("DROP TABLE `users`")
                 db.execSQL("ALTER TABLE `users_new` RENAME TO `users`")
+            }
+        }
+
+        /**
+         * Migration from v8 to v9: Phase 7 — create the `reviews` table (Room
+         * mirror of PRODUCTS/{id}/REVIEWS) with indices on productId + reviewerId.
+         * All-scalar columns (no JSON) — same CREATE TABLE shape as MIGRATION_5_6.
+         * Column NOT NULL DEFAULTs match ReviewEntity constructor defaults so
+         * Room's schema validation passes.
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `reviews` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `productId` TEXT NOT NULL DEFAULT '',
+                        `reviewerId` TEXT NOT NULL DEFAULT '',
+                        `reviewerName` TEXT NOT NULL DEFAULT '',
+                        `reviewerPhotoUrl` TEXT NOT NULL DEFAULT '',
+                        `purchaseId` TEXT NOT NULL DEFAULT '',
+                        `rating` INTEGER NOT NULL DEFAULT 0,
+                        `title` TEXT NOT NULL DEFAULT '',
+                        `body` TEXT NOT NULL DEFAULT '',
+                        `isVerifiedPurchase` INTEGER NOT NULL DEFAULT 1,
+                        `helpfulCount` INTEGER NOT NULL DEFAULT 0,
+                        `isVisible` INTEGER NOT NULL DEFAULT 1,
+                        `createdAt` TEXT NOT NULL DEFAULT '',
+                        `updatedAt` TEXT NOT NULL DEFAULT ''
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_reviews_productId` " +
+                        "ON `reviews` (`productId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_reviews_reviewerId` " +
+                        "ON `reviews` (`reviewerId`)"
+                )
             }
         }
     }
