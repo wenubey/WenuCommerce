@@ -65,9 +65,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **REVW-01**: Customer can rate purchased products 1-5 stars (required) with optional text review
 - [x] **REVW-02**: Only customers with DELIVERED order for the product can review (verified purchase)
 - [x] **REVW-03**: One review per customer per product (can edit, not duplicate)
-- [ ] **REVW-04**: Product detail shows aggregate rating (average + count) and individual reviews (aggregate data source complete 07-01; UI in 07-02)
-- [ ] **REVW-05**: Reviews display "Verified Purchase" badge (server flag set 07-01; badge UI in 07-02)
-- [ ] **REVW-06**: Reviews sorted by most recent (default), with option for highest rated
+- [x] **REVW-04**: Product detail shows aggregate rating (average + count) and individual reviews (aggregate data source 07-01; UI complete 07-02)
+- [x] **REVW-05**: Reviews display "Verified Purchase" badge (server flag 07-01; badge UI complete 07-02)
+- [x] **REVW-06**: Reviews sorted by most recent (default), with option for highest rated (complete 07-02)
 - [x] **REVW-07**: Review count shown on product cards in browse/search
 
 ### Wishlist
@@ -210,9 +210,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-01 | Phase 7 | Complete (07-01) |
 | REVW-02 | Phase 7 | Complete (07-01) |
 | REVW-03 | Phase 7 | Complete (07-01) |
-| REVW-04 | Phase 7 | Data foundation (07-01); UI in 07-02 |
-| REVW-05 | Phase 7 | Server flag (07-01); badge UI in 07-02 |
-| REVW-06 | Phase 7 | Pending (07-02) |
+| REVW-04 | Phase 7 | Complete (07-02) |
+| REVW-05 | Phase 7 | Complete (07-02) |
+| REVW-06 | Phase 7 | Complete (07-02) |
 | REVW-07 | Phase 7 | Complete (07-01) |
 | NOTF-01 | Phase 8 | Pending |
 | NOTF-02 | Phase 8 | Pending |

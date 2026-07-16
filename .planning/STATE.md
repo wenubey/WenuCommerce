@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 07-01-PLAN.md (awaiting firebase deploy checkpoint)
-last_updated: "2026-07-16T00:00:00.000Z"
-last_activity: 2026-07-16 - Phase 7 Plan 01 (reviews server + data foundation) complete
+stopped_at: Completed 07-02-PLAN.md (customer review UI on product detail)
+last_updated: "2026-07-16T03:01:00.000Z"
+last_activity: 2026-07-16 - Phase 7 Plan 02 (customer review UI) complete
 progress:
   total_phases: 11
   completed_phases: 6
   total_plans: 26
-  completed_plans: 24
-  percent: 56
+  completed_plans: 25
+  percent: 58
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 ## Current Position
 
 Phase: 7 of 11 (Reviews & Ratings) — IN PROGRESS
-Plan: 1 of 3 in current phase — COMPLETE (07-01 server + data foundation)
-Status: 07-01 code complete + all automated tests green; PENDING firebase deploy checkpoint (indexes -> rules -> functions:submitReview,markReviewHelpful) + device smoke test. 07-02/07-03 unblocked once 07-01 is deployed.
-Last activity: 2026-07-16 - Phase 7 Plan 01 complete
+Plan: 2 of 3 in current phase — COMPLETE (07-02 customer review UI on product detail)
+Status: 07-02 code complete + :app unit suite green (445 tests, 0 failures) + Compose UI test authored (device run deferred). 07-01 still PENDING firebase deploy (indexes -> rules -> functions:submitReview,markReviewHelpful) for the write path to be live end-to-end. 07-03 (product cards + seller review visibility) next.
+Last activity: 2026-07-16 - Phase 7 Plan 02 complete
 
-Progress: [█████▌░░░░] 56%
+Progress: [█████▊░░░░] 58%
 
 ## Performance Metrics
 
@@ -68,6 +68,8 @@ Progress: [█████▌░░░░] 56%
 | Phase 05-discounts P03 | 5 | 2 tasks | 7 files |
 | Phase 05-discounts P02 | 6 | 2 tasks | 16 files |
 | Phase 05-discounts P03 | 5 | 2 tasks | 8 files |
+| Phase 07-reviews-ratings P01 | 22 | 4 tasks | 20 files |
+| Phase 07-reviews-ratings P02 | 13 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -159,6 +161,12 @@ Recent decisions affecting current work:
 - [Phase 05-03]: removeCoupon() invalidates clientSecret and orderId to force new PaymentIntent (Pitfall 4)
 - [Phase 05-03]: CouponSection isExpanded kept as local composable state, set to true on remove (Pitfall 2)
 - [Phase 05-03]: decrementCouponUsage called after PaymentSheetResult.Completed, failure logged but does not block navigation
+- [Phase 07-02]: Nav wiring uses the real files (AppNavigationObjects.kt routes + TabNavRoutes.kt composable destinations); the plan-referenced AppNavigation.kt does not exist
+- [Phase 07-02]: WriteReviewScreen reuses CustomerProductDetailViewModel scoped to the productId route arg — submit path shared, no duplicated business logic
+- [Phase 07-02]: Aggregate rating header reads denormalised product.averageRating/reviewCount (D-03), not reviews.size, so counts survive Room-cache lag
+- [Phase 07-02]: Private ReviewCard extracted to core/components/ReviewCard.kt with a shared read-only StarRatingDisplay (C-01) reused by the aggregate header
+- [Phase 07-02]: hasDeliveredOrder is a UX affordance only (defence-in-depth T-07-08); the 07-01 submitReview callable is the security boundary
+- [Phase 07-02]: :app:lintDebug crashes in RememberInCompositionDetector (IncompatibleClassChangeError) — pre-existing Compose-lint/AGP version bug, out of scope; assembleDebug + unit tests are the merge gate
 
 ### Pending Todos
 
@@ -179,6 +187,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-07-15T23:30:55.347Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-reviews-ratings/07-CONTEXT.md
+Last session: 2026-07-16T03:01:00.000Z
+Stopped at: Completed 07-02-PLAN.md (customer review UI)
+Resume file: .planning/phases/07-reviews-ratings/07-03-PLAN.md

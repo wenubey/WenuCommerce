@@ -145,7 +145,7 @@ Plans:
 
 Plans:
 - [x] 07-01: ReviewEntity + ReviewDAO + ReviewRepository domain interface; ReviewRepositoryImpl; Cloud Function — submitReview (purchase verification via Firestore, one-per-product-per-customer enforcement) — complete 2026-07-16 (code + tests green; pending firebase deploy)
-- [ ] 07-02: Review UI on product detail — aggregate rating display, individual review list with sort, Verified Purchase badge, write/edit review form
+- [x] 07-02: Review UI on product detail — aggregate rating display, individual review list with sort, Verified Purchase badge, write/edit review form — complete 2026-07-16 (:app unit suite 445/0 green; Compose UI test authored, device run deferred)
 - [ ] 07-03: Review count surface on product cards in browse and search; seller review visibility in seller product management
 
 ### Phase 8: Notifications
@@ -232,7 +232,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Checkout & Payments | 4/4 | Complete   | 2026-04-29 |
 | 5. Discounts | 3/3 | Complete   | 2026-06-04 |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
-| 7. Reviews & Ratings | 1/3 | In progress | - |
+| 7. Reviews & Ratings | 2/3 | In progress | - |
 | 8. Notifications | 0/4 | Not started | - |
 | 9. Seller Storefronts & Favorite Sellers | 0/3 | Not started | - |
 | 10. Personalization & Profile | 0/4 | Not started | - |
