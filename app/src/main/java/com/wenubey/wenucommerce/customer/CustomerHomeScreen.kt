@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -509,7 +511,14 @@ fun CustomerProductCard(
                 }
 
                 if (product.reviewCount > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Rated ${
+                                "%.1f".format(product.averageRating)
+                            } out of 5, ${product.reviewCount} reviews"
+                        },
+                    ) {
                         Icon(
                             Icons.Default.Star,
                             contentDescription = null,
