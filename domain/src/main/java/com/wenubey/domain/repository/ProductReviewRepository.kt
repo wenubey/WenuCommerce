@@ -13,4 +13,7 @@ interface ProductReviewRepository {
         reviewId: String,
         isVisible: Boolean,
     ): Result<Unit>
+
+    /** The caller's existing review for this product (or null), for edit pre-fill (D-05). */
+    suspend fun getMyReviewForProduct(productId: String): Result<ProductReview?>
 }

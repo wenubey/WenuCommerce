@@ -1,22 +1,29 @@
 package com.wenubey.data.repository
 
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import com.wenubey.data.FirebaseEmulator
+import com.wenubey.data.local.WenuCommerceDatabase
 import com.wenubey.data.util.PRODUCTS_COLLECTION
 import com.wenubey.data.util.REVIEWS_SUBCOLLECTION
 import com.wenubey.domain.model.product.ProductReview
+import com.wenubey.domain.model.product.toMap
 import com.wenubey.domain.repository.DispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
+import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -24,7 +31,15 @@ import org.junit.runner.RunWith
 import java.util.UUID
 
 /**
- * Integration tests for ProductReviewRepositoryImpl against the Firestore + Auth emulators.
+ * Integration tests for ProductReviewRepositoryImpl against the Firestore + Auth
+ * emulators (Phase 7).
+ *
+ * NOTE: as of 07-01 the review WRITE path is server-only (submitReview /
+ * markReviewHelpful Cloud Function callables). Those are exercised in
+ * functions/test (jest) + firestore rules tests, NOT here — this suite has no
+ * functions emulator wired. What remains valid to cover here is the READ +
+ * Room-first OBSERVE path and setReviewVisibility, with reviews seeded directly
+ * (simulating the Admin SDK server write).
  *
  * Prereqs (see [FirebaseEmulator]):
  *   firebase emulators:start --only firestore,auth
@@ -50,8 +65,16 @@ class ProductReviewRepositoryImplEmulatorTest {
 
     private val firestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { Firebase.auth }
+    private val functions: FirebaseFunctions by lazy { Firebase.functions }
+
+    private val db by lazy {
+        Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            WenuCommerceDatabase::class.java,
+        ).build()
+    }
     private val repo by lazy {
-        ProductReviewRepositoryImpl(firestore, auth, dispatcherProvider)
+        ProductReviewRepositoryImpl(firestore, auth, functions, db.reviewDao(), dispatcherProvider)
     }
 
     private lateinit var uid: String
@@ -64,107 +87,48 @@ class ProductReviewRepositoryImplEmulatorTest {
         uid = runBlocking { FirebaseEmulator.signInAnonymous() }
     }
 
+    @After
+    fun tearDown() {
+        db.close()
+    }
+
     private fun productId() = "prod-" + UUID.randomUUID().toString().take(8)
 
-    /**
-     * Seeds a product document with the aggregation fields the review transaction
-     * reads/updates. Returns the productId.
-     */
-    private suspend fun seedProduct(
-        averageRating: Double = 0.0,
-        reviewCount: Int = 0,
-    ): String {
-        val pid = productId()
-        firestore.collection(PRODUCTS_COLLECTION)
-            .document(pid)
-            .set(
-                mapOf(
-                    "id" to pid,
-                    "averageRating" to averageRating,
-                    "reviewCount" to reviewCount,
-                    "createdAt" to "0",
-                    "updatedAt" to "0",
-                )
-            )
-            .await()
-        return pid
-    }
-
-    private fun review(
+    /** Seeds a review doc directly (simulating the server Admin-SDK write path). */
+    private suspend fun seedReview(
         productId: String,
         rating: Int = 5,
-        purchaseId: String = "purch-${UUID.randomUUID()}",
-    ) = ProductReview(
-        productId = productId,
-        reviewerId = uid,
-        reviewerName = "Tester",
-        purchaseId = purchaseId,
-        rating = rating,
-        title = "Great",
-        body = "Loved it",
-    )
-
-    @Test
-    fun submitReview_writes_review_and_updates_product_aggregation(): Unit = runBlocking {
-        val pid = seedProduct()
-
-        val result = repo.submitReview(review(pid, rating = 4))
-
-        assertThat(result.isSuccess).isTrue()
-        val saved = result.getOrThrow()
-        assertThat(saved.id).isNotEmpty()
-        assertThat(saved.createdAt).isNotEmpty()
-        assertThat(saved.updatedAt).isEqualTo(saved.createdAt)
-
-        val product = firestore.collection(PRODUCTS_COLLECTION).document(pid).get().await()
-        assertThat(product.getDouble("averageRating")).isEqualTo(4.0)
-        assertThat(product.getLong("reviewCount")).isEqualTo(1L)
-
-        val reviewDoc = firestore.collection(PRODUCTS_COLLECTION).document(pid)
-            .collection(REVIEWS_SUBCOLLECTION).document(saved.id).get().await()
-        assertThat(reviewDoc.exists()).isTrue()
-        assertThat(reviewDoc.getLong("rating")).isEqualTo(4L)
-    }
-
-    @Test
-    fun submitReview_second_review_averages_correctly(): Unit = runBlocking {
-        val pid = seedProduct()
-
-        repo.submitReview(review(pid, rating = 5, purchaseId = "p1")).getOrThrow()
-        repo.submitReview(review(pid, rating = 3, purchaseId = "p2")).getOrThrow()
-
-        val product = firestore.collection(PRODUCTS_COLLECTION).document(pid).get().await()
-        assertThat(product.getDouble("averageRating")).isEqualTo(4.0)
-        assertThat(product.getLong("reviewCount")).isEqualTo(2L)
-    }
-
-    @Test
-    fun submitReview_rejects_duplicate_same_purchase(): Unit = runBlocking {
-        val pid = seedProduct()
-        repo.submitReview(review(pid, purchaseId = "purch-x")).getOrThrow()
-
-        val result = repo.submitReview(review(pid, purchaseId = "purch-x"))
-
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
-    }
-
-    @Test
-    fun submitReview_rejects_mismatched_reviewerId(): Unit = runBlocking {
-        val pid = seedProduct()
-        val foreign = review(pid).copy(reviewerId = "someone-else")
-
-        val result = repo.submitReview(foreign)
-
-        assertThat(result.isFailure).isTrue()
+        isVisible: Boolean = true,
+        reviewerId: String = uid,
+    ): ProductReview {
+        val id = "rev-" + UUID.randomUUID().toString().take(8)
+        val now = System.currentTimeMillis().toString()
+        val review = ProductReview(
+            id = id,
+            productId = productId,
+            reviewerId = reviewerId,
+            reviewerName = "Tester",
+            purchaseId = "purch-1",
+            rating = rating,
+            title = "Great",
+            body = "Loved it",
+            isVerifiedPurchase = true,
+            isVisible = isVisible,
+            createdAt = now,
+            updatedAt = now,
+        )
+        firestore.collection(PRODUCTS_COLLECTION).document(productId)
+            .collection(REVIEWS_SUBCOLLECTION).document(id)
+            .set(review.toMap())
+            .await()
+        return review
     }
 
     @Test
     fun getReviewsForProduct_returns_only_visible(): Unit = runBlocking {
-        val pid = seedProduct()
-        val r1 = repo.submitReview(review(pid, purchaseId = "p1")).getOrThrow()
-        val r2 = repo.submitReview(review(pid, purchaseId = "p2")).getOrThrow()
-        repo.setReviewVisibility(pid, r2.id, isVisible = false).getOrThrow()
+        val pid = productId()
+        val r1 = seedReview(pid, isVisible = true)
+        seedReview(pid, isVisible = false)
 
         val list = repo.getReviewsForProduct(pid).getOrThrow()
 
@@ -172,35 +136,44 @@ class ProductReviewRepositoryImplEmulatorTest {
     }
 
     @Test
-    fun observeReviewsForProduct_emits_on_new_submission(): Unit = runBlocking {
-        val pid = seedProduct()
+    fun observeReviewsForProduct_writes_through_to_room_and_emits(): Unit = runBlocking {
+        val pid = productId()
 
+        // Room-first: empty until the product-scoped listener syncs the seed.
         val initial = repo.observeReviewsForProduct(pid).first()
         assertThat(initial).isEmpty()
 
-        repo.submitReview(review(pid)).getOrThrow()
+        seedReview(pid)
 
-        val flow = repo.observeReviewsForProduct(pid).first { it.isNotEmpty() }
-        assertThat(flow).hasSize(1)
+        val emitted = repo.observeReviewsForProduct(pid).first { it.isNotEmpty() }
+        assertThat(emitted).hasSize(1)
     }
 
     @Test
-    fun markReviewHelpful_increments_count(): Unit = runBlocking {
-        val pid = seedProduct()
-        val saved = repo.submitReview(review(pid)).getOrThrow()
+    fun getMyReviewForProduct_returns_callers_review(): Unit = runBlocking {
+        val pid = productId()
+        val mine = seedReview(pid, reviewerId = uid)
+        seedReview(pid, reviewerId = "someone-else")
 
-        repo.markReviewHelpful(pid, saved.id).getOrThrow()
-        repo.markReviewHelpful(pid, saved.id).getOrThrow()
+        val result = repo.getMyReviewForProduct(pid).getOrThrow()
 
-        val doc = firestore.collection(PRODUCTS_COLLECTION).document(pid)
-            .collection(REVIEWS_SUBCOLLECTION).document(saved.id).get().await()
-        assertThat(doc.getLong("helpfulCount")).isEqualTo(2L)
+        assertThat(result?.id).isEqualTo(mine.id)
+    }
+
+    @Test
+    fun getMyReviewForProduct_returns_null_when_none(): Unit = runBlocking {
+        val pid = productId()
+        seedReview(pid, reviewerId = "someone-else")
+
+        val result = repo.getMyReviewForProduct(pid).getOrThrow()
+
+        assertThat(result).isNull()
     }
 
     @Test
     fun setReviewVisibility_toggles_flag(): Unit = runBlocking {
-        val pid = seedProduct()
-        val saved = repo.submitReview(review(pid)).getOrThrow()
+        val pid = productId()
+        val saved = seedReview(pid)
 
         repo.setReviewVisibility(pid, saved.id, isVisible = false).getOrThrow()
 

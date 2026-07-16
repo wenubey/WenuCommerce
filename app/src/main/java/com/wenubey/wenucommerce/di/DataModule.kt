@@ -77,7 +77,9 @@ val repositoryModule = module {
     singleOf(::LocationServiceImpl).bind<LocationService>()
     singleOf(::CategoryRepositoryImpl).bind<CategoryRepository>()
     singleOf(::ProductRepositoryImpl).bind<ProductRepository>()
-    singleOf(::ProductReviewRepositoryImpl).bind<ProductReviewRepository>()
+    single {
+        ProductReviewRepositoryImpl(get(), get(), get(), get(), get())
+    }.bind<ProductReviewRepository>()
     singleOf(::TagRepositoryImpl).bind<TagRepository>()
     singleOf(::CartRepositoryImpl).bind<CartRepository>()
     singleOf(::WishlistRepositoryImpl).bind<WishlistRepository>()
@@ -138,7 +140,8 @@ val databaseModule = module {
             WenuCommerceDatabase.MIGRATION_4_5,
             WenuCommerceDatabase.MIGRATION_5_6,
             WenuCommerceDatabase.MIGRATION_6_7,
-            WenuCommerceDatabase.MIGRATION_7_8
+            WenuCommerceDatabase.MIGRATION_7_8,
+            WenuCommerceDatabase.MIGRATION_8_9
         )
             .apply {
                 if (BuildConfig.DEBUG) {
@@ -155,6 +158,7 @@ val databaseModule = module {
     single { get<WenuCommerceDatabase>().orderDao() }
     single { get<WenuCommerceDatabase>().addressDao() }
     single { get<WenuCommerceDatabase>().sellerOrderDao() }
+    single { get<WenuCommerceDatabase>().reviewDao() }
 }
 
 val syncModule = module {
@@ -166,7 +170,7 @@ val connectivityModule = module {
 }
 
 val workerModule = module {
-    worker { SyncWorker(get(), get(), get(), get(), get()) }
+    worker { SyncWorker(get(), get(), get(), get(), get(), get()) }
 }
 
 /**

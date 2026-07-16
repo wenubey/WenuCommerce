@@ -14,8 +14,10 @@ import com.wenubey.data.local.entity.OperationStatus
 import com.wenubey.data.local.entity.OperationType
 import com.wenubey.data.repository.AddToCartPayload
 import com.wenubey.data.repository.UpdateCartQuantityPayload
+import com.wenubey.domain.model.product.ProductReview
 import com.wenubey.domain.repository.CartRepository
 import com.wenubey.domain.repository.DispatcherProvider
+import com.wenubey.domain.repository.ProductReviewRepository
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.time.Duration
@@ -41,6 +43,7 @@ class SyncWorker(
     params: WorkerParameters,
     private val pendingOperationDao: PendingOperationDao,
     private val cartRepository: CartRepository,
+    private val reviewRepository: ProductReviewRepository,
     private val dispatcherProvider: DispatcherProvider
 ) : CoroutineWorker(appContext, params) {
 
@@ -128,7 +131,10 @@ class SyncWorker(
                     )
                 }
                 OperationType.UPDATE_PROFILE -> TODO("Wire UPDATE_PROFILE to ProfileRepository in Phase 3+")
-                OperationType.SUBMIT_REVIEW -> TODO("Wire SUBMIT_REVIEW to ReviewRepository in Phase 3+")
+                OperationType.SUBMIT_REVIEW -> {
+                    val review = json.decodeFromString<ProductReview>(operation.payloadJson)
+                    reviewRepository.submitReview(review).getOrThrow()
+                }
             }
 
             // On success: delete operation and enqueue next
