@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
@@ -39,9 +40,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -58,14 +62,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.wenubey.domain.model.product.ProductReview
 import com.wenubey.domain.model.product.ShippingType
+import com.wenubey.wenucommerce.core.components.ReviewCard
+import com.wenubey.wenucommerce.core.components.StarRatingDisplay
 import com.wenubey.wenucommerce.core.components.WishlistHeartButton
+import kotlin.math.floor
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -94,6 +102,18 @@ fun CustomerProductDetailScreen(
                 onNavigateToCart()
             }
             viewModel.onAction(CustomerProductDetailAction.DismissCartMessage)
+        }
+    }
+
+    // Show snackbar + dismiss the review form when a submit fails
+    val reviewSubmitError = state.reviewSubmitError
+    LaunchedEffect(reviewSubmitError) {
+        if (reviewSubmitError != null) {
+            snackbarHostState.showSnackbar(
+                message = reviewSubmitError,
+                duration = SnackbarDuration.Long,
+            )
+            viewModel.onAction(CustomerProductDetailAction.DismissReviewForm)
         }
     }
 
@@ -457,36 +477,85 @@ fun CustomerProductDetailScreen(
                         }
                     }
 
-                    // Reviews section
+                    // Reviews section header
                     item {
                         HorizontalDivider()
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Reviews (${state.reviews.size})",
+                            text = "Reviews (${product.reviewCount})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium,
                         )
                     }
 
-                    if (state.reviews.isEmpty()) {
+                    // Aggregate rating header (C-04 / REVW-04)
+                    item {
+                        AggregateRatingHeader(
+                            averageRating = product.averageRating,
+                            reviewCount = product.reviewCount,
+                        )
+                    }
+
+                    // Write / Edit review affordance (C-08 / D-07 / D-05)
+                    item {
+                        WriteReviewAffordance(
+                            isCheckingEligibility = state.isCheckingEligibility,
+                            hasDeliveredOrder = state.hasDeliveredOrder,
+                            hasExistingReview = state.existingReview != null,
+                            onWriteReview = {
+                                onWriteReview(product.id, state.existingReview?.id)
+                            },
+                        )
+                    }
+
+                    // Sort toggle (C-05 / REVW-06)
+                    if (state.reviews.isNotEmpty()) {
                         item {
-                            Text(
-                                text = "No reviews yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ReviewSortToggle(
+                                selected = state.reviewSortOrder,
+                                onSortChanged = { order ->
+                                    viewModel.onAction(
+                                        CustomerProductDetailAction.OnSortOrderChanged(order)
+                                    )
+                                },
                             )
                         }
                     }
 
-                    items(state.reviews, key = { it.id }) { review ->
-                        ReviewCard(
-                            review = review,
-                            onHelpful = {
-                                viewModel.onAction(
-                                    CustomerProductDetailAction.OnMarkReviewHelpful(review.id)
+                    // Review states (Screen States)
+                    when {
+                        state.isLoadingReviews -> {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+                        state.reviews.isEmpty() -> {
+                            item {
+                                Text(
+                                    text = "No reviews yet. Be the first to share your experience.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                        )
+                        }
+                        else -> {
+                            items(state.reviews, key = { it.id }) { review ->
+                                ReviewCard(
+                                    review = review,
+                                    hasVoted = review.id in state.helpfulVotedIds,
+                                    onHelpful = {
+                                        viewModel.onAction(
+                                            CustomerProductDetailAction.OnMarkReviewHelpful(review.id)
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
 
                     item { Spacer(modifier = Modifier.height(32.dp)) }
@@ -661,87 +730,118 @@ private fun CartActionSection(
     }
 }
 
+/**
+ * Aggregate rating header (UI-SPEC C-04 / REVW-04). Shows the large numeric
+ * average + a read-only star row (floor of average) + the review count, or
+ * "No ratings yet" when [reviewCount] is 0.
+ */
 @Composable
-private fun ReviewCard(
-    review: ProductReview,
-    onHelpful: () -> Unit,
+private fun AggregateRatingHeader(
+    averageRating: Double,
+    reviewCount: Int,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    if (reviewCount == 0) {
+        Text(
+            text = "No ratings yet",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription =
+                    "Rated ${"%.1f".format(averageRating)} out of 5, $reviewCount reviews"
+            },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (review.reviewerPhotoUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = review.reviewerPhotoUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = review.reviewerName.firstOrNull()?.uppercase() ?: "?",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(text = review.reviewerName, style = MaterialTheme.typography.labelMedium)
-                    Row {
-                        repeat(5) { index ->
-                            Icon(
-                                imageVector = if (index < review.rating) Icons.Filled.Star else Icons.Outlined.Star,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = Color(0xFFFFC107),
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (review.title.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = review.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
+        Column {
             Text(
-                text = review.body,
-                style = MaterialTheme.typography.bodyMedium,
+                text = "%.1f".format(averageRating),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
             )
+            StarRatingDisplay(
+                rating = floor(averageRating).toInt(),
+                starSize = 20,
+            )
+            Text(
+                text = "$reviewCount reviews",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        // Right column reserved for a future rating histogram (empty in Phase 7).
+    }
+}
 
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onHelpful, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Outlined.Star,
-                        contentDescription = "Helpful",
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-                if (review.helpfulCount > 0) {
-                    Text(
-                        text = "${review.helpfulCount} found helpful",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+/**
+ * Write/Edit review affordance (UI-SPEC C-08). Gated exactly on the
+ * delivered-order flag (D-07); pre-fill edit uses the existing review (D-05).
+ */
+@Composable
+private fun WriteReviewAffordance(
+    isCheckingEligibility: Boolean,
+    hasDeliveredOrder: Boolean,
+    hasExistingReview: Boolean,
+    onWriteReview: () -> Unit,
+) {
+    when {
+        isCheckingEligibility -> {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp),
+            )
+        }
+        hasDeliveredOrder -> {
+            TextButton(onClick = onWriteReview) {
+                Icon(
+                    Icons.Default.RateReview,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                if (hasExistingReview) {
+                    Text("Edit Your Review")
+                } else {
+                    Text("Write a Review")
                 }
             }
+        }
+        // else: not eligible — render nothing (server is the authority, D-07).
+    }
+}
+
+/**
+ * Segmented sort toggle (UI-SPEC C-05 / REVW-06). "Most recent" default;
+ * "Highest rated" secondary. Emits [ReviewSortOrder] on selection.
+ */
+@Composable
+private fun ReviewSortToggle(
+    selected: ReviewSortOrder,
+    onSortChanged: (ReviewSortOrder) -> Unit,
+) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        ReviewSortOrder.entries.forEachIndexed { index, order ->
+            val label = when (order) {
+                ReviewSortOrder.MOST_RECENT -> "Most recent"
+                ReviewSortOrder.HIGHEST_RATED -> "Highest rated"
+            }
+            val cd = when (order) {
+                ReviewSortOrder.MOST_RECENT -> "Sort reviews by most recent"
+                ReviewSortOrder.HIGHEST_RATED -> "Sort reviews by highest rated"
+            }
+            SegmentedButton(
+                selected = selected == order,
+                onClick = { onSortChanged(order) },
+                shape = SegmentedButtonDefaults.itemShape(index, ReviewSortOrder.entries.size),
+                modifier = Modifier.semantics { contentDescription = cd },
+                label = { Text(label) },
+            )
         }
     }
 }
