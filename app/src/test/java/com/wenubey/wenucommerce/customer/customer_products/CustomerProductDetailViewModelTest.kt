@@ -2,7 +2,10 @@ package com.wenubey.wenucommerce.customer.customer_products
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.wenubey.data.local.dao.SellerOrderDao
+import com.wenubey.data.local.entity.SellerOrderEntity
 import com.wenubey.domain.model.CartItem
+import com.wenubey.domain.model.order.OrderItem
 import com.wenubey.domain.model.product.Product
 import com.wenubey.domain.model.product.ProductReview
 import com.wenubey.domain.model.product.ProductVariant
@@ -13,11 +16,14 @@ import com.wenubey.wenucommerce.testing.fakes.FakeAuthRepository
 import com.wenubey.wenucommerce.testing.fakes.FakeCartRepository
 import com.wenubey.wenucommerce.testing.fakes.FakeProductRepository
 import com.wenubey.wenucommerce.testing.fakes.FakeProductReviewRepository
+import com.wenubey.wenucommerce.testing.fakes.FakeSellerOrderDao
 import com.wenubey.wenucommerce.testing.fakes.FakeWishlistRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Rule
 import org.junit.Test
 
@@ -45,6 +51,18 @@ class CustomerProductDetailViewModelTest {
         variants = variants,
     )
 
+    /** Builds a DELIVERED seller-order entity whose itemsJson contains [productIds]. */
+    private fun deliveredOrder(
+        id: String,
+        userId: String = testUserId,
+        vararg productIds: String,
+    ) = SellerOrderEntity(
+        id = id,
+        userId = userId,
+        status = "DELIVERED",
+        itemsJson = Json.encodeToString(productIds.map { OrderItem(productId = it) }),
+    )
+
     private fun newViewModel(
         loadedProduct: Product? = product(),
         productRepo: FakeProductRepository = FakeProductRepository().apply {
@@ -54,9 +72,11 @@ class CustomerProductDetailViewModelTest {
         cartRepo: FakeCartRepository = FakeCartRepository(),
         auth: FakeAuthRepository = FakeAuthRepository(initialUser = User(uuid = testUserId)),
         wishlist: FakeWishlistRepository = FakeWishlistRepository(),
+        sellerOrderDao: SellerOrderDao = FakeSellerOrderDao(),
         savedState: SavedStateHandle = SavedStateHandle(mapOf("productId" to productId)),
     ) = CustomerProductDetailViewModel(
-        productRepo, reviewRepo, cartRepo, auth, wishlist, savedState, dispatcherProvider,
+        productRepo, reviewRepo, cartRepo, auth, wishlist, sellerOrderDao, savedState,
+        dispatcherProvider,
     )
 
     // --- load ---
@@ -178,6 +198,213 @@ class CustomerProductDetailViewModelTest {
         advanceUntilIdle()
 
         assertThat(reviewRepo.markHelpfulCalls).isEmpty()
+    }
+
+    // --- delivered-order gate (D-07 / REVW-02 affordance) ---
+
+    @Test
+    fun `hasDeliveredOrder is true when a DELIVERED order contains this product`() = runTest {
+        val dao = FakeSellerOrderDao().apply {
+            seed(deliveredOrder(id = "so-1", productIds = arrayOf(productId, "other")))
+        }
+        val vm = newViewModel(sellerOrderDao = dao)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.hasDeliveredOrder).isTrue()
+        assertThat(vm.state.value.isCheckingEligibility).isFalse()
+    }
+
+    @Test
+    fun `hasDeliveredOrder is false when no DELIVERED order contains this product`() = runTest {
+        val dao = FakeSellerOrderDao().apply {
+            seed(deliveredOrder(id = "so-1", productIds = arrayOf("other-product")))
+        }
+        val vm = newViewModel(sellerOrderDao = dao)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.hasDeliveredOrder).isFalse()
+    }
+
+    @Test
+    fun `hasDeliveredOrder is false when there are no delivered orders at all`() = runTest {
+        val vm = newViewModel(sellerOrderDao = FakeSellerOrderDao())
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.hasDeliveredOrder).isFalse()
+    }
+
+    @Test
+    fun `hasDeliveredOrder ignores orders belonging to a different user`() = runTest {
+        val dao = FakeSellerOrderDao().apply {
+            seed(deliveredOrder(id = "so-1", userId = "someone-else", productIds = arrayOf(productId)))
+        }
+        val vm = newViewModel(sellerOrderDao = dao)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.hasDeliveredOrder).isFalse()
+    }
+
+    // --- existing review pre-fill (D-05) ---
+
+    @Test
+    fun `existingReview is populated from getMyReviewForProduct`() = runTest {
+        val existing = ProductReview(id = "r-existing", rating = 4, title = "Good", body = "Nice")
+        val reviewRepo = FakeProductReviewRepository().apply {
+            myReviewResult = Result.success(existing)
+        }
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.existingReview).isEqualTo(existing)
+    }
+
+    @Test
+    fun `existingReview is null when the customer has not reviewed`() = runTest {
+        val reviewRepo = FakeProductReviewRepository().apply {
+            myReviewResult = Result.success(null)
+        }
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.existingReview).isNull()
+    }
+
+    // --- sort (REVW-06) ---
+
+    @Test
+    fun `default sort orders reviews by createdAt descending (most recent first)`() = runTest {
+        val reviewRepo = FakeProductReviewRepository()
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        reviewRepo.emit(
+            productId,
+            listOf(
+                ProductReview(id = "old", rating = 5, createdAt = "1000"),
+                ProductReview(id = "new", rating = 3, createdAt = "3000"),
+                ProductReview(id = "mid", rating = 4, createdAt = "2000"),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.reviewSortOrder).isEqualTo(ReviewSortOrder.MOST_RECENT)
+        assertThat(vm.state.value.reviews.map { it.id }).containsExactly("new", "mid", "old").inOrder()
+    }
+
+    @Test
+    fun `HIGHEST_RATED sort orders by rating desc with recency tie-break`() = runTest {
+        val reviewRepo = FakeProductReviewRepository()
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        reviewRepo.emit(
+            productId,
+            listOf(
+                // two 5-star reviews with different createdAt — recency breaks the tie
+                ProductReview(id = "five-old", rating = 5, createdAt = "1000"),
+                ProductReview(id = "five-new", rating = 5, createdAt = "2000"),
+                ProductReview(id = "three", rating = 3, createdAt = "5000"),
+            ),
+        )
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.OnSortOrderChanged(ReviewSortOrder.HIGHEST_RATED))
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.reviewSortOrder).isEqualTo(ReviewSortOrder.HIGHEST_RATED)
+        // 5-star newest, then 5-star oldest, then 3-star
+        assertThat(vm.state.value.reviews.map { it.id })
+            .containsExactly("five-new", "five-old", "three").inOrder()
+    }
+
+    // --- submit review (REVW-01) ---
+
+    @Test
+    fun `SubmitReview success clears submitting, hides form, sets success message`() = runTest {
+        val reviewRepo = FakeProductReviewRepository()
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.SubmitReview(rating = 4, title = "Great", body = "Loved it"))
+        advanceUntilIdle()
+
+        val s = vm.state.value
+        assertThat(s.isSubmittingReview).isFalse()
+        assertThat(s.showReviewForm).isFalse()
+        assertThat(s.cartMessage).isEqualTo("Review submitted")
+        assertThat(reviewRepo.submitReviewCalls).hasSize(1)
+        assertThat(reviewRepo.submitReviewCalls[0].rating).isEqualTo(4)
+    }
+
+    @Test
+    fun `SubmitReview success on an existing review sets the update message`() = runTest {
+        val reviewRepo = FakeProductReviewRepository().apply {
+            myReviewResult = Result.success(ProductReview(id = "r-existing", rating = 2))
+        }
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.SubmitReview(rating = 5, title = "Better", body = "Changed my mind"))
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.cartMessage).isEqualTo("Review updated")
+    }
+
+    @Test
+    fun `SubmitReview failure surfaces reviewSubmitError and clears submitting`() = runTest {
+        val reviewRepo = FakeProductReviewRepository().apply {
+            submitReviewResult = {
+                Result.failure(IllegalStateException("No delivered order found for this product"))
+            }
+        }
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.SubmitReview(rating = 3, title = "", body = ""))
+        advanceUntilIdle()
+
+        val s = vm.state.value
+        assertThat(s.isSubmittingReview).isFalse()
+        assertThat(s.reviewSubmitError).isEqualTo("No delivered order found for this product")
+    }
+
+    // --- helpful optimistic disable (D-04) ---
+
+    @Test
+    fun `OnMarkReviewHelpful adds the id to helpfulVotedIds and calls the repository`() = runTest {
+        val reviewRepo = FakeProductReviewRepository()
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.OnMarkReviewHelpful("r-1"))
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.helpfulVotedIds).contains("r-1")
+        assertThat(reviewRepo.markHelpfulCalls).containsExactly(productId to "r-1")
+    }
+
+    @Test
+    fun `OnMarkReviewHelpful on an already-voted review does not call the repository again`() = runTest {
+        val reviewRepo = FakeProductReviewRepository()
+        val vm = newViewModel(reviewRepo = reviewRepo)
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.OnMarkReviewHelpful("r-1"))
+        advanceUntilIdle()
+        vm.onAction(CustomerProductDetailAction.OnMarkReviewHelpful("r-1"))
+        advanceUntilIdle()
+
+        assertThat(reviewRepo.markHelpfulCalls).hasSize(1)
+    }
+
+    // --- review form open/dismiss ---
+
+    @Test
+    fun `OpenReviewForm and DismissReviewForm toggle showReviewForm`() = runTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.onAction(CustomerProductDetailAction.OpenReviewForm)
+        assertThat(vm.state.value.showReviewForm).isTrue()
+
+        vm.onAction(CustomerProductDetailAction.DismissReviewForm)
+        assertThat(vm.state.value.showReviewForm).isFalse()
     }
 
     // --- variants & quantity ---

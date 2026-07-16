@@ -14,4 +14,14 @@ sealed interface CustomerProductDetailAction {
     data object DismissCartMessage : CustomerProductDetailAction
     // Wishlist actions
     data object ToggleWishlist : CustomerProductDetailAction
+
+    // Review actions (Phase 7 — 07-02)
+    data object OpenReviewForm : CustomerProductDetailAction
+    data object DismissReviewForm : CustomerProductDetailAction
+    data class SubmitReview(
+        val rating: Int,
+        val title: String,
+        val body: String,
+    ) : CustomerProductDetailAction
+    data class OnSortOrderChanged(val order: ReviewSortOrder) : CustomerProductDetailAction
 }

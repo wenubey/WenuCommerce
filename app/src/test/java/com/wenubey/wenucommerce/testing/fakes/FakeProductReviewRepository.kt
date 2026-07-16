@@ -19,6 +19,9 @@ class FakeProductReviewRepository : ProductReviewRepository {
     var markHelpfulResult: Result<Unit> = Result.success(Unit)
     var setVisibilityResult: Result<Unit> = Result.success(Unit)
 
+    /** Existing review for pre-fill (D-05); null means the caller has not reviewed. */
+    var myReviewResult: Result<ProductReview?> = Result.success(null)
+
     fun emit(productId: String, list: List<ProductReview>) {
         reviewsByProduct.value = reviewsByProduct.value + (productId to list)
     }
@@ -47,4 +50,7 @@ class FakeProductReviewRepository : ProductReviewRepository {
         setVisibilityCalls.add(Triple(productId, reviewId, isVisible))
         return setVisibilityResult
     }
+
+    override suspend fun getMyReviewForProduct(productId: String): Result<ProductReview?> =
+        myReviewResult
 }
