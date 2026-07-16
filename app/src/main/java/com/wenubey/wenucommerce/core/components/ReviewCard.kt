@@ -75,6 +75,10 @@ fun StarRatingDisplay(
  * name, star display, a Verified Purchase badge (when [ProductReview.isVerifiedPurchase]
  * — REVW-05), and a relative date. Below: optional title, body, and a Helpful
  * TextButton that disables optimistically once [hasVoted] is true (D-04).
+ *
+ * Set [showHelpful] to `false` for read-only surfaces (e.g. the seller-facing
+ * reviews list, 07-03) where the Helpful vote — a customer action — must NOT be
+ * exposed. When hidden, no interactive controls remain on the card.
  */
 @Composable
 fun ReviewCard(
@@ -82,6 +86,7 @@ fun ReviewCard(
     hasVoted: Boolean,
     onHelpful: () -> Unit,
     modifier: Modifier = Modifier,
+    showHelpful: Boolean = true,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -149,27 +154,29 @@ fun ReviewCard(
                 style = MaterialTheme.typography.bodyMedium,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-            val helpfulCd = if (hasVoted) {
-                "You already marked this review as helpful"
-            } else {
-                "Mark review as helpful, ${review.helpfulCount} people found this helpful"
-            }
-            TextButton(
-                onClick = onHelpful,
-                enabled = !hasVoted,
-                modifier = Modifier.clearAndSetSemantics { contentDescription = helpfulCd },
-            ) {
-                Icon(
-                    Icons.Outlined.ThumbUp,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Helpful (${review.helpfulCount})",
-                    style = MaterialTheme.typography.labelSmall,
-                )
+            if (showHelpful) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val helpfulCd = if (hasVoted) {
+                    "You already marked this review as helpful"
+                } else {
+                    "Mark review as helpful, ${review.helpfulCount} people found this helpful"
+                }
+                TextButton(
+                    onClick = onHelpful,
+                    enabled = !hasVoted,
+                    modifier = Modifier.clearAndSetSemantics { contentDescription = helpfulCd },
+                ) {
+                    Icon(
+                        Icons.Outlined.ThumbUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Helpful (${review.helpfulCount})",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
         }
     }

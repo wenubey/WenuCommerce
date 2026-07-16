@@ -46,6 +46,7 @@ fun SellerTabScreen(
     onNavigateToCreateDiscount: () -> Unit = {},
     onNavigateToEditDiscount: (String) -> Unit = {},
     onNavigateToSellerOrderDetail: (String) -> Unit = {},
+    onViewReviews: (productId: String, productTitle: String) -> Unit = { _, _ -> },
     authViewModel: AuthViewModel = koinViewModel(),
     emailBannerVm: EmailVerificationBannerViewModel = koinViewModel(),
 ) {
@@ -99,6 +100,7 @@ fun SellerTabScreen(
                         modifier = Modifier.fillMaxSize(),
                         onAddProduct = onNavigateToCreateProduct,
                         onEditProduct = onNavigateToEditProduct,
+                        onViewReviews = onViewReviews,
                     )
                     2 -> SellerOrdersScreen(
                         onOrderClick = onNavigateToSellerOrderDetail,

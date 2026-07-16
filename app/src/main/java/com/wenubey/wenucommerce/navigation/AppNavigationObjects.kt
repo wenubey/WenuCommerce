@@ -52,6 +52,13 @@ data object SellerProductCreate
 @Serializable
 data class SellerProductEdit(val productId: String)
 
+// Seller review visibility (Phase 7 — 07-03): read-only reviews for one own product
+@Serializable
+data class SellerProductReviews(
+    val productId: String,
+    val productTitle: String,
+)
+
 // Customer specific product screens
 @Serializable
 data class CustomerProductDetail(val productId: String)

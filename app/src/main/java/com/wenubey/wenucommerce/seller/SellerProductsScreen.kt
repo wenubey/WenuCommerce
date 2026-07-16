@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Reviews
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
@@ -65,6 +66,7 @@ fun SellerProductsScreen(
     viewModel: SellerProductListViewModel = koinViewModel(),
     onAddProduct: () -> Unit = {},
     onEditProduct: (String) -> Unit = {},
+    onViewReviews: (productId: String, productTitle: String) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -197,6 +199,7 @@ fun SellerProductsScreen(
                         onUnarchive = {
                             viewModel.onAction(SellerProductListAction.OnUnarchiveProduct(product.id))
                         },
+                        onViewReviews = { onViewReviews(product.id, product.title) },
                     )
                 }
             }
@@ -240,6 +243,7 @@ fun SellerProductCard(
     onSubmitForReview: () -> Unit,
     onArchive: () -> Unit,
     onUnarchive: () -> Unit,
+    onViewReviews: () -> Unit = {},
 ) {
     val statusColor = when (product.status) {
         ProductStatus.ACTIVE -> Color(0xFF4CAF50)
@@ -344,6 +348,14 @@ fun SellerProductCard(
                                 contentDescription = "Submit for Review"
                             )
                         }
+                    }
+                    // Read-only reviews list for this product (07-03)
+                    IconButton(onClick = onViewReviews) {
+                        Icon(
+                            Icons.Default.Reviews,
+                            contentDescription = "View reviews",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
                     if (product.status != ProductStatus.ARCHIVED) {
                         IconButton(onClick = onArchive) {

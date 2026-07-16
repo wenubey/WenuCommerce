@@ -21,6 +21,7 @@ import com.wenubey.wenucommerce.seller.seller_categories.SellerCategoryViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditViewModel
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductListViewModel
+import com.wenubey.wenucommerce.seller.seller_products.SellerProductReviewsViewModel
 import com.wenubey.wenucommerce.seller.seller_discounts.DiscountCreateEditViewModel
 import com.wenubey.wenucommerce.seller.seller_discounts.DiscountListViewModel
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontViewModel
@@ -65,6 +66,8 @@ val viewModelModule = module {
     viewModelOf(::SellerProductListViewModel)
     viewModelOf(::SellerProductCreateViewModel)
     viewModelOf(::SellerProductEditViewModel)
+    // Seller review visibility (Phase 7 — 07-03): read-only reviews list
+    viewModelOf(::SellerProductReviewsViewModel)
     viewModelOf(::AdminProductModerationViewModel)
     viewModelOf(::AdminProductSearchViewModel)
     viewModelOf(::CustomerProductDetailViewModel)

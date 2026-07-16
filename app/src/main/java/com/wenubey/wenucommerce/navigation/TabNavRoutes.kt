@@ -21,6 +21,7 @@ import com.wenubey.wenucommerce.queue_management.QueueManagementScreen
 import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountCreateEditScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditScreen
+import com.wenubey.wenucommerce.seller.seller_products.SellerProductReviewsScreen
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontScreen
 import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationStatusScreen
 
@@ -75,6 +76,15 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             onNavigateToSellerOrderDetail = { sellerOrderId ->
                 navController.navigate(SellerOrderDetail(sellerOrderId))
             },
+            onViewReviews = { productId, productTitle ->
+                navController.navigate(SellerProductReviews(productId, productTitle))
+            },
+        )
+    }
+
+    composable<SellerProductReviews> {
+        SellerProductReviewsScreen(
+            onNavigateBack = { navController.navigateUp() },
         )
     }
 
