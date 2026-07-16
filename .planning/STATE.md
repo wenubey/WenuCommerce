@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 07-03-PLAN.md (product-card rating + read-only seller review visibility)
-last_updated: "2026-07-16T03:20:00.000Z"
-last_activity: 2026-07-16 - Phase 7 Plan 03 (cards + seller visibility) complete
+stopped_at: Phase 7 (Reviews & Ratings) complete — all 3 plans executed + deployed (functions/rules/indexes)
+last_updated: "2026-07-16T04:00:00.000Z"
+last_activity: 2026-07-16 - Phase 7 complete (reviews server+UI+cards+seller visibility); deployed
 progress:
   total_phases: 11
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 26
   completed_plans: 26
-  percent: 60
+  percent: 64
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-19)
 
 **Core value:** Customers can browse, search, and purchase products with a seamless offline-capable experience
-**Current focus:** Phase 7 — Reviews & Ratings
+**Current focus:** Phase 8 — Notifications (next)
 
 ## Current Position
 
-Phase: 7 of 11 (Reviews & Ratings) — CODE COMPLETE (all 3 plans)
-Plan: 3 of 3 in current phase — COMPLETE (07-03 product-card rating + read-only seller review visibility)
-Status: 07-03 code complete + :app unit suite green (449 tests, 0 failures) + Compose UI test authored (device run deferred, no emulator). All 3 Phase 7 plans code-complete. 07-01 still PENDING firebase deploy (indexes -> rules -> functions:submitReview,markReviewHelpful) for the review WRITE path to be live end-to-end; reads/cards/seller-visibility work today. REVW-07 completed this plan (REVW-01..07 now all delivered in code). Next: 07-01 Firebase deploy + phase-gate device smoke test.
-Last activity: 2026-07-16 - Phase 7 Plan 03 complete
+Phase: 7 of 11 (Reviews & Ratings) — COMPLETE (all 3 plans executed + deployed)
+Plan: 3 of 3 in current phase — COMPLETE
+Status: All 3 Phase 7 plans code-complete and green (:app 449 unit tests 0 failures; functions 67 jest + 16 rules-emulator; :data/:domain green; assembleDebug + assembleDebugAndroidTest compile). REVW-01..07 all delivered. Firebase DEPLOYED this session: firestore:indexes (sellerOrders userId+status composite), firestore:rules (REVIEWS + helpfulVotes + product-rating server-only), functions:submitReview + markReviewHelpful (created). Review write + read paths live end-to-end. DEFERRED gate: device/emulator smoke — Compose UI tests (CustomerProductDetailScreenTest, CustomerProductCardTest, SellerProductReviews nav) + Room v8→v9 MigrationTest + end-to-end submit→aggregate→card — all compile, no @Ignore, need a connected emulator. Reinstall the app on test devices (Room now v9). Next: Phase 8 (Notifications) via /gsd:discuss-phase 8.
+Last activity: 2026-07-16 - Phase 7 complete + deployed
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 64%
 
 ## Performance Metrics
 

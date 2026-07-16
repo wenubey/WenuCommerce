@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Checkout & Payments** - Stripe PaymentSheet via Cloud Function; order creation on success; order confirmation screen (completed 2026-04-29)
 - [x] **Phase 5: Discounts** - Seller coupon management; server-validated coupon entry at checkout; discounted pricing in summary (completed 2026-06-04)
 - [x] **Phase 6: Order Tracking & Management** - Customer order history and status timeline; seller order advancement; FCM on status change (completed 2026-06-16)
-- [ ] **Phase 7: Reviews & Ratings** - Verified-purchase reviews; aggregate ratings on product cards; seller review visibility
+- [x] **Phase 7: Reviews & Ratings** - Verified-purchase reviews; aggregate ratings on product cards; seller review visibility (completed 2026-07-16 — functions + rules + indexes deployed; device smoke pending)
 - [ ] **Phase 8: Notifications** - FCM push for all event types; typed notification channels; in-app notification history; permission flow
 - [ ] **Phase 9: Seller Storefronts & Favorite Sellers** - Public seller profile pages; follow/unfollow from storefront; followed sellers list
 - [ ] **Phase 10: Personalization & Profile** - Theme, orientation, notification toggles in DataStore; profile and address management
