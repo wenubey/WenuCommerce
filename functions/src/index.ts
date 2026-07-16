@@ -932,6 +932,240 @@ export const cancelSellerOrder = onCall(
   },
 );
 
+// ─── Reviews & Ratings (Phase 7) ───────────────────────────────────────
+
+interface SubmitReviewRequest {
+  productId: string;
+  rating: number;
+  title: string;
+  body: string;
+  reviewerName: string;
+  reviewerPhotoUrl: string;
+}
+
+interface ReviewData {
+  id: string;
+  productId: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewerPhotoUrl: string;
+  purchaseId: string;
+  rating: number;
+  title: string;
+  body: string;
+  isVerifiedPurchase: boolean;
+  helpfulCount: number;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Pure builder — produces the exact review doc shape written by submitReview.
+ * Side-effect free (createdAt injected as epoch-millis string to match the
+ * legacy client format `System.currentTimeMillis().toString()`; lexicographic
+ * sort on fixed-width 13-digit strings is correct — see RESEARCH Pitfall 7).
+ * On an edit the original createdAt + helpfulCount are preserved. Unit-testable
+ * without Firestore, mirroring buildFanoutDocs.
+ */
+export function buildReviewData(
+  uid: string,
+  reviewId: string,
+  productId: string,
+  data: SubmitReviewRequest,
+  purchaseId: string,
+  existingDoc?: admin.firestore.DocumentData,
+  isEdit?: boolean,
+): ReviewData {
+  const nowMillis = admin.firestore.Timestamp.now().toMillis().toString();
+  return {
+    id: reviewId,
+    productId,
+    reviewerId: uid,
+    reviewerName: data.reviewerName ?? "",
+    reviewerPhotoUrl: data.reviewerPhotoUrl ?? "",
+    purchaseId,
+    rating: data.rating,
+    title: data.title ?? "",
+    body: data.body ?? "",
+    isVerifiedPurchase: true, // always — the function is the verification gate (REVW-05)
+    helpfulCount: isEdit ? ((existingDoc?.helpfulCount as number) ?? 0) : 0,
+    isVisible: true,
+    createdAt: isEdit
+      ? ((existingDoc?.createdAt as string) ?? nowMillis)
+      : nowMillis,
+    updatedAt: nowMillis,
+  };
+}
+
+/**
+ * Pure aggregate recompute — kept side-effect free so every branch is
+ * unit-testable without Firestore (mirrors decideWebhookAction).
+ *
+ * New review:  count → count+1, avg → running mean.
+ * Edit (isEdit): count UNCHANGED, avg delta-corrected by swapping oldRating for
+ * newRating (RESEARCH Pitfall 1 — incrementing count on an edit is the classic
+ * bug this guards against).
+ */
+export function computeNewAggregate(
+  currentAvg: number,
+  currentCount: number,
+  newRating: number,
+  oldRating?: number,
+  isEdit?: boolean,
+): { newAvg: number; newCount: number } {
+  if (isEdit) {
+    const newCount = currentCount; // count unchanged for an edit
+    const newAvg = currentCount === 0
+      ? newRating
+      : ((currentAvg * currentCount) - (oldRating ?? 0) + newRating) / currentCount;
+    return { newAvg, newCount };
+  }
+  const newCount = currentCount + 1;
+  const newAvg = currentCount === 0
+    ? newRating
+    : ((currentAvg * currentCount) + newRating) / newCount;
+  return { newAvg, newCount };
+}
+
+/**
+ * submitReview — the ONLY write path for reviews (D-01/D-02). Verifies the
+ * caller owns a DELIVERED sellerOrder containing the product (REVW-02),
+ * enforces one review per (customer, product) with edit-in-place (REVW-03),
+ * sets isVerifiedPurchase server-side (REVW-05), and recomputes the product
+ * rating aggregate atomically in the same transaction (REVW-04). Mirrors the
+ * cancelSellerOrder server-authoritative pattern.
+ */
+export const submitReview = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Sign in required");
+  }
+  const uid = request.auth.uid;
+  const { productId, rating } = request.data as SubmitReviewRequest;
+  const data = request.data as SubmitReviewRequest;
+
+  if (!productId || typeof productId !== "string") {
+    throw new HttpsError("invalid-argument", "productId required");
+  }
+  if (typeof rating !== "number" || rating < 1 || rating > 5) {
+    throw new HttpsError("invalid-argument", "rating must be 1-5");
+  }
+
+  const db = admin.firestore();
+
+  // REVW-02 — verified-purchase gate. Requires a DELIVERED sellerOrder owned by
+  // this user that contains the product. (Composite index sellerOrders
+  // userId ASC, status ASC — see firestore.indexes.json / RESEARCH Pitfall 2.)
+  const sellerOrdersSnap = await db
+    .collection("sellerOrders")
+    .where("userId", "==", uid)
+    .where("status", "==", "DELIVERED")
+    .get();
+  const qualifying = sellerOrdersSnap.docs.filter((doc) => {
+    const items: { productId: string }[] = doc.data().items ?? [];
+    return items.some((it) => it.productId === productId);
+  });
+  if (qualifying.length === 0) {
+    throw new HttpsError(
+      "failed-precondition",
+      "No delivered order found for this product",
+    );
+  }
+
+  // REVW-03 — one review per (reviewer, product); an edit REPLACES in place.
+  const reviewsRef = db
+    .collection("PRODUCTS")
+    .doc(productId)
+    .collection("REVIEWS");
+  const existingSnap = await reviewsRef.where("reviewerId", "==", uid).get();
+  const isEdit = !existingSnap.empty;
+  const existingDoc = isEdit ? existingSnap.docs[0].data() : undefined;
+  const reviewId = isEdit ? existingSnap.docs[0].id : reviewsRef.doc().id;
+  const oldRating = isEdit
+    ? ((existingSnap.docs[0].data().rating as number) ?? 0)
+    : undefined;
+
+  const reviewData = buildReviewData(
+    uid,
+    reviewId,
+    productId,
+    data,
+    qualifying[0].id,
+    existingDoc,
+    isEdit,
+  );
+
+  const productRef = db.collection("PRODUCTS").doc(productId);
+  const reviewRef = reviewsRef.doc(reviewId);
+
+  // REVW-04 — write review + recompute product aggregate atomically.
+  await db.runTransaction(async (tx) => {
+    const productSnap = await tx.get(productRef);
+    const currentCount = (productSnap.data()?.reviewCount as number) ?? 0;
+    const currentAvg = (productSnap.data()?.averageRating as number) ?? 0;
+    const { newAvg, newCount } = computeNewAggregate(
+      currentAvg,
+      currentCount,
+      rating,
+      oldRating,
+      isEdit,
+    );
+    tx.set(reviewRef, reviewData);
+    tx.update(productRef, {
+      reviewCount: newCount,
+      averageRating: newAvg,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { reviewId, isVerifiedPurchase: true };
+});
+
+/**
+ * markReviewHelpful — idempotent per-user helpful vote (D-04). A transaction
+ * reads helpfulVotes/{uid}; a repeat vote throws already-exists (Pitfall 5),
+ * otherwise the vote doc is created and helpfulCount is incremented by one in
+ * the same atomic write. helpfulVotes writes are server-only in firestore.rules.
+ */
+export const markReviewHelpful = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Sign in required");
+  }
+  const { productId, reviewId } = request.data as {
+    productId: string;
+    reviewId: string;
+  };
+  if (!productId || typeof productId !== "string") {
+    throw new HttpsError("invalid-argument", "productId required");
+  }
+  if (!reviewId || typeof reviewId !== "string") {
+    throw new HttpsError("invalid-argument", "reviewId required");
+  }
+  const uid = request.auth.uid;
+  const db = admin.firestore();
+  const reviewRef = db
+    .collection("PRODUCTS")
+    .doc(productId)
+    .collection("REVIEWS")
+    .doc(reviewId);
+  const voteRef = reviewRef.collection("helpfulVotes").doc(uid);
+
+  await db.runTransaction(async (tx) => {
+    const voteSnap = await tx.get(voteRef);
+    if (voteSnap.exists) {
+      throw new HttpsError("already-exists", "Already marked helpful");
+    }
+    tx.set(voteRef, {
+      votedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    tx.update(reviewRef, {
+      helpfulCount: admin.firestore.FieldValue.increment(1),
+    });
+  });
+
+  return { success: true };
+});
+
 // ─── Aggregate status helper (RESEARCH §2.8) ───────────────────────────
 
 export function computeAggregateStatus(statuses: string[]): string {
