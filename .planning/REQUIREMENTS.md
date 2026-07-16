@@ -62,13 +62,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Reviews & Ratings
 
-- [ ] **REVW-01**: Customer can rate purchased products 1-5 stars (required) with optional text review
-- [ ] **REVW-02**: Only customers with DELIVERED order for the product can review (verified purchase)
-- [ ] **REVW-03**: One review per customer per product (can edit, not duplicate)
-- [ ] **REVW-04**: Product detail shows aggregate rating (average + count) and individual reviews
-- [ ] **REVW-05**: Reviews display "Verified Purchase" badge
+- [x] **REVW-01**: Customer can rate purchased products 1-5 stars (required) with optional text review
+- [x] **REVW-02**: Only customers with DELIVERED order for the product can review (verified purchase)
+- [x] **REVW-03**: One review per customer per product (can edit, not duplicate)
+- [ ] **REVW-04**: Product detail shows aggregate rating (average + count) and individual reviews (aggregate data source complete 07-01; UI in 07-02)
+- [ ] **REVW-05**: Reviews display "Verified Purchase" badge (server flag set 07-01; badge UI in 07-02)
 - [ ] **REVW-06**: Reviews sorted by most recent (default), with option for highest rated
-- [ ] **REVW-07**: Review count shown on product cards in browse/search
+- [x] **REVW-07**: Review count shown on product cards in browse/search
 
 ### Wishlist
 
@@ -207,13 +207,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ORDR-08 | Phase 6 | Pending |
 | ORDR-09 | Phase 6 | Pending |
 | ORDR-10 | Phase 6 | Complete (06-04) |
-| REVW-01 | Phase 7 | Pending |
-| REVW-02 | Phase 7 | Pending |
-| REVW-03 | Phase 7 | Pending |
-| REVW-04 | Phase 7 | Pending |
-| REVW-05 | Phase 7 | Pending |
-| REVW-06 | Phase 7 | Pending |
-| REVW-07 | Phase 7 | Pending |
+| REVW-01 | Phase 7 | Complete (07-01) |
+| REVW-02 | Phase 7 | Complete (07-01) |
+| REVW-03 | Phase 7 | Complete (07-01) |
+| REVW-04 | Phase 7 | Data foundation (07-01); UI in 07-02 |
+| REVW-05 | Phase 7 | Server flag (07-01); badge UI in 07-02 |
+| REVW-06 | Phase 7 | Pending (07-02) |
+| REVW-07 | Phase 7 | Complete (07-01) |
 | NOTF-01 | Phase 8 | Pending |
 | NOTF-02 | Phase 8 | Pending |
 | NOTF-03 | Phase 8 | Pending |
