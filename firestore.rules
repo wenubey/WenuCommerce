@@ -89,9 +89,26 @@ service cloud.firestore {
       }
     }
     match /PRODUCTS/{productId} {
+      // Product top-level doc stays client-writable for seller product
+      // management (assumption A1). The rating aggregate fields
+      // (averageRating / reviewCount) are recomputed server-side by the
+      // submitReview callable; any client set is overwritten on next recompute.
       allow read, write: if request.auth != null;
-      match /{document=**} {
-        allow read, write: if request.auth != null;
+
+      // ── Reviews (Phase 7) ──────────────────────────────────────────────
+      // Reads stay open to authenticated users (reviews are public product
+      // content — D-02). ALL writes are server-only: the submitReview /
+      // markReviewHelpful / setReviewVisibility callables use the Admin SDK,
+      // which bypasses these rules. This locks out fake verified-purchase
+      // reviews, direct edits/deletes, and helpful-vote ballot stuffing.
+      match /REVIEWS/{reviewId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if false;
+
+        match /helpfulVotes/{voterId} {
+          allow read: if request.auth != null;
+          allow create, update, delete: if false;
+        }
       }
     }
     match /CATEGORIES/{categoryId} {

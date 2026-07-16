@@ -40,6 +40,23 @@ const seedSellerOrder = {
   updatedAt: "2026-06-15T10:00:00Z",
 };
 
+const seedReview = {
+  id: "rev-1",
+  productId: "p-1",
+  reviewerId: "customer-1",
+  reviewerName: "Ada",
+  reviewerPhotoUrl: "",
+  purchaseId: "so-1",
+  rating: 5,
+  title: "Great",
+  body: "Loved it",
+  isVerifiedPurchase: true,
+  helpfulCount: 0,
+  isVisible: true,
+  createdAt: "1700000000000",
+  updatedAt: "1700000000000",
+};
+
 const seedParentOrder = {
   userId: "customer-1",
   status: "PENDING",
@@ -85,6 +102,7 @@ beforeEach(async () => {
     const fs = ctx.firestore();
     await fs.doc("orders/ord-parent-1").set(seedParentOrder);
     await fs.doc("sellerOrders/so-1").set(seedSellerOrder);
+    await fs.doc("PRODUCTS/p-1/REVIEWS/rev-1").set(seedReview);
   });
 });
 
@@ -225,6 +243,39 @@ describe("firestore.rules /sellerOrders", () => {
   it("(S2) a foreign user (not seller, not customer) cannot read /sellerOrders/{id}", async () => {
     const ctx = env.authenticatedContext("stranger");
     await assertFails(ctx.firestore().doc("sellerOrders/so-1").get());
+  });
+});
+
+describe("firestore.rules /PRODUCTS/{id}/REVIEWS (server-only writes)", () => {
+  it("(h) authenticated user can read a review (reads stay open — D-02)", async () => {
+    const ctx = env.authenticatedContext("any-user");
+    await assertSucceeds(
+      ctx.firestore().doc("PRODUCTS/p-1/REVIEWS/rev-1").get(),
+    );
+  });
+
+  it("(i) client cannot create a review directly (REVW-02 integrity)", async () => {
+    const ctx = env.authenticatedContext("customer-1");
+    await assertFails(
+      ctx.firestore().doc("PRODUCTS/p-1/REVIEWS/rev-99").set(seedReview),
+    );
+  });
+
+  it("(j) client cannot update a review directly", async () => {
+    const ctx = env.authenticatedContext("customer-1");
+    await assertFails(
+      ctx.firestore().doc("PRODUCTS/p-1/REVIEWS/rev-1").update({ rating: 1 }),
+    );
+  });
+
+  it("(k) client cannot write a helpfulVote directly (D-04 — vote stuffing)", async () => {
+    const ctx = env.authenticatedContext("customer-1");
+    await assertFails(
+      ctx
+        .firestore()
+        .doc("PRODUCTS/p-1/REVIEWS/rev-1/helpfulVotes/customer-1")
+        .set({ votedAt: "now" }),
+    );
   });
 });
 
