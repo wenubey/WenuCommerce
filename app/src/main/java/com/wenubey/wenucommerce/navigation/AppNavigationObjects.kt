@@ -128,3 +128,7 @@ data object CustomerOrderHistory
 
 @Serializable
 data class CustomerOrderDetail(val orderId: String)
+
+// Notification History (Phase 8 — 08-04 / NOTF-08)
+@Serializable
+data object NotificationHistory

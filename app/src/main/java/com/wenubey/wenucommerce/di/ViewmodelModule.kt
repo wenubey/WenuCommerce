@@ -29,6 +29,7 @@ import com.wenubey.wenucommerce.seller.orders.SellerOrderDetailViewModel
 import com.wenubey.wenucommerce.seller.orders.SellerOrdersViewModel
 import com.wenubey.wenucommerce.seller.seller_dashboard.SellerDashboardViewModel
 import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationViewModel
+import com.wenubey.wenucommerce.notification.notification_history.NotificationHistoryViewModel
 import com.wenubey.wenucommerce.sign_in.SignInViewModel
 import com.wenubey.wenucommerce.sign_up.SignUpViewModel
 import com.wenubey.wenucommerce.verify_email.VerifyEmailViewModel
@@ -88,5 +89,6 @@ val viewModelModule = module {
             dispatcherProvider = get(),
         )
     }
-
+    // Phase 8 (08-04 / NOTF-08): notification history + unread badge
+    viewModelOf(::NotificationHistoryViewModel)
 }
