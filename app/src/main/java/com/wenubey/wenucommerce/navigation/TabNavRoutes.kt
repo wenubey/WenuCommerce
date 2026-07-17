@@ -22,6 +22,7 @@ import com.wenubey.wenucommerce.seller.seller_discounts.SellerDiscountCreateEdit
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductCreateScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductEditScreen
 import com.wenubey.wenucommerce.seller.seller_products.SellerProductReviewsScreen
+import com.wenubey.wenucommerce.notification.notification_history.NotificationHistoryScreen
 import com.wenubey.wenucommerce.seller.seller_storefront.SellerStorefrontScreen
 import com.wenubey.wenucommerce.seller.seller_verification.SellerVerificationStatusScreen
 
@@ -38,6 +39,25 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             },
             onNavigateToOrderHistory = {
                 navController.navigate(CustomerOrderHistory)
+            },
+            onNavigateToOrderDetail = { orderId ->
+                navController.navigate(CustomerOrderDetail(orderId))
+            },
+        )
+    }
+
+    // Phase 8 (08-04 / NOTF-08): standalone notification history route (deep-link target)
+    composable<NotificationHistory> {
+        NotificationHistoryScreen(
+            onBack = { navController.navigateUp() },
+            onNavigateToOrderDetail = { orderId ->
+                navController.navigate(CustomerOrderDetail(orderId))
+            },
+            onNavigateToSellerOrder = { sellerOrderId ->
+                navController.navigate(SellerOrderDetail(sellerOrderId))
+            },
+            onNavigateToProductReviews = { productId, productTitle ->
+                navController.navigate(SellerProductReviews(productId, productTitle))
             },
         )
     }
@@ -78,6 +98,9 @@ fun NavGraphBuilder.tabNavRoutes(navController: NavController) {
             },
             onViewReviews = { productId, productTitle ->
                 navController.navigate(SellerProductReviews(productId, productTitle))
+            },
+            onNavigateToOrderDetail = { orderId ->
+                navController.navigate(CustomerOrderDetail(orderId))
             },
         )
     }

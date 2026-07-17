@@ -22,6 +22,9 @@
     <string name="orders">Orders</string>
     <string name="discounts">Discounts</string>
 
+    <!--Notifications (Phase 8 — 08-04 / NOTF-08)-->
+    <string name="notifications">Notifications</string>
+
     <!--Connectivity-->
     <string name="no_internet_connection">No internet connection</string>
     <string name="pending_sync_count">%d items pending sync</string>

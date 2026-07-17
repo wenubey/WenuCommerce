@@ -4,10 +4,12 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -32,6 +34,12 @@ enum class CustomerTabs(
         text = R.string.wishlist,
         selectedIcon = Icons.Filled.Favorite,
         unselectedIcon = Icons.Outlined.FavoriteBorder,
+    ),
+    // Phase 8 (08-04 / NOTF-08): notification history + unread badge
+    Notifications(
+        text = R.string.notifications,
+        selectedIcon = Icons.Filled.Notifications,
+        unselectedIcon = Icons.Outlined.Notifications,
     ),
     Profile(
         text = R.string.profile,

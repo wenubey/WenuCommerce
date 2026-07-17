@@ -47,6 +47,8 @@ import com.wenubey.domain.model.user.User
 fun SellerProfileScreen(
     modifier: Modifier = Modifier,
     user: User? = null,
+    notificationsEnabled: Boolean = true,
+    onNotificationsClick: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier
@@ -185,8 +187,8 @@ fun SellerProfileScreen(
                     SettingsItem(
                         icon = Icons.Default.Notifications,
                         title = "Notifications",
-                        subtitle = "Order alerts, messages"
-                    ) { }
+                        subtitle = if (notificationsEnabled) "Notifications are on" else "Tap to enable notifications",
+                    ) { onNotificationsClick() }
 
                     SettingsItem(
                         icon = Icons.Default.Payment,

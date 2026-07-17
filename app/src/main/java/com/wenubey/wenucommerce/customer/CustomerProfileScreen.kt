@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Badge
@@ -37,6 +38,8 @@ import androidx.compose.ui.unit.dp
 fun CustomerProfileScreen(
     modifier: Modifier = Modifier,
     onNavigateToOrderHistory: () -> Unit = {},
+    notificationsEnabled: Boolean = true,
+    onNotificationsClick: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier
@@ -104,6 +107,17 @@ fun CustomerProfileScreen(
                 title = "Addresses",
                 subtitle = "Manage delivery addresses"
             ) { /* Navigate to addresses */ }
+        }
+
+        item {
+            // Phase 8 (08-04 / NOTF-05): notifications affordance
+            ProfileMenuItem(
+                icon = Icons.Default.Notifications,
+                title = "Notifications",
+                subtitle = if (notificationsEnabled) "Notifications are on" else "Tap to enable notifications",
+                textColor = if (!notificationsEnabled) Color(0xFFF44336) else androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                onClick = onNotificationsClick,
+            )
         }
 
         item {

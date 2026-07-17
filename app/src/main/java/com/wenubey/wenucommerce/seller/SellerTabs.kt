@@ -5,11 +5,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Inventory
 import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,6 +41,12 @@ enum class SellerTabs(
         text = R.string.discounts,
         selectedIcon = Icons.Filled.LocalOffer,
         unselectedIcon = Icons.Outlined.LocalOffer,
+    ),
+    // Phase 8 (08-04 / NOTF-08): notification history + unread badge
+    Notifications(
+        text = R.string.notifications,
+        selectedIcon = Icons.Filled.Notifications,
+        unselectedIcon = Icons.Outlined.Notifications,
     ),
     Profile(
         text = R.string.profile,
