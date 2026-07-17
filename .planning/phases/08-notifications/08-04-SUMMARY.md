@@ -146,6 +146,29 @@ No new network endpoints or Firestore write paths introduced in this plan. All n
 
 No new threat flags detected beyond what the plan's threat register already covers.
 
+## Post-Review Hardening (08-REVIEW, commit e39b01c)
+
+The end-of-phase code review (`08-REVIEW.md`) found 3 blockers + warnings that the
+fixture-biased tests masked. All blockers + the actionable warnings were fixed and
+regression-guarded before phase close:
+
+- **CR-01** — `relativeTimestamp` parsed ISO-8601 but the data layer stores `createdAt` as an
+  epoch-millis String, so every row rendered a raw number. Now parses epoch-millis (ISO
+  fallback, "" on failure). Added `RelativeTimestampTest` (5 cases); test fixtures switched to
+  epoch-millis.
+- **CR-02 / CR-03** — `unreadCount` + `observeNotifications` captured the uid once at
+  construction → cold-start auth race bound the badge/list to `""` forever. Now driven off
+  `currentUser` via `flatMapLatest` + `WhileSubscribed`; added cold-start-race regression test.
+- **WR-05** — `resolveNavDestination` guarded against blank ids / id-less types (`device_login`
+  no longer deep-links to `OrderDetail("")`); added regression test.
+- **WR-04** — notifications sorted numerically by epoch-millis. **WR-08** — settings `Intent`
+  wrapped in `runCatching` (OEM `ActivityNotFoundException` guard).
+
+Deferred (non-blocking) findings WR-01/02/03/06/07 + IN-02..06 logged in
+`PRODUCT_BUGS_AND_GAPS.md` (§Phase 8 Notifications). Gate re-run green:
+`:app:testDebugUnitTest` (NotificationHistoryViewModelTest 10/10, RelativeTimestampTest 5/5),
+`:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin`.
+
 ## Self-Check
 
 Checking created files exist:

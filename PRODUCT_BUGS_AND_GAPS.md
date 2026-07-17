@@ -261,3 +261,44 @@ override suspend fun addSubcategory(categoryId: String, subcategory: Subcategory
 7. **Missing 2** — Review submission UI (complete the loop)
 8. **Bug 5** — Unarchive status decision (document or fix)
 9. **Missing 4–7** — Low priority polish items
+
+---
+
+## Phase 8 Notifications — Code Review Deferred Findings (08-REVIEW.md)
+
+The 3 blockers (CR-01/02/03) and 3 warnings (WR-04/05/08) from `08-REVIEW.md` were **fixed** in commit `e39b01c`. The remaining findings below are lower-severity robustness / maintainability items deferred out of the 08-04 scope (feature is code-complete and green; these do not break happy-path behavior). Tracked here per CLAUDE.md.
+
+### NOTF-WR-01: "Mark all read" fires N sequential Firestore writes, no atomicity (MEDIUM)
+**File:** `NotificationHistoryViewModel.markAllRead()`
+**Problem:** Loops `markAsRead(id)` per unread item — each an awaited Firestore `update`. With many unread notifications this is N sequential round-trips; a partial failure leaves an inconsistent read state with only per-item `Timber.e` logging and no user feedback.
+**Fix:** Add a repo `markAllAsRead(userId)` backed by one Room `UPDATE ... WHERE userId=:uid AND isRead=0` + a single Firestore `WriteBatch`; or at minimum run the calls concurrently (`map { async { markAsRead(it.id) } }.awaitAll()`) and surface a snackbar on failure. Needs an 08-01 repository-interface addition — deferred to avoid data-layer scope creep.
+
+### NOTF-WR-02: `refresh()` is a no-op that cannot recover from an error state (LOW)
+**File:** `NotificationHistoryViewModel.refresh()`
+**Problem:** Pull-to-refresh clears `errorMessage` and toggles `isRefreshing` in the same coroutine with no re-subscription. If the notification flow previously errored (terminating the collection), refresh does not restart it, so the screen copy "Pull down to retry" is not truthful. (The flatMapLatest-off-auth rewrite re-subscribes on uid change but not on a transient DAO error.)
+**Fix:** Make refresh re-establish the collection (cancel + relaunch, or a repo `refresh()` that re-syncs Firestore→Room), setting `isRefreshing=false` only after it completes.
+
+### NOTF-WR-03: Error snackbar uses fixed copy + is keyed on a clearable state field (LOW)
+**File:** `NotificationHistoryScreen.kt` error `LaunchedEffect(state.errorMessage)`
+**Problem:** Always shows generic "Couldn't load notifications…" and immediately dispatches `OnDismissError`; two identical back-to-back error strings won't re-trigger. Fragile keying.
+**Fix:** Route errors through a one-shot `Channel` effect (like the nav effect) or key on a monotonic error id.
+
+### NOTF-WR-06 / WR-07: Permission + rationale flow duplicated across Customer/Seller tab screens (MEDIUM — maintainability)
+**Files:** `CustomerTabScreen.kt`, `SellerTabScreen.kt`
+**Problem:** The permission-state `remember`, `LifecycleResumeEffect` recheck, `LaunchedEffect(Unit)` rationale gate, `rememberLauncherForActivityResult`, and dialog invocation are copy-pasted with trivial differences (already diverging: `permissionAlreadyRequested` field vs local `requested`). Security-sensitive flow at risk of drift. The DataStore gate still prevents re-nag on the common path.
+**Fix:** Extract a single `@Composable NotificationPermissionGate(...)` consumed by both hosts; recompute the show-condition against current `notificationsEnabled` (a `snapshotFlow`-driven effect) to close the WR-06 resume/grant timing edge.
+
+### NOTF-IN-05: Hardcoded ARGB colors bypass the Material 3 theme (LOW)
+**Files:** `CustomerProfileScreen.kt`, `SellerProfileScreen.kt`, `NotificationHistoryScreen.kt` (review-star amber)
+**Problem:** Literal `Color(0xFFF44336)` (disabled/sign-out red) should be `MaterialTheme.colorScheme.error`; the review-star amber `0xFFFF9800` (intentional per 08-UI-SPEC type vocabulary) should be a named theme token. `CustomerProfileScreen.kt` also fully-qualifies `MaterialTheme.colorScheme.onSurface` inline (missing import). Won't adapt to dark/dynamic color. Mostly pre-existing scaffolding surfaced by this phase's edits.
+**Fix:** Replace red literals with `colorScheme.error`; promote the star accent to a theme extension.
+
+### NOTF-IN-06: Leftover `//TODO Refactor Later` + dead click handlers in Profile screens (LOW — pre-existing)
+**Files:** `CustomerProfileScreen.kt`, `SellerProfileScreen.kt`
+**Problem:** No-op `onClick = { }` handlers (Wishlist, Addresses, Settings, Sign Out, Edit Shop Profile, Payment/Shipping/Analytics/Help) and stale `Refactor Later` markers. Pre-existing scaffolding, not a Phase-8 regression; the Notifications affordance itself is wired.
+**Fix:** Wire or remove the dead handlers; convert markers to specific tracked TODOs.
+
+### NOTF-IN-02 / IN-03 / IN-04: Test-quality gaps (LOW)
+- `NotificationHistoryViewModelTest` OnDismissError test passes vacuously (no error induced). `FakeNotificationRepository` cannot simulate `observeNotifications` failure, so the VM error `catch` is untested. (Partially addressed: WR-05 + CR-02 paths now covered.)
+- `NotificationHistoryScreenTest` mocks the whole VM and `verify { vm.onAction(any()) }` accepts any action — smoke-level only; use `slot<NotificationHistoryAction>()` to assert `OnItemClick` with the expected item.
+**Fix:** Add an error-emitting hook to the fake and tighten the androidTest action assertion when the Compose test suite is next run on-device.
