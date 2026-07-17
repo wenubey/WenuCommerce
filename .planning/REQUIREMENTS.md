@@ -214,9 +214,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-05 | Phase 7 | Complete (07-02) |
 | REVW-06 | Phase 7 | Complete (07-02) |
 | REVW-07 | Phase 7 | Complete (07-01 aggregate + 07-03 card surface) |
-| NOTF-01 | Phase 8 | Pending |
-| NOTF-02 | Phase 8 | Pending |
-| NOTF-03 | Phase 8 | Pending |
+| NOTF-01 | Phase 8 | Server-complete (08-02 notifications-doc write + channel); client push/history in 08-03/04 |
+| NOTF-02 | Phase 8 | Server-complete (08-02 notifications-doc write + channel); client push/history in 08-03/04 |
+| NOTF-03 | Phase 8 | Server-complete (08-02 onNewReview trigger); client push/deep-link/history in 08-03/04 |
 | NOTF-04 | Phase 8 | Pending |
 | NOTF-05 | Phase 8 | Pending |
 | NOTF-06 | Phase 8 | Pending |

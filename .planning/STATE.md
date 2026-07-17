@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 8 context gathered
-last_updated: "2026-07-17T14:41:34.594Z"
-last_activity: 2026-07-16 - Phase 7 complete + deployed
+status: in-progress
+stopped_at: Completed 08-02-PLAN.md (Notifications Cloud Functions)
+last_updated: "2026-07-17T00:00:00.000Z"
+last_activity: 2026-07-17 - Phase 8 plan 08-02 complete (onNewReview + notifications-doc writes + channel migration)
 progress:
   total_phases: 11
   completed_phases: 7
-  total_plans: 26
-  completed_plans: 26
+  total_plans: 28
+  completed_plans: 28
   percent: 64
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 
 ## Current Position
 
-Phase: 7 of 11 (Reviews & Ratings) — COMPLETE (all 3 plans executed + deployed)
-Plan: 3 of 3 in current phase — COMPLETE
-Status: All 3 Phase 7 plans code-complete and green (:app 449 unit tests 0 failures; functions 67 jest + 16 rules-emulator; :data/:domain green). REVW-01..07 all delivered. Firebase DEPLOYED: firestore:indexes (sellerOrders userId+status composite), firestore:rules (REVIEWS + helpfulVotes + product-rating server-only), functions:submitReview + markReviewHelpful. DEVICE SMOKE DONE on emulator-5554: Room MigrationTest 6→7→8→9 (4/4) + Compose UI CustomerProductCardTest + CustomerProductDetailScreenTest (13/13) all green (also fixed a migration-test seed bug the device run surfaced). Only remaining validation is a real-data e2e (customer with a DELIVERED order submits a review → aggregate → card) — optional manual check. Next: Phase 8 (Notifications) via /gsd:discuss-phase 8.
-Last activity: 2026-07-16 - Phase 7 complete + deployed
+Phase: 8 of 11 (Notifications) — IN PROGRESS (2 of 4 plans complete)
+Plan: 08-02 COMPLETE (Cloud Functions); 08-01 COMPLETE + DEPLOYED (data foundation)
+Status: 08-02 done and green. functions now: 87 jest (non-emulator, 8 suites) + 22 rules (emulator) all green; tsc --noEmit clean. Added onNewReview (onDocumentCreated on PRODUCTS/{productId}/REVIEWS/{reviewId} → seller FCM + notifications-doc, type new_review); onOrderStatusChange + onNewSellerOrder now write notifications/{uid}/items history docs and migrated channelId order_status_channel → order_updates_channel (D-03); notifId threaded into all three FCM data payloads for client-side Room dedup. PENDING DEPLOY (orchestrator): firebase deploy --only functions:onNewReview,functions:onOrderStatusChange,functions:onNewSellerOrder (onNewReview is NEW; the other two MODIFIED). NOTF-01/02/03 are server-complete; client push/deep-link/history land in 08-03/08-04. Next: 08-03 (MessagingService type-router + centralised channels + MainActivity deep-link + FcmTokenWorker).
+Last activity: 2026-07-17 - Phase 8 plan 08-02 complete
 
 Progress: [███████░░░] 64%
 
@@ -70,6 +70,7 @@ Progress: [███████░░░] 64%
 | Phase 05-discounts P03 | 5 | 2 tasks | 8 files |
 | Phase 07-reviews-ratings P01 | 22 | 4 tasks | 20 files |
 | Phase 07-reviews-ratings P02 | 13 | 3 tasks | 14 files |
+| Phase 08-notifications P02 | 20 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -167,6 +168,10 @@ Recent decisions affecting current work:
 - [Phase 07-02]: Private ReviewCard extracted to core/components/ReviewCard.kt with a shared read-only StarRatingDisplay (C-01) reused by the aggregate header
 - [Phase 07-02]: hasDeliveredOrder is a UX affordance only (defence-in-depth T-07-08); the 07-01 submitReview callable is the security boundary
 - [Phase 07-02]: :app:lintDebug crashes in RememberInCompositionDetector (IncompatibleClassChangeError) — pre-existing Compose-lint/AGP version bug, out of scope; assembleDebug + unit tests are the merge gate
+- [08-02]: onNewReview writes the notifications history doc BEFORE the FCM send (unconditional) so seller history survives a missing fcmToken / FCM failure (T-08-08)
+- [08-02]: order triggers allocate notifRef (client-side id, no I/O) BEFORE the send to embed notifId in the FCM data, then .set() the doc AFTER the successful send (RESEARCH §8 ordering + must_haves)
+- [08-02]: buildNewReviewBody extracted as a pure named export for direct Jest unit test (no emulator) — same idiom as computeAggregateStatus/buildReviewData; functions triggers are tested structurally via per-function source-slice greps
+- [08-02]: channelId 'order_updates_channel' hardcoded on all 3 triggers to match 08-03 NotificationChannels.ORDER_UPDATES_CHANNEL_ID; legacy order_status_channel fully removed from index.ts (whole-file grep guards against re-introduction)
 
 ### Pending Todos
 
@@ -187,6 +192,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-07-17T14:41:34.584Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-notifications/08-CONTEXT.md
+Last session: 2026-07-17T00:00:00.000Z
+Stopped at: Completed 08-02-PLAN.md (Notifications Cloud Functions) — pending functions deploy by orchestrator
+Resume file: .planning/phases/08-notifications/08-03-PLAN.md
