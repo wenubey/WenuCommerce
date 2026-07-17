@@ -61,7 +61,9 @@ describe("onOrderStatusChange — W5 race mitigation contract", () => {
     expect(indexSrc).toMatch(/type:\s*"order_status"/);
     expect(indexSrc).toMatch(/orderId:\s*parentId/);
     expect(indexSrc).toMatch(/sellerOrderId:\s*event\.params\.sellerOrderId/);
-    expect(indexSrc).toMatch(/channelId:\s*"order_status_channel"/);
+    // Plan 08-02 (D-03): migrated onto the shared Order Updates channel.
+    expect(indexSrc).toMatch(/channelId:\s*"order_updates_channel"/);
+    expect(indexSrc).not.toMatch(/channelId:\s*"order_status_channel"/);
   });
 
   it("recomputes aggregateStatus inside transaction with reads-before-writes", () => {
@@ -124,9 +126,9 @@ describe("onOrderStatusChange — Plan 06-04 hardened aggregate cases", () => {
   });
 });
 
-describe("onOrderStatusChange — FCM payload shape (Plan 06-04 contract)", () => {
-  it("payload data object contains exactly: type, orderId, sellerOrderId, newStatus", () => {
-    // Find the data: { ... } literal handed to getMessaging().send
+describe("onOrderStatusChange — FCM payload shape (Plan 06-04 + 08-02 contract)", () => {
+  it("payload data object contains: type, orderId, sellerOrderId, newStatus, notifId", () => {
+    // The first data: {…} / android: literal in the file is onOrderStatusChange's.
     const match = indexSrc.match(/data:\s*\{([\s\S]*?)\}\s*,\s*android:/);
     expect(match).not.toBeNull();
     const dataBlock = match![1];
@@ -134,11 +136,13 @@ describe("onOrderStatusChange — FCM payload shape (Plan 06-04 contract)", () =
     expect(dataBlock).toMatch(/orderId:\s*parentId/);
     expect(dataBlock).toMatch(/sellerOrderId:\s*event\.params\.sellerOrderId/);
     expect(dataBlock).toMatch(/newStatus:/);
+    // Plan 08-02: notifId rides the data payload for client-side Room dedup.
+    expect(dataBlock).toMatch(/notifId:\s*notifRef\.id/);
   });
 
-  it("android.notification.channelId === 'order_status_channel'", () => {
+  it("android.notification.channelId === 'order_updates_channel' (D-03)", () => {
     expect(indexSrc).toMatch(
-      /android:\s*\{[\s\S]*?notification:\s*\{[\s\S]*?channelId:\s*"order_status_channel"/,
+      /android:\s*\{[\s\S]*?notification:\s*\{[\s\S]*?channelId:\s*"order_updates_channel"/,
     );
   });
 
@@ -199,5 +203,85 @@ describe("onOrderStatusChange — concurrency / sibling-update determinism (W5)"
       indexSrc.match(/aggregateVersion:\s*currentVersion\s*\+\s*1/g) || [];
     expect(plusOne.length).toBe(1);
     expect(indexSrc).not.toMatch(/aggregateVersion:\s*currentVersion\s*\+\s*2/);
+  });
+});
+
+// ─── Plan 08-02 — notifications-doc history writes + channel migration ──
+
+// Isolate onOrderStatusChange's body (from its export up to the next export).
+const onOrderStatusChangeSrc = (() => {
+  const start = indexSrc.indexOf("export const onOrderStatusChange");
+  const end = indexSrc.indexOf("export const", start + 1);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  return indexSrc.slice(start, end);
+})();
+
+// Isolate onNewSellerOrder's body (from its export up to the next export).
+const onNewSellerOrderSrc = (() => {
+  const start = indexSrc.indexOf("export const onNewSellerOrder");
+  const end = indexSrc.indexOf("export const", start + 1);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  return indexSrc.slice(start, end);
+})();
+
+describe("onOrderStatusChange — notifications-doc history write (Plan 08-02, NOTF-01/D-01)", () => {
+  it("writes a notifications/{customerUid}/items doc of type order_status", () => {
+    expect(onOrderStatusChangeSrc).toMatch(
+      /collection\("notifications"\)\s*\.doc\(customerUid\)\s*\.collection\("items"\)/,
+    );
+    expect(onOrderStatusChangeSrc).toMatch(/type:\s*"order_status"/);
+  });
+
+  it("the history write is guarded by the customerUid presence check", () => {
+    expect(onOrderStatusChangeSrc).toMatch(
+      /if\s*\(\s*customerUid\s*\)\s*\{[\s\S]*?notifRef\.set\(/,
+    );
+  });
+
+  it("carries the order deep-link ids on the history doc (orderId + sellerOrderId)", () => {
+    const setMatch = onOrderStatusChangeSrc.match(
+      /notifRef\.set\(\{([\s\S]*?)\}\);/,
+    );
+    expect(setMatch).not.toBeNull();
+    const setBlock = setMatch![1];
+    expect(setBlock).toMatch(/orderId:\s*parentId/);
+    expect(setBlock).toMatch(/sellerOrderId:\s*event\.params\.sellerOrderId/);
+    expect(setBlock).toMatch(/read:\s*false/);
+  });
+
+  it("migrated its FCM channelId to order_updates_channel (no order_status_channel)", () => {
+    expect(onOrderStatusChangeSrc).toMatch(/channelId:\s*"order_updates_channel"/);
+    expect(onOrderStatusChangeSrc).not.toMatch(/order_status_channel/);
+  });
+});
+
+describe("onNewSellerOrder — notifications-doc history write (Plan 08-02, NOTF-02/D-01)", () => {
+  it("writes a notifications/{sellerUid}/items doc of type new_order", () => {
+    expect(onNewSellerOrderSrc).toMatch(
+      /collection\("notifications"\)\s*\.doc\(sellerUid\)\s*\.collection\("items"\)/,
+    );
+    expect(onNewSellerOrderSrc).toMatch(/type:\s*"new_order"/);
+    expect(onNewSellerOrderSrc).toMatch(/read:\s*false/);
+  });
+
+  it("adds notifId to the FCM data payload for client-side dedup", () => {
+    const match = onNewSellerOrderSrc.match(/data:\s*\{([\s\S]*?)\}\s*,\s*android:/);
+    expect(match).not.toBeNull();
+    const dataBlock = match![1];
+    expect(dataBlock).toMatch(/type:\s*"new_order"/);
+    expect(dataBlock).toMatch(/notifId:\s*notifRef\.id/);
+  });
+
+  it("migrated its FCM channelId to order_updates_channel (no order_status_channel)", () => {
+    expect(onNewSellerOrderSrc).toMatch(/channelId:\s*"order_updates_channel"/);
+    expect(onNewSellerOrderSrc).not.toMatch(/order_status_channel/);
+  });
+});
+
+describe("all triggers — no residual order_status_channel references (D-03 migration complete)", () => {
+  it("the old order_status_channel string is fully removed from index.ts", () => {
+    expect(indexSrc).not.toMatch(/order_status_channel/);
   });
 });

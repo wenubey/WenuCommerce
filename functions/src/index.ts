@@ -1271,6 +1271,14 @@ export const onOrderStatusChange = onDocumentWritten(
         return;
       }
 
+      // Allocate the history doc ref up-front (no I/O) so its id can ride in
+      // the FCM data payload as notifId for client-side Room dedup (08-03).
+      const notifRef = db
+        .collection("notifications")
+        .doc(customerUid)
+        .collection("items")
+        .doc();
+
       console.log("[fcm] sending message", {
         title: titleFor(after.status),
         status: after.status,
@@ -1286,11 +1294,12 @@ export const onOrderStatusChange = onDocumentWritten(
           orderId: parentId,
           sellerOrderId: event.params.sellerOrderId,
           newStatus: String(after.status),
+          notifId: notifRef.id,
         },
         android: {
           priority: "high",
           notification: {
-            channelId: "order_status_channel",
+            channelId: "order_updates_channel",
             // clickAction removed: without a matching <intent-filter> on
             // MainActivity, some Android versions silently no-op the tap.
             // Default launcher intent opens MainActivity with the `data`
@@ -1299,6 +1308,23 @@ export const onOrderStatusChange = onDocumentWritten(
         },
       });
       console.log("[fcm] send SUCCESS", { messageId });
+
+      // Persist to customer notification history (D-01) after the push so the
+      // in-app history feed is complete. Swallowed by the same catch as FCM.
+      if (customerUid) {
+        await notifRef.set({
+          id: notifRef.id,
+          type: "order_status",
+          title: titleFor(after.status),
+          body: `Your order is ${String(after.status).toLowerCase()}.`,
+          orderId: parentId,
+          sellerOrderId: event.params.sellerOrderId,
+          productId: "",
+          productTitle: "",
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
     } catch (err) {
       console.error("[fcm] dispatch FAILED for parentId", parentId, err);
       // Swallow — aggregate write is the contract, push is best-effort.
@@ -1344,6 +1370,14 @@ export const onNewSellerOrder = onDocumentCreated(
       return;
     }
 
+    // Allocate the history doc ref up-front (no I/O) so its id can ride in the
+    // FCM data payload as notifId for client-side Room dedup (08-03).
+    const notifRef = db
+      .collection("notifications")
+      .doc(sellerUid)
+      .collection("items")
+      .doc();
+
     try {
       const messageId = await getMessaging().send({
         token: fcmToken,
@@ -1354,15 +1388,31 @@ export const onNewSellerOrder = onDocumentCreated(
         data: {
           type: "new_order",
           sellerOrderId,
+          notifId: notifRef.id,
         },
         android: {
           priority: "high",
           notification: {
-            channelId: "order_status_channel",
+            channelId: "order_updates_channel",
           },
         },
       });
       console.log("[new_order] send SUCCESS", { messageId });
+
+      // Persist to seller notification history (D-01) so the in-app history
+      // feed is complete. Swallowed by the same catch as FCM.
+      await notifRef.set({
+        id: notifRef.id,
+        type: "new_order",
+        title: "New order",
+        body: "You have a new order to fulfill.",
+        orderId: "",
+        sellerOrderId,
+        productId: "",
+        productTitle: "",
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     } catch (err) {
       console.error("[new_order] dispatch FAILED for sellerOrderId", sellerOrderId, err);
     }
