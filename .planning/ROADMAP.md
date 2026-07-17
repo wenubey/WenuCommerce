@@ -164,7 +164,7 @@ Plans:
 - [x] 08-01-PLAN.md — Data foundation: Room notifications table (MIGRATION_9_10/v10) + domain Notification model/repo + Room-first Firestore sync + updateFcmToken→suspend + notifications Firestore rules
 - [x] 08-02-PLAN.md — Cloud Functions: onNewReview trigger + notifications-doc writes in onOrderStatusChange/onNewSellerOrder + order_updates_channel migration
 - [x] 08-03-PLAN.md — MessagingService type-router (new_review) + centralised 3 channels + MainActivity deep-link + FcmTokenWorker (WorkManager token lifecycle)
-- [ ] 08-04-PLAN.md — Notification History screen + unread badge + tab/Profile entry points + POST_NOTIFICATIONS rationale flow
+- [x] 08-04-PLAN.md — Notification History screen + unread badge + tab/Profile entry points + POST_NOTIFICATIONS rationale flow (human-verify deferred)
 
 ### Phase 9: Seller Storefronts & Favorite Sellers
 **Goal**: Customers can discover seller profiles, follow sellers they like, and browse a list of their followed sellers — sellers see their follower count
