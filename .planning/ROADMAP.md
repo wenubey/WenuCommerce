@@ -158,13 +158,13 @@ Plans:
   3. On Android 13+ devices, the app requests POST_NOTIFICATIONS permission with a rationale dialog; the app gracefully handles denial
   4. Three distinct notification channels exist (Order Updates, Account, Promotions) visible in Android system notification settings
   5. In-app notification history screen shows all received notifications with timestamps; FCM token is refreshed and updated in Firestore via WorkManager (not fire-and-forget)
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 08-01: NotificationEntity + NotificationDAO; extended MessagingService with type routing, Room persistence, notification channel dispatch
-- [ ] 08-02: FCM token lifecycle via WorkManager; Android 13+ POST_NOTIFICATIONS permission flow with rationale
-- [ ] 08-03: In-app notification history screen (Room-backed); notification deep-link handling for order and product destinations
-- [ ] 08-04: Cloud Function — onNewOrder FCM trigger to seller; onNewReview FCM trigger to seller
+- [ ] 08-01-PLAN.md — Data foundation: Room notifications table (MIGRATION_9_10/v10) + domain Notification model/repo + Room-first Firestore sync + updateFcmToken→suspend + notifications Firestore rules
+- [ ] 08-02-PLAN.md — Cloud Functions: onNewReview trigger + notifications-doc writes in onOrderStatusChange/onNewSellerOrder + order_updates_channel migration
+- [ ] 08-03-PLAN.md — MessagingService type-router (new_review) + centralised 3 channels + MainActivity deep-link + FcmTokenWorker (WorkManager token lifecycle)
+- [ ] 08-04-PLAN.md — Notification History screen + unread badge + tab/Profile entry points + POST_NOTIFICATIONS rationale flow
 
 ### Phase 9: Seller Storefronts & Favorite Sellers
 **Goal**: Customers can discover seller profiles, follow sellers they like, and browse a list of their followed sellers — sellers see their follower count
@@ -233,7 +233,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Discounts | 3/3 | Complete   | 2026-06-04 |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
 | 7. Reviews & Ratings | 2/3 | In progress | - |
-| 8. Notifications | 0/4 | Not started | - |
+| 8. Notifications | 0/4 | Planned | - |
 | 9. Seller Storefronts & Favorite Sellers | 0/3 | Not started | - |
 | 10. Personalization & Profile | 0/4 | Not started | - |
 | 11. Testing | 0/4 | Not started | - |
