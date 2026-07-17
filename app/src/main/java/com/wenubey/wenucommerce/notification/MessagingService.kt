@@ -1,11 +1,9 @@
 package com.wenubey.wenucommerce.notification
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -29,10 +27,9 @@ class MessagingService: FirebaseMessagingService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    override fun onCreate() {
-        super.onCreate()
-        ensureOrderStatusChannel(this)
-    }
+    // Phase 8 (08-03 / NOTF-06): channels are created centrally in
+    // WenuCommerce.onCreate via NotificationChannels.createAll — no per-service
+    // channel creation here anymore.
 
     override fun onDestroy() {
         serviceScope.cancel()
@@ -144,20 +141,11 @@ class MessagingService: FirebaseMessagingService() {
     }
 
     private fun showNotification(title: String, body: String) {
-        val channelId = "device_login_channel"
+        // Phase 8 (08-03 / D-03): device_login → Account channel. The channel is
+        // created centrally (NotificationChannels.createAll); no inline creation.
+        val channelId = ACCOUNT_CHANNEL_ID
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         Timber.d("Notification Manager: ${notificationManager.activeNotifications}")
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Device Login Alerts",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for device login events."
-            }
-
-            notificationManager.createNotificationChannel(channel)
-        }
 
         val packageManager = context.packageManager
 
@@ -193,24 +181,6 @@ class MessagingService: FirebaseMessagingService() {
     companion object {
         const val NAVIGATE_TO_SETTINGS = "navigate_to_settings"
         const val NOTIFICATION_CLICK_ACTION = "notification_click"
-
-        /**
-         * Create the order-status notification channel (idempotent). Mirrors
-         * the device_login_channel pattern. Safe on pre-O (no-op).
-         */
-        internal fun ensureOrderStatusChannel(context: Context) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE)
-                as NotificationManager
-            val channel = NotificationChannel(
-                ORDER_STATUS_CHANNEL_ID,
-                ORDER_STATUS_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = ORDER_STATUS_CHANNEL_DESCRIPTION
-            }
-            nm.createNotificationChannel(channel)
-        }
 
         /**
          * Builds the launch intent that the PendingIntent wraps when an
