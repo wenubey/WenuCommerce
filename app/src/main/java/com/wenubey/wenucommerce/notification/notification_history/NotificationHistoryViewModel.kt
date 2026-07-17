@@ -7,13 +7,19 @@ import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.NotificationRepository
 import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_ORDER
 import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_REVIEW
+import com.wenubey.wenucommerce.notification.FCM_TYPE_ORDER_STATUS
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -28,10 +34,16 @@ import timber.log.Timber
  * - [onAction] handles tap → markAsRead + one-shot [NavigationDestination] effect,
  *   "mark all read", pull-to-refresh, and error dismissal.
  *
+ * Both the history list and the badge are driven off the auth [AuthRepository.currentUser]
+ * stream via `flatMapLatest` so they rebind when the uid appears (cold-start auth race,
+ * CR-02) or changes (sign-out/in) — never latched to a stale/empty uid captured at
+ * construction time.
+ *
  * Threat mitigations applied:
  *   T-08-12: [markAsRead] only operates on the current user's notifications (auth uid guard).
- *   T-08-13: [observeNotifications] is always called with [currentUserId] (never cross-user).
+ *   T-08-13: [observeNotifications] is always called with the live current uid (never cross-user).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class NotificationHistoryViewModel(
     private val notificationRepository: NotificationRepository,
     private val authRepository: AuthRepository,
@@ -53,39 +65,44 @@ class NotificationHistoryViewModel(
     private val currentUserId: String?
         get() = authRepository.currentUser.value?.uuid
 
-    /** Live unread badge count for the bottom nav (D-01b).
-     * Eagerly started so the count is always current regardless of collector presence.
-     * The badge composable injects this VM via koinViewModel and subscribes in its own lifecycle. */
-    val unreadCount: StateFlow<Int> = notificationRepository
-        .observeUnreadCount(authRepository.currentUser.value?.uuid ?: "")
+    /** Live signed-in uid stream — the single source that rebinds the notification and
+     *  badge flows whenever the profile loads or the user switches. */
+    private val userIdFlow = authRepository.currentUser
+        .map { it?.uuid }
+        .distinctUntilChanged()
+
+    /** Live unread badge count for the bottom nav (D-01b). Rebinds to the current uid via
+     *  flatMapLatest, so a VM built during the cold-start auth race still populates once the
+     *  profile loads; WhileSubscribed bounds the Room listener to actual UI presence. */
+    val unreadCount: StateFlow<Int> = userIdFlow
+        .flatMapLatest { uid ->
+            if (uid.isNullOrBlank()) flowOf(0)
+            else notificationRepository.observeUnreadCount(uid)
+        }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.Eagerly,
+            started = SharingStarted.WhileSubscribed(5_000),
             initialValue = 0,
         )
 
     init {
-        observeNotifications()
-    }
-
-    private fun observeNotifications() {
-        val uid = currentUserId ?: run {
-            _state.value = _state.value.copy(isLoading = false)
-            return
-        }
-        notificationRepository.observeNotifications(uid)
-            .catch { error ->
-                Timber.e(error, "NotificationHistoryViewModel: observeNotifications failed")
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    errorMessage = error.message ?: "Unknown error",
-                )
+        userIdFlow
+            .flatMapLatest { uid ->
+                if (uid.isNullOrBlank()) flowOf(emptyList())
+                else notificationRepository.observeNotifications(uid)
             }
             .onEach { notifications ->
                 _state.value = _state.value.copy(
                     notifications = notifications,
                     isLoading = false,
                     hasUnread = notifications.any { !it.isRead },
+                )
+            }
+            .catch { error ->
+                Timber.e(error, "NotificationHistoryViewModel: observeNotifications failed")
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    errorMessage = error.message ?: "Unknown error",
                 )
             }
             .launchIn(viewModelScope)
@@ -108,17 +125,21 @@ class NotificationHistoryViewModel(
                 .onFailure { e ->
                     Timber.e(e, "NotificationHistoryViewModel: markAsRead failed for ${item.id}")
                 }
-            val destination = resolveNavDestination(item)
-            _navigationEffect.send(destination)
+            // Only navigate when the notification carries a valid destination id; an id-less
+            // or unknown type (e.g. device_login) stays on the list rather than deep-linking
+            // to a broken empty-key detail screen (WR-05).
+            resolveNavDestination(item)?.let { _navigationEffect.send(it) }
         }
     }
 
-    private fun resolveNavDestination(item: Notification): NavigationDestination {
-        return when (item.type) {
-            FCM_TYPE_NEW_ORDER -> NavigationDestination.SellerOrder(item.sellerOrderId)
-            FCM_TYPE_NEW_REVIEW -> NavigationDestination.ProductReviews(item.productId, item.productTitle)
-            else -> NavigationDestination.OrderDetail(item.orderId) // order_status + fallback
-        }
+    private fun resolveNavDestination(item: Notification): NavigationDestination? = when (item.type) {
+        FCM_TYPE_NEW_ORDER -> item.sellerOrderId.ifBlank { null }
+            ?.let { NavigationDestination.SellerOrder(it) }
+        FCM_TYPE_NEW_REVIEW -> item.productId.ifBlank { null }
+            ?.let { NavigationDestination.ProductReviews(it, item.productTitle) }
+        FCM_TYPE_ORDER_STATUS -> item.orderId.ifBlank { null }
+            ?.let { NavigationDestination.OrderDetail(it) }
+        else -> null
     }
 
     private fun markAllRead() {

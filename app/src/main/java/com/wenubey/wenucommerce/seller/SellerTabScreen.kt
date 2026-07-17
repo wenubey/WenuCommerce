@@ -197,10 +197,11 @@ fun SellerTabScreen(
                         notificationsEnabled = notificationsEnabled,
                         onNotificationsClick = {
                             if (!notificationsEnabled) {
+                                // Guard the launch against OEMs that don't resolve the action (WR-08).
                                 val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                                     putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                                 }
-                                context.startActivity(intent)
+                                runCatching { context.startActivity(intent) }
                             } else {
                                 scope.launch {
                                     pagerState.animateScrollToPage(SellerTabs.Notifications.ordinal)

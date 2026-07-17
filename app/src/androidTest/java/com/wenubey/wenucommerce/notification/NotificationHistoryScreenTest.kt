@@ -51,7 +51,8 @@ class NotificationHistoryScreenTest {
         body = body,
         orderId = orderId,
         isRead = isRead,
-        createdAt = "2026-07-17T12:00:00Z",
+        // Epoch-millis String — the format the data layer actually produces (NotificationMapper).
+        createdAt = "1752750000000",
     )
 
     private fun buildMockViewModel(state: NotificationHistoryState): NotificationHistoryViewModel {

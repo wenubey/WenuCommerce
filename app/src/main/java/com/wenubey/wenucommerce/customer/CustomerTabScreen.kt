@@ -194,11 +194,13 @@ fun CustomerTabScreen(
                     notificationsEnabled = notificationsEnabled,
                     onNotificationsClick = {
                         if (!notificationsEnabled) {
-                            // Open system app-notification settings
+                            // Open system app-notification settings. Guard the launch — some OEM
+                            // ROMs / restricted profiles don't resolve the action and would
+                            // otherwise crash with ActivityNotFoundException (WR-08).
                             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                                 putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                             }
-                            context.startActivity(intent)
+                            runCatching { context.startActivity(intent) }
                         } else {
                             scope.launch {
                                 pagerState.animateScrollToPage(CustomerTabs.Notifications.ordinal)

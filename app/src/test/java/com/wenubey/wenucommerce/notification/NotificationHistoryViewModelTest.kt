@@ -42,7 +42,8 @@ class NotificationHistoryViewModelTest {
         productId = productId,
         productTitle = productTitle,
         isRead = isRead,
-        createdAt = "2026-07-17T12:00:00Z",
+        // Epoch-millis String — the format the data layer actually produces (NotificationMapper).
+        createdAt = "1752750000000",
     )
 
     private fun buildViewModel(
@@ -189,28 +190,81 @@ class NotificationHistoryViewModelTest {
     fun `unreadCount reflects observeUnreadCount from repository`() = runTest {
         val (vm, repo) = buildViewModel()
 
-        repo.emitNotifications(
-            listOf(
-                notification("n1", isRead = false),
-                notification("n2", isRead = false),
-                notification("n3", isRead = false), // 3 unread
+        // unreadCount is WhileSubscribed — collect it so the upstream is active.
+        vm.unreadCount.test {
+            assertThat(awaitItem()).isEqualTo(0) // initial (empty repo)
+
+            repo.emitNotifications(
+                listOf(
+                    notification("n1", isRead = false),
+                    notification("n2", isRead = false),
+                    notification("n3", isRead = false), // 3 unread
+                )
             )
-        )
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(3)
+
+            // After two are marked read, count drops to 1
+            repo.emitNotifications(
+                listOf(
+                    notification("n1", isRead = true),
+                    notification("n2", isRead = false),
+                    notification("n3", isRead = true),
+                )
+            )
+            advanceUntilIdle()
+            assertThat(awaitItem()).isEqualTo(1)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // --- CR-02 regression: list + badge rebind when the uid arrives after construction ---
+
+    @Test
+    fun `list and badge rebind when auth uid arrives after construction (cold-start race)`() =
+        runTest {
+            val repo = FakeNotificationRepository()
+            // Firebase authed but profile not yet loaded → currentUser is null at construction.
+            val auth = FakeAuthRepository(initialUser = null)
+            val vm = NotificationHistoryViewModel(repo, auth)
+            repo.emitNotifications(listOf(notification("n1", isRead = false)))
+            advanceUntilIdle()
+
+            // While the uid is absent the VM must NOT bind to "" — the list stays empty
+            // rather than silently querying WHERE userId = "" forever.
+            assertThat(vm.state.value.notifications).isEmpty()
+
+            vm.unreadCount.test {
+                assertThat(awaitItem()).isEqualTo(0) // no uid yet → 0
+
+                // Profile finishes loading and the uid appears.
+                auth.emitUser(User(uuid = userId))
+                advanceUntilIdle()
+
+                // Both surfaces self-heal without a process restart.
+                assertThat(vm.state.value.notifications).hasSize(1)
+                assertThat(awaitItem()).isEqualTo(1)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // --- WR-05 regression: id-less / unknown types do not deep-link to an empty-key screen ---
+
+    @Test
+    fun `OnItemClick on device_login notification marks read but emits no navigation`() = runTest {
+        val (vm, repo) = buildViewModel()
+        val n = notification("n-login", isRead = false, type = "device_login")
+        repo.emitNotifications(listOf(n))
         advanceUntilIdle()
 
-        assertThat(vm.unreadCount.value).isEqualTo(3)
+        vm.navigationEffect.test {
+            vm.onAction(NotificationHistoryAction.OnItemClick(n))
+            advanceUntilIdle()
 
-        // After two are marked read, count drops to 1
-        repo.emitNotifications(
-            listOf(
-                notification("n1", isRead = true),
-                notification("n2", isRead = false),
-                notification("n3", isRead = true),
-            )
-        )
-        advanceUntilIdle()
-
-        assertThat(vm.unreadCount.value).isEqualTo(1)
+            assertThat(repo.markAsReadCalls).contains("n-login")
+            expectNoEvents() // id-less/unknown type stays on the list
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // --- OnDismissError clears error state ---

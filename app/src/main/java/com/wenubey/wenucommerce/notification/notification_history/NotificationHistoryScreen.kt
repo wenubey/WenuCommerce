@@ -161,7 +161,11 @@ fun NotificationHistoryScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(
-                            items = state.notifications.sortedByDescending { it.createdAt },
+                            // createdAt is an epoch-millis String; sort numerically so rows of
+                            // unequal digit length still order correctly (WR-04).
+                            items = state.notifications.sortedByDescending {
+                                it.createdAt.toLongOrNull() ?: Long.MIN_VALUE
+                            },
                             key = { it.id },
                         ) { item ->
                             NotificationRow(
@@ -312,29 +316,27 @@ private fun typeContentDescription(type: String): String {
 /**
  * Relative timestamp string per 08-UI-SPEC Copywriting Contract.
  *
- * ISO-8601 input (e.g. "2026-07-17T12:00:00Z"). Falls back to the
- * date string on parse error.
+ * The data layer stores `createdAt` as an **epoch-millis String** (see NotificationMapper /
+ * NotificationRepositoryImpl), so parse that first; fall back to ISO-8601 for any
+ * server-provided ISO value. Returns "" for an unparseable value rather than leaking a raw
+ * epoch number to the user (CR-01).
  */
-internal fun relativeTimestamp(isoTimestamp: String): String {
-    return try {
-        val instant = Instant.parse(isoTimestamp)
-        val now = Instant.now()
-        val minutesAgo = ChronoUnit.MINUTES.between(instant, now)
-        val hoursAgo = ChronoUnit.HOURS.between(instant, now)
-        val daysAgo = ChronoUnit.DAYS.between(instant, now)
-        when {
-            minutesAgo < 1 -> "Just now"
-            minutesAgo < 60 -> "$minutesAgo min ago"
-            hoursAgo < 24 -> "$hoursAgo hours ago"
-            daysAgo == 1L -> "Yesterday"
-            else -> {
-                val formatter = DateTimeFormatter
-                    .ofPattern("MMM d", Locale.getDefault())
-                    .withZone(ZoneId.systemDefault())
-                formatter.format(instant)
-            }
-        }
-    } catch (_: Exception) {
-        isoTimestamp
+internal fun relativeTimestamp(rawCreatedAt: String): String {
+    val instant = rawCreatedAt.toLongOrNull()?.let { Instant.ofEpochMilli(it) }
+        ?: runCatching { Instant.parse(rawCreatedAt) }.getOrNull()
+        ?: return ""
+    val now = Instant.now()
+    val minutesAgo = ChronoUnit.MINUTES.between(instant, now)
+    val hoursAgo = ChronoUnit.HOURS.between(instant, now)
+    val daysAgo = ChronoUnit.DAYS.between(instant, now)
+    return when {
+        minutesAgo < 1 -> "Just now"
+        minutesAgo < 60 -> "$minutesAgo min ago"
+        hoursAgo < 24 -> "$hoursAgo hours ago"
+        daysAgo == 1L -> "Yesterday"
+        else -> DateTimeFormatter
+            .ofPattern("MMM d", Locale.getDefault())
+            .withZone(ZoneId.systemDefault())
+            .format(instant)
     }
 }
