@@ -14,6 +14,7 @@ import com.wenubey.data.BuildConfig
 import com.wenubey.data.connectivity.ConnectivityObserver
 import com.wenubey.data.local.SyncManager
 import com.wenubey.data.local.WenuCommerceDatabase
+import com.wenubey.data.worker.FcmTokenWorker
 import com.wenubey.data.worker.SyncWorker
 import com.wenubey.data.repository.AddressRepositoryImpl
 import com.wenubey.data.repository.AuthRepositoryImpl
@@ -176,6 +177,9 @@ val connectivityModule = module {
 
 val workerModule = module {
     worker { SyncWorker(get(), get(), get(), get(), get(), get()) }
+    // Phase 8 (08-03 / NOTF-07): token-refresh job. Deps:
+    // FirestoreRepository, FirebaseMessaging (single at line 71), DispatcherProvider.
+    worker { FcmTokenWorker(get(), get(), get(), get(), get()) }
 }
 
 /**

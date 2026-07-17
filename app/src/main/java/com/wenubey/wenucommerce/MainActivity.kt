@@ -37,11 +37,16 @@ import com.wenubey.wenucommerce.navigation.CustomerOrderDetail
 import com.wenubey.wenucommerce.navigation.CustomerOrderHistory
 import com.wenubey.wenucommerce.navigation.QueueManagement
 import com.wenubey.wenucommerce.navigation.RootNavigationGraph
+import com.wenubey.wenucommerce.navigation.SellerProductReviews
 import com.wenubey.wenucommerce.navigation.SellerTab
 import com.wenubey.wenucommerce.notification.EXTRA_NAV_TARGET
 import com.wenubey.wenucommerce.notification.EXTRA_ORDER_ID
+import com.wenubey.wenucommerce.notification.EXTRA_PRODUCT_ID
+import com.wenubey.wenucommerce.notification.EXTRA_PRODUCT_TITLE
 import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_ORDER
+import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_REVIEW
 import com.wenubey.wenucommerce.notification.FCM_TYPE_ORDER_STATUS
+import com.wenubey.wenucommerce.notification.NAV_TARGET_NEW_REVIEW
 import com.wenubey.wenucommerce.notification.NAV_TARGET_ORDER_DETAIL
 import com.wenubey.wenucommerce.notification.NAV_TARGET_SELLER_ORDERS
 import com.wenubey.wenucommerce.seller.SellerTabs
@@ -125,7 +130,27 @@ class MainActivity : ComponentActivity() {
                         val orderId = namespacedOrderId
                             ?: fcmRawOrderId?.takeIf { fcmRawType == FCM_TYPE_ORDER_STATUS }
 
+                        // Seller "new review" (08-03 / NOTF-04) → SellerProductReviews.
+                        // Dual read: namespaced EXTRA_* (foreground push) then raw
+                        // FCM data keys (background/killed tray tap).
+                        val namespacedProductId = intent.getStringExtra(EXTRA_PRODUCT_ID)
+                        val fcmRawProductId = intent.getStringExtra("productId")
+                        val productId = namespacedProductId ?: fcmRawProductId
+                        val namespacedProductTitle = intent.getStringExtra(EXTRA_PRODUCT_TITLE)
+                        val productTitle = namespacedProductTitle
+                            ?: intent.getStringExtra("productTitle") ?: ""
+                        val isNewReview =
+                            target == NAV_TARGET_NEW_REVIEW || fcmRawType == FCM_TYPE_NEW_REVIEW
+
                         when {
+                            // Crafted new_review with a blank/absent productId is
+                            // dropped here (T-08-09) — no navigation.
+                            isNewReview && !productId.isNullOrBlank() -> {
+                                Timber.d("FCM deep-link → seller product reviews %s", productId)
+                                navController.navigate(SellerProductReviews(productId, productTitle))
+                                clearNotificationExtras()
+                            }
+
                             isSellerNewOrder -> {
                                 Timber.d("FCM deep-link → seller Orders tab")
                                 navController.navigate(SellerTab(tabIndex = SellerTabs.Orders.ordinal)) {
@@ -234,6 +259,11 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra(EXTRA_ORDER_ID)
         intent.removeExtra("orderId")
         intent.removeExtra("type")
+        // Phase 8 (08-03 / NOTF-04) — new_review deep-link extras.
+        intent.removeExtra(EXTRA_PRODUCT_ID)
+        intent.removeExtra(EXTRA_PRODUCT_TITLE)
+        intent.removeExtra("productId")
+        intent.removeExtra("productTitle")
     }
 
     private fun handleSplashScreen() {

@@ -4,14 +4,20 @@ import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.wenubey.wenucommerce.notification.EXTRA_NAV_TARGET
 import com.wenubey.wenucommerce.notification.EXTRA_ORDER_ID
+import com.wenubey.wenucommerce.notification.EXTRA_PRODUCT_ID
+import com.wenubey.wenucommerce.notification.EXTRA_PRODUCT_TITLE
 import com.wenubey.wenucommerce.notification.EXTRA_SELLER_ORDER_ID
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_NEW_STATUS
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_ORDER_ID
+import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_PRODUCT_ID
+import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_PRODUCT_TITLE
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_SELLER_ORDER_ID
 import com.wenubey.wenucommerce.notification.FCM_DATA_KEY_TYPE
 import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_ORDER
+import com.wenubey.wenucommerce.notification.FCM_TYPE_NEW_REVIEW
 import com.wenubey.wenucommerce.notification.FCM_TYPE_ORDER_STATUS
 import com.wenubey.wenucommerce.notification.MessagingService
+import com.wenubey.wenucommerce.notification.NAV_TARGET_NEW_REVIEW
 import com.wenubey.wenucommerce.notification.NAV_TARGET_ORDER_DETAIL
 import com.wenubey.wenucommerce.notification.NAV_TARGET_SELLER_ORDERS
 import com.wenubey.wenucommerce.notification.SyncBus
@@ -168,5 +174,104 @@ class MessagingServiceSyncBusTest {
             ),
         )
         assertNull(intent)
+    }
+
+    // --- new_review (08-03 / NOTF-04) ---
+
+    private fun newReviewPayload(
+        productId: String = "prod-789",
+        productTitle: String = "Blue Mug",
+    ): Map<String, String> = mapOf(
+        FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_REVIEW,
+        FCM_DATA_KEY_PRODUCT_ID to productId,
+        FCM_DATA_KEY_PRODUCT_TITLE to productTitle,
+    )
+
+    @Test
+    fun `buildNewReviewNotificationIntent returns Intent routing to seller reviews on valid payload`() {
+        val intent = MessagingService.buildNewReviewNotificationIntent(
+            context,
+            newReviewPayload(),
+        )
+        assertNotNull("intent should be non-null for valid new_review payload", intent)
+        assertEquals(NAV_TARGET_NEW_REVIEW, intent!!.getStringExtra(EXTRA_NAV_TARGET))
+        assertEquals("prod-789", intent.getStringExtra(EXTRA_PRODUCT_ID))
+        assertEquals("Blue Mug", intent.getStringExtra(EXTRA_PRODUCT_TITLE))
+    }
+
+    @Test
+    fun `buildNewReviewNotificationIntent defaults productTitle to empty when absent`() {
+        val intent = MessagingService.buildNewReviewNotificationIntent(
+            context,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_REVIEW,
+                FCM_DATA_KEY_PRODUCT_ID to "prod-789",
+            ),
+        )
+        assertNotNull(intent)
+        assertEquals("prod-789", intent!!.getStringExtra(EXTRA_PRODUCT_ID))
+        assertEquals("", intent.getStringExtra(EXTRA_PRODUCT_TITLE))
+    }
+
+    @Test
+    fun `buildNewReviewNotificationIntent returns null when type is not new_review`() {
+        val intent = MessagingService.buildNewReviewNotificationIntent(
+            context,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_ORDER,
+                FCM_DATA_KEY_PRODUCT_ID to "prod-789",
+            ),
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `buildNewReviewNotificationIntent returns null when productId is blank`() {
+        val intent = MessagingService.buildNewReviewNotificationIntent(
+            context,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_REVIEW,
+                FCM_DATA_KEY_PRODUCT_ID to "",
+            ),
+        )
+        assertNull(intent)
+    }
+
+    @Test
+    fun `emitSyncIfNewReview emits NewReview on new_review payload`() = runTest {
+        val bus = SyncBus()
+        bus.events.test {
+            val emit = launch {
+                val result = MessagingService.emitSyncIfNewReview(bus, newReviewPayload())
+                assertTrue("emit should return true for valid new_review payload", result)
+            }
+            val event = awaitItem()
+            assertEquals(SyncEvent.NewReview(productId = "prod-789"), event)
+            emit.join()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `emitSyncIfNewReview returns false when type is not new_review`() = runTest {
+        val bus = SyncBus()
+        val result = MessagingService.emitSyncIfNewReview(
+            bus,
+            mapOf(FCM_DATA_KEY_PRODUCT_ID to "prod-789"),
+        )
+        assertFalse(result)
+    }
+
+    @Test
+    fun `emitSyncIfNewReview returns false when productId is blank`() = runTest {
+        val bus = SyncBus()
+        val result = MessagingService.emitSyncIfNewReview(
+            bus,
+            mapOf(
+                FCM_DATA_KEY_TYPE to FCM_TYPE_NEW_REVIEW,
+                FCM_DATA_KEY_PRODUCT_ID to "",
+            ),
+        )
+        assertFalse(result)
     }
 }

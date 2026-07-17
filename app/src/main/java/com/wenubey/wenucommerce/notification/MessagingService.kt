@@ -8,7 +8,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.wenubey.domain.repository.FirestoreRepository
+import com.wenubey.data.worker.FcmTokenWorker
 import com.wenubey.wenucommerce.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +21,6 @@ import timber.log.Timber
 // TODO add Navigation Helper Functionality going to the Settings Screen when a notification is clicked
 class MessagingService: FirebaseMessagingService() {
 
-    private val firestoreRepository: FirestoreRepository by inject()
     private val context: Context by inject()
     private val syncBus: SyncBus by inject()
 
@@ -39,11 +38,10 @@ class MessagingService: FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // updateFcmToken is now suspend (08-01) — 08-03 replaces this body with
-        // FcmTokenWorker.enqueue(this). For now, fire on the service scope.
-        serviceScope.launch {
-            firestoreRepository.updateFcmToken(token)
-        }
+        // Phase 8 (08-03 / NOTF-07 / D-05): enqueue a unique WorkManager job that
+        // survives process death and retries. The worker fetches the current
+        // token from FirebaseMessaging and awaits the suspend Firestore write.
+        FcmTokenWorker.enqueue(this)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -64,6 +62,16 @@ class MessagingService: FirebaseMessagingService() {
                 emitSyncIfNewOrder(syncBus, data)
             }
             showNewOrderNotification(message)
+            return
+        }
+
+        // new_review payload (08-03 / NOTF-04) — seller-side review alert from
+        // onNewReview. Optional SyncBus emit lets a reviews screen refresh.
+        if (data[FCM_DATA_KEY_TYPE] == FCM_TYPE_NEW_REVIEW) {
+            serviceScope.launch {
+                emitSyncIfNewReview(syncBus, data)
+            }
+            showNewReviewNotification(message)
             return
         }
 
@@ -96,7 +104,7 @@ class MessagingService: FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(this, ORDER_STATUS_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, ORDER_UPDATES_CHANNEL_ID)
             .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle(title)
             .setContentText(body)
@@ -128,7 +136,7 @@ class MessagingService: FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(this, ORDER_STATUS_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, ORDER_UPDATES_CHANNEL_ID)
             .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle(title)
             .setContentText(body)
@@ -138,6 +146,36 @@ class MessagingService: FirebaseMessagingService() {
             .build()
 
         NotificationManagerCompat.from(this).notify(sellerOrderId.hashCode(), notification)
+    }
+
+    private fun showNewReviewNotification(message: RemoteMessage) {
+        val data = message.data
+        val productId = data[FCM_DATA_KEY_PRODUCT_ID]
+        if (productId.isNullOrBlank()) {
+            Timber.w("new_review FCM missing productId — skip notification post")
+            return
+        }
+        val title = message.notification?.title ?: "New review"
+        val body = message.notification?.body ?: "One of your products received a new review."
+
+        val launchIntent = buildNewReviewNotificationIntent(this, data) ?: return
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            productId.hashCode(),
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(this, ORDER_UPDATES_CHANNEL_ID)
+            .setSmallIcon(R.drawable.notification_icon)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(this).notify(productId.hashCode(), notification)
     }
 
     private fun showNotification(title: String, body: String) {
@@ -237,6 +275,34 @@ class MessagingService: FirebaseMessagingService() {
         }
 
         /**
+         * Builds the launch intent for a new_review (seller-side) FCM. Routes
+         * the tap to the seller's product-reviews screen
+         * (SellerProductReviews). Returns null when the payload is not
+         * actionable (wrong type / missing productId) so the crafted-payload
+         * DoS path (T-08-09) is dropped rather than deep-linked.
+         */
+        internal fun buildNewReviewNotificationIntent(
+            context: Context,
+            data: Map<String, String>,
+        ): Intent? {
+            if (data[FCM_DATA_KEY_TYPE] != FCM_TYPE_NEW_REVIEW) return null
+            val productId = data[FCM_DATA_KEY_PRODUCT_ID]
+            if (productId.isNullOrBlank()) return null
+            val productTitle = data[FCM_DATA_KEY_PRODUCT_TITLE].orEmpty()
+
+            val launch = context.packageManager
+                .getLaunchIntentForPackage(context.packageName)
+                ?: return null
+            return launch.apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(EXTRA_NAV_TARGET, NAV_TARGET_NEW_REVIEW)
+                putExtra(EXTRA_PRODUCT_ID, productId)
+                putExtra(EXTRA_PRODUCT_TITLE, productTitle)
+            }
+        }
+
+        /**
          * Emits [SyncEvent.OrderStatusChanged] on the given bus when the
          * payload is an order_status FCM with a non-blank orderId. Returns
          * true when an emit happened. Pure suspend helper for unit testing.
@@ -272,6 +338,23 @@ class MessagingService: FirebaseMessagingService() {
             val sellerOrderId = data[FCM_DATA_KEY_SELLER_ORDER_ID]
             if (sellerOrderId.isNullOrBlank()) return false
             syncBus.emit(SyncEvent.NewOrder(sellerOrderId = sellerOrderId))
+            return true
+        }
+
+        /**
+         * Emits [SyncEvent.NewReview] when the payload is a new_review FCM
+         * with a non-blank productId. Optional refresh trigger for a seller's
+         * product-reviews screen; mirrors [emitSyncIfNewOrder]. Returns false
+         * (no emit) for the wrong type or a blank productId (T-08-09).
+         */
+        internal suspend fun emitSyncIfNewReview(
+            syncBus: SyncBus,
+            data: Map<String, String>,
+        ): Boolean {
+            if (data[FCM_DATA_KEY_TYPE] != FCM_TYPE_NEW_REVIEW) return false
+            val productId = data[FCM_DATA_KEY_PRODUCT_ID]
+            if (productId.isNullOrBlank()) return false
+            syncBus.emit(SyncEvent.NewReview(productId = productId))
             return true
         }
     }

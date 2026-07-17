@@ -28,4 +28,14 @@ sealed class SyncEvent {
     data class NewOrder(
         val sellerOrderId: String,
     ) : SyncEvent()
+
+    /**
+     * Emitted by [MessagingService] when a `new_review` FCM payload is
+     * received (08-03 / NOTF-04). An optional refresh trigger so a seller's
+     * product-reviews screen can update without pull-to-refresh; kept
+     * consistent with [NewOrder]. Not required for the deep-link itself.
+     */
+    data class NewReview(
+        val productId: String,
+    ) : SyncEvent()
 }
