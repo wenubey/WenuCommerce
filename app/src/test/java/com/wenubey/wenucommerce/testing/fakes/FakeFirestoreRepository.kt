@@ -55,7 +55,7 @@ class FakeFirestoreRepository : FirestoreRepository {
         return onboardingCompleteResult
     }
 
-    override fun updateFcmToken(token: String): Result<Unit> {
+    override suspend fun updateFcmToken(token: String): Result<Unit> {
         updateFcmTokenCalls.add(token)
         return Result.success(Unit)
     }

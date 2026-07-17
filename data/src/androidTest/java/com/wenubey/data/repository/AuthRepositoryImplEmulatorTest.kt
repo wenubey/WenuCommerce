@@ -22,8 +22,10 @@ import com.wenubey.domain.auth.SignUpResult
 import com.wenubey.domain.model.onboard.VerificationStatus
 import com.wenubey.domain.model.user.User
 import com.wenubey.domain.model.user.UserRole
+import com.wenubey.domain.model.Notification
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
+import com.wenubey.domain.repository.NotificationRepository
 import com.wenubey.domain.util.AuthProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -111,6 +113,7 @@ class AuthRepositoryImplEmulatorTest {
             firestore = firestore,
             userDao = db.userDao(),
             firebaseMessaging = mockk<FirebaseMessaging>(relaxed = true),
+            notificationRepository = FakeNotificationRepository(),
         )
         // FirebaseAuth posts the initial state-listener fire to the main
         // looper; without draining we race the test code below and the
@@ -318,7 +321,7 @@ class AuthRepositoryImplEmulatorTest {
         override suspend fun onboardingComplete(user: User): Result<Unit> =
             Result.success(Unit)
 
-        override fun updateFcmToken(token: String): Result<Unit> = Result.success(Unit)
+        override suspend fun updateFcmToken(token: String): Result<Unit> = Result.success(Unit)
 
         override fun observeSellersByStatus(status: VerificationStatus): Flow<List<User>> =
             emptyFlow()
@@ -334,5 +337,13 @@ class AuthRepositoryImplEmulatorTest {
         private val _pendingSyncCount = MutableStateFlow(0)
         @Suppress("unused")
         val pendingSyncCount = _pendingSyncCount.asStateFlow()
+    }
+
+    private class FakeNotificationRepository : NotificationRepository {
+        override fun observeNotifications(userId: String): Flow<List<Notification>> = emptyFlow()
+        override fun observeUnreadCount(userId: String): Flow<Int> = emptyFlow()
+        override suspend fun markAsRead(notificationId: String): Result<Unit> = Result.success(Unit)
+        override fun startListener(userId: String) {}
+        override fun stopListener() {}
     }
 }

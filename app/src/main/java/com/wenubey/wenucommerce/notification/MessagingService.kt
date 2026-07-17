@@ -42,7 +42,11 @@ class MessagingService: FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        firestoreRepository.updateFcmToken(token)
+        // updateFcmToken is now suspend (08-01) — 08-03 replaces this body with
+        // FcmTokenWorker.enqueue(this). For now, fire on the service scope.
+        serviceScope.launch {
+            firestoreRepository.updateFcmToken(token)
+        }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

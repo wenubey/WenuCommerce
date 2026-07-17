@@ -19,7 +19,7 @@ interface FirestoreRepository {
 
     suspend fun onboardingComplete(user: User): Result<Unit>
 
-    fun updateFcmToken(token: String): Result<Unit>
+    suspend fun updateFcmToken(token: String): Result<Unit>
 
     fun observeSellersByStatus(status: VerificationStatus): Flow<List<User>>
 

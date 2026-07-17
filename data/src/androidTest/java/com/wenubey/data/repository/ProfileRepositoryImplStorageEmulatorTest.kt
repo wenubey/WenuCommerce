@@ -324,7 +324,7 @@ class ProfileRepositoryImplStorageEmulatorTest {
             }
         }
 
-        override fun updateFcmToken(token: String): Result<Unit> = Result.success(Unit)
+        override suspend fun updateFcmToken(token: String): Result<Unit> = Result.success(Unit)
 
         override fun observeSellersByStatus(status: VerificationStatus): Flow<List<User>> =
             emptyFlow()

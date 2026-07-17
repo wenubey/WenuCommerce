@@ -24,6 +24,7 @@ import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
 import com.wenubey.data.repository.FirestoreRepositoryImpl
 import com.wenubey.data.repository.LocationServiceImpl
+import com.wenubey.data.repository.NotificationRepositoryImpl
 import com.wenubey.data.repository.OrderRepositoryImpl
 import com.wenubey.data.repository.PaymentRepositoryImpl
 import com.wenubey.data.repository.ProductRepositoryImpl
@@ -42,6 +43,7 @@ import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
 import com.wenubey.domain.repository.LocationService
+import com.wenubey.domain.repository.NotificationRepository
 import com.wenubey.domain.repository.OrderRepository
 import com.wenubey.domain.repository.PaymentRepository
 import com.wenubey.domain.repository.ProductRepository
@@ -72,6 +74,7 @@ val firebaseModule = module {
 
 val repositoryModule = module {
     singleOf(::FirestoreRepositoryImpl).bind<FirestoreRepository>()
+    singleOf(::NotificationRepositoryImpl).bind<NotificationRepository>()
     singleOf(::AuthRepositoryImpl).bind<AuthRepository>()
     singleOf(::ProfileRepositoryImpl).bind<ProfileRepository>()
     singleOf(::LocationServiceImpl).bind<LocationService>()

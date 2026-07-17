@@ -33,6 +33,7 @@ import com.wenubey.domain.model.user.User
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DispatcherProvider
 import com.wenubey.domain.repository.FirestoreRepository
+import com.wenubey.domain.repository.NotificationRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +53,7 @@ class AuthRepositoryImpl(
     private val firestore: FirebaseFirestore,
     private val userDao: UserDao,
     private val firebaseMessaging: FirebaseMessaging,
+    private val notificationRepository: NotificationRepository,
 ) : AuthRepository {
 
     private val ioDispatcher = dispatcherProvider.io()
@@ -82,6 +84,7 @@ class AuthRepositoryImpl(
         if (auth.currentUser == null) {
             Timber.d("CurrentUser is null")
             stopUserListener()
+            notificationRepository.stopListener()
             _currentUser.value = null
             // Clear Room user cache on sign-out (auth state cleared)
             CoroutineScope(ioDispatcher).launch {
@@ -89,6 +92,7 @@ class AuthRepositoryImpl(
             }
         } else {
             startUserListener(auth.currentUser!!.uid)
+            notificationRepository.startListener(auth.currentUser!!.uid)
             // FCM token refresh — MessagingService.onNewToken only fires when
             // Firebase generates a NEW token, so a user signing in on a device
             // that already had a token would never end up with fcmToken on

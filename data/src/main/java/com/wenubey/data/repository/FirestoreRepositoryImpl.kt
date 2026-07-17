@@ -94,21 +94,16 @@ class FirestoreRepositoryImpl(
         } ?: throw Exception("User UUID is null")
     }
 
-    override fun updateFcmToken(token: String): Result<Unit> {
-        val user = auth.currentUser
-        user?.uid?.let { uid ->
-            firestore.collection(USER_COLLECTION).document(uid).update(
-                mapOf(
-                    "fcmToken" to token
-                )
-            ).addOnSuccessListener {
-                Timber.d("FCM Token updated successfully")
-            }.addOnFailureListener {
-                Timber.e(it, "FCM Token update failed")
-            }
+    override suspend fun updateFcmToken(token: String): Result<Unit> =
+        safeApiCall(ioDispatcher) {
+            val uid = auth.currentUser?.uid
+                ?: throw IllegalStateException("No authenticated user to update FCM token")
+            firestore.collection(USER_COLLECTION)
+                .document(uid)
+                .update(mapOf("fcmToken" to token))
+                .await()
+            Timber.d("FCM Token updated successfully")
         }
-        return Result.success(Unit)
-    }
 
     override suspend fun getUser(uid: String): Result<User> = safeApiCall(ioDispatcher) {
         val userDoc = firestore.collection(USER_COLLECTION).document(uid).get().await()
