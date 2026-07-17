@@ -1368,3 +1368,105 @@ export const onNewSellerOrder = onDocumentCreated(
     }
   },
 );
+
+// ─── onNewReview Firestore trigger (Phase 8 — NOTF-03, D-04) ───────────
+
+/**
+ * Pure helper — the notification body a seller sees when their product is
+ * reviewed. Extracted so it can be unit-tested without Firestore (mirrors the
+ * buildReviewData / computeAggregateStatus named-export testability idiom).
+ */
+export function buildNewReviewBody(productTitle: string): string {
+  return `Your product "${productTitle}" received a new review.`;
+}
+
+/**
+ * Fires once when a review doc is created under PRODUCTS/{id}/REVIEWS. Since
+ * submitReview (the only writer) uses set() on a fixed reviewId and an edit
+ * REPLACES in place, onDocumentCreated fires only on the FIRST review, never on
+ * an edit (RESEARCH A2) — so a seller is notified once per new review.
+ *
+ * Resolves the recipient server-side from PRODUCTS/{productId}.sellerId (never
+ * from client input — T-08-05/06), writes the notifications history doc BEFORE
+ * the FCM send so history persists even when the seller has no fcmToken or the
+ * send throws (T-08-08), then best-effort pushes FCM to the seller.
+ */
+export const onNewReview = onDocumentCreated(
+  "PRODUCTS/{productId}/REVIEWS/{reviewId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) {
+      console.log("[new_review] no data on created doc — skipping");
+      return;
+    }
+    const productId = event.params.productId;
+    const db = admin.firestore();
+
+    // Resolve the seller from the product doc (server-authoritative recipient).
+    const productSnap = await db.collection("PRODUCTS").doc(productId).get();
+    const sellerId = productSnap.data()?.sellerId as string | undefined;
+    const productTitle =
+      (productSnap.data()?.title as string | undefined) ?? productId;
+    console.log("[new_review] fired", { productId, sellerId });
+    if (!sellerId) {
+      console.log("[new_review] no sellerId on product — skipping");
+      return;
+    }
+
+    const title = "New review";
+    const body = buildNewReviewBody(productTitle);
+
+    // Persist to seller notification history FIRST — unconditionally, before
+    // the FCM send, so history survives a missing token or an FCM failure.
+    const notifRef = db
+      .collection("notifications")
+      .doc(sellerId)
+      .collection("items")
+      .doc();
+    await notifRef.set({
+      id: notifRef.id,
+      type: "new_review",
+      title,
+      body,
+      orderId: "",
+      sellerOrderId: "",
+      productId,
+      productTitle,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    const userSnap = await db.collection("USERS").doc(sellerId).get();
+    const fcmToken = userSnap.data()?.fcmToken as string | undefined;
+    console.log("[new_review] seller token lookup", {
+      hasToken: !!fcmToken,
+      tokenPrefix: fcmToken?.substring(0, 16) ?? null,
+    });
+    if (!fcmToken) {
+      console.log("[new_review] no fcmToken — history written, push skipped");
+      return;
+    }
+
+    try {
+      const messageId = await getMessaging().send({
+        token: fcmToken,
+        notification: { title, body },
+        data: {
+          type: "new_review",
+          productId,
+          productTitle,
+          notifId: notifRef.id,
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "order_updates_channel",
+          },
+        },
+      });
+      console.log("[new_review] send SUCCESS", { messageId });
+    } catch (err) {
+      console.error("[new_review] dispatch FAILED for productId", productId, err);
+    }
+  },
+);
