@@ -163,7 +163,7 @@ Plans:
 Plans:
 - [x] 08-01-PLAN.md — Data foundation: Room notifications table (MIGRATION_9_10/v10) + domain Notification model/repo + Room-first Firestore sync + updateFcmToken→suspend + notifications Firestore rules
 - [x] 08-02-PLAN.md — Cloud Functions: onNewReview trigger + notifications-doc writes in onOrderStatusChange/onNewSellerOrder + order_updates_channel migration
-- [ ] 08-03-PLAN.md — MessagingService type-router (new_review) + centralised 3 channels + MainActivity deep-link + FcmTokenWorker (WorkManager token lifecycle)
+- [x] 08-03-PLAN.md — MessagingService type-router (new_review) + centralised 3 channels + MainActivity deep-link + FcmTokenWorker (WorkManager token lifecycle)
 - [ ] 08-04-PLAN.md — Notification History screen + unread badge + tab/Profile entry points + POST_NOTIFICATIONS rationale flow
 
 ### Phase 9: Seller Storefronts & Favorite Sellers
@@ -233,7 +233,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Discounts | 3/3 | Complete   | 2026-06-04 |
 | 6. Order Tracking & Management | 0/4 | Not started | - |
 | 7. Reviews & Ratings | 2/3 | In progress | - |
-| 8. Notifications | 0/4 | Planned | - |
+| 8. Notifications | 3/4 | In progress | - |
 | 9. Seller Storefronts & Favorite Sellers | 0/3 | Not started | - |
 | 10. Personalization & Profile | 0/4 | Not started | - |
 | 11. Testing | 0/4 | Not started | - |

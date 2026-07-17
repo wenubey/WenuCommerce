@@ -90,10 +90,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **NOTF-01**: FCM push notification sent to customer on order status change
 - [ ] **NOTF-02**: FCM push notification sent to seller on new order placed
 - [ ] **NOTF-03**: FCM push notification sent to seller on new product review
-- [ ] **NOTF-04**: Tapping notification deep-links to relevant screen (order detail, product)
+- [x] **NOTF-04**: Tapping notification deep-links to relevant screen (order detail, product)
 - [ ] **NOTF-05**: Android 13+ POST_NOTIFICATIONS runtime permission requested with rationale
-- [ ] **NOTF-06**: Separate notification channels: Order Updates, Account, Promotions
-- [ ] **NOTF-07**: FCM token refresh handled (update Firestore user document)
+- [x] **NOTF-06**: Separate notification channels: Order Updates, Account, Promotions
+- [x] **NOTF-07**: FCM token refresh handled (update Firestore user document)
 - [ ] **NOTF-08**: In-app notification history screen
 
 ### Personalization
