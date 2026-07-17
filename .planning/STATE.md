@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 08-02-PLAN.md (Notifications Cloud Functions)
+stopped_at: Completed 08-03-PLAN.md (MessagingService type-router + 3 channels + deep-link + FcmTokenWorker)
 last_updated: "2026-07-17T00:00:00.000Z"
-last_activity: 2026-07-17 - Phase 8 plan 08-02 complete (onNewReview + notifications-doc writes + channel migration)
+last_activity: 2026-07-17 - Phase 8 plan 08-03 complete (centralised channels + new_review router/deep-link + FcmTokenWorker)
 progress:
   total_phases: 11
   completed_phases: 7
@@ -25,10 +25,16 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 
 ## Current Position
 
-Phase: 8 of 11 (Notifications) — IN PROGRESS (2 of 4 plans complete)
-Plan: 08-02 COMPLETE (Cloud Functions); 08-01 COMPLETE + DEPLOYED (data foundation)
-Status: 08-02 done and green. functions now: 87 jest (non-emulator, 8 suites) + 22 rules (emulator) all green; tsc --noEmit clean. Added onNewReview (onDocumentCreated on PRODUCTS/{productId}/REVIEWS/{reviewId} → seller FCM + notifications-doc, type new_review); onOrderStatusChange + onNewSellerOrder now write notifications/{uid}/items history docs and migrated channelId order_status_channel → order_updates_channel (D-03); notifId threaded into all three FCM data payloads for client-side Room dedup. PENDING DEPLOY (orchestrator): firebase deploy --only functions:onNewReview,functions:onOrderStatusChange,functions:onNewSellerOrder (onNewReview is NEW; the other two MODIFIED). NOTF-01/02/03 are server-complete; client push/deep-link/history land in 08-03/08-04. Next: 08-03 (MessagingService type-router + centralised channels + MainActivity deep-link + FcmTokenWorker).
-Last activity: 2026-07-17 - Phase 8 plan 08-02 complete
+Phase: 8 of 11 (Notifications) — IN PROGRESS (3 of 4 plans complete)
+Plan: 08-03 COMPLETE (client delivery); 08-02 COMPLETE (Cloud Functions); 08-01 COMPLETE + DEPLOYED (data foundation)
+Status: 08-03 done and green. All 3 modules' testDebugUnitTest + :app:assembleDebug green. NotificationChannels.createAll creates the 3 channels (Order Updates HIGH / Account DEFAULT / Promotions LOW) once in WenuCommerce.onCreate — replaced per-service creation (D-03/NOTF-06). MessagingService gained a new_review router branch → showNewReviewNotification on order_updates_channel + buildNewReviewNotificationIntent + emitSyncIfNewReview (SyncEvent.NewReview); all 3 builders now post on order_updates_channel (matches 08-02 server channelId). onNewToken enqueues a unique FcmTokenWorker (fcm_token_refresh, CONNECTED + EXPONENTIAL backoff, awaits suspend updateFcmToken) instead of fire-and-forget (NOTF-07). MainActivity has a new_review deep-link branch → SellerProductReviews(productId, productTitle) with dual namespaced/raw extra read (NOTF-04). Tests: NotificationChannelsTest 4/4, MessagingServiceSyncBusTest 16/16, FcmTokenWorkerTest 4/4. On-device deep-link/channel/token-refresh remain MANUAL (08-VALIDATION).
+
+⚠️ TWO PENDING ITEMS TO RESUME (2026-07-17):
+1. FUNCTIONS DEPLOY STILL PENDING — 08-02's `onNewReview` (NEW) + modified `onOrderStatusChange`/`onNewSellerOrder` were NOT deployed: `firebase deploy --only functions:onNewReview,functions:onOrderStatusChange,functions:onNewSellerOrder` failed 4x with a Firebase-side transient "Internal error" (NOT a code problem — code committed + jest 87 green). Retry when GCP recovers. Until deployed, review→seller push + the notifications-history docs for order events are not live.
+2. 08-04 NOT STARTED — the last plan (NotificationHistoryScreen + POST_NOTIFICATIONS permission flow, NOTF-05/08) is written but unexecuted. Resume with `/gsd:execute-phase 08` (runs only the remaining 08-04), then the phase-close + device smoke.
+
+Next: retry functions deploy + execute 08-04.
+Last activity: 2026-07-17 - Phase 8 plan 08-03 complete
 
 Progress: [███████░░░] 64%
 
@@ -71,6 +77,7 @@ Progress: [███████░░░] 64%
 | Phase 07-reviews-ratings P01 | 22 | 4 tasks | 20 files |
 | Phase 07-reviews-ratings P02 | 13 | 3 tasks | 14 files |
 | Phase 08-notifications P02 | 20 | 2 tasks | 3 files |
+| Phase 08-notifications P03 | 30 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -172,6 +179,10 @@ Recent decisions affecting current work:
 - [08-02]: order triggers allocate notifRef (client-side id, no I/O) BEFORE the send to embed notifId in the FCM data, then .set() the doc AFTER the successful send (RESEARCH §8 ordering + must_haves)
 - [08-02]: buildNewReviewBody extracted as a pure named export for direct Jest unit test (no emulator) — same idiom as computeAggregateStatus/buildReviewData; functions triggers are tested structurally via per-function source-slice greps
 - [08-02]: channelId 'order_updates_channel' hardcoded on all 3 triggers to match 08-03 NotificationChannels.ORDER_UPDATES_CHANNEL_ID; legacy order_status_channel fully removed from index.ts (whole-file grep guards against re-introduction)
+- [08-03]: 3 channels created once via NotificationChannels.createAll in WenuCommerce.onCreate before startKoin; removed per-service ensureOrderStatusChannel + inline device_login_channel — device_login now posts on ACCOUNT_CHANNEL_ID (D-03/NOTF-06)
+- [08-03]: FcmTokenWorker fetches the current token from FirebaseMessaging.token.await() (not onNewToken's arg) then awaits suspend updateFcmToken; UNIQUE_WORK_NAME 'fcm_token_refresh' distinct from SyncWorker's 'sync_pending_operations' (T-08-10/11, NOTF-07)
+- [08-03]: buildNewReviewNotificationIntent + MainActivity new_review branch require non-blank productId — crafted blank-productId new_review dropped, not deep-linked (T-08-09); MainActivity dual-reads namespaced EXTRA_* then raw FCM data keys for the background/killed tray-tap path
+- [08-03]: kept ORDER_STATUS_CHANNEL_ID constants for backward compat (no builder references them); added work-testing to :data testImplementation (already cataloged) for TestListenableWorkerBuilder
 
 ### Pending Todos
 
@@ -193,5 +204,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-07-17T00:00:00.000Z
-Stopped at: Completed 08-02-PLAN.md (Notifications Cloud Functions) — pending functions deploy by orchestrator
-Resume file: .planning/phases/08-notifications/08-03-PLAN.md
+Stopped at: Completed 08-03-PLAN.md (client delivery: 3 channels + new_review router/deep-link + FcmTokenWorker)
+Resume file: .planning/phases/08-notifications/08-04-PLAN.md
