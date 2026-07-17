@@ -64,6 +64,23 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // ── /notifications/{uid}/items/{id} (Phase 8, D-01/D-06) ─────────────
+    // Notification history docs are written server-only by the push-dispatching
+    // Cloud Functions (Admin SDK bypasses these rules). Clients may:
+    //   - read ONLY their own notifications (T-08-02: no cross-user reads);
+    //   - update ONLY the `read` flag for mark-as-read (T-08-03: the
+    //     diff(...).hasOnly(['read']) restriction blocks mutating title/body/
+    //     deep-link fields).
+    // Client create/delete are denied (T-08-01: no forging fake notifications).
+    match /notifications/{userId}/items/{notifId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['read']);
+      allow create, delete: if false;
+    }
+
     // Server-only: written by createPaymentIntent and consumed by the Stripe
     // webhook (both via the Admin SDK, which bypasses these rules). Clients
     // must never read or write pending-payment order payloads.

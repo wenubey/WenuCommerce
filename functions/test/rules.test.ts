@@ -57,6 +57,19 @@ const seedReview = {
   updatedAt: "1700000000000",
 };
 
+const seedNotification = {
+  id: "n1",
+  type: "new_review",
+  title: "New review",
+  body: "Your product received a new review.",
+  orderId: "",
+  sellerOrderId: "",
+  productId: "p-1",
+  productTitle: "Widget",
+  read: false,
+  createdAt: "1700000000000",
+};
+
 const seedParentOrder = {
   userId: "customer-1",
   status: "PENDING",
@@ -103,6 +116,7 @@ beforeEach(async () => {
     await fs.doc("orders/ord-parent-1").set(seedParentOrder);
     await fs.doc("sellerOrders/so-1").set(seedSellerOrder);
     await fs.doc("PRODUCTS/p-1/REVIEWS/rev-1").set(seedReview);
+    await fs.doc("notifications/uidA/items/n1").set(seedNotification);
   });
 });
 
@@ -275,6 +289,50 @@ describe("firestore.rules /PRODUCTS/{id}/REVIEWS (server-only writes)", () => {
         .firestore()
         .doc("PRODUCTS/p-1/REVIEWS/rev-1/helpfulVotes/customer-1")
         .set({ votedAt: "now" }),
+    );
+  });
+});
+
+describe("firestore.rules /notifications (owner-read + read-flag-only update)", () => {
+  it("(n-a) owner reads own notification item -> succeeds (T-08-02)", async () => {
+    const ctx = env.authenticatedContext("uidA");
+    await assertSucceeds(
+      ctx.firestore().doc("notifications/uidA/items/n1").get(),
+    );
+  });
+
+  it("(n-b) foreign user cannot read another user's notification (T-08-02)", async () => {
+    const ctx = env.authenticatedContext("uidB");
+    await assertFails(
+      ctx.firestore().doc("notifications/uidA/items/n1").get(),
+    );
+  });
+
+  it("(n-c) owner update setting {read:true} -> succeeds (mark-as-read)", async () => {
+    const ctx = env.authenticatedContext("uidA");
+    await assertSucceeds(
+      ctx.firestore().doc("notifications/uidA/items/n1").update({ read: true }),
+    );
+  });
+
+  it("(n-d) owner update mutating a non-read field -> assertFails (T-08-03)", async () => {
+    const ctx = env.authenticatedContext("uidA");
+    await assertFails(
+      ctx.firestore().doc("notifications/uidA/items/n1").update({ title: "spoofed" }),
+    );
+  });
+
+  it("(n-e) client create at notifications/{uid}/items -> assertFails (T-08-01)", async () => {
+    const ctx = env.authenticatedContext("uidA");
+    await assertFails(
+      ctx.firestore().doc("notifications/uidA/items/n2").set(seedNotification),
+    );
+  });
+
+  it("(n-f) client delete of own notification -> assertFails (server-only)", async () => {
+    const ctx = env.authenticatedContext("uidA");
+    await assertFails(
+      ctx.firestore().doc("notifications/uidA/items/n1").delete(),
     );
   });
 });
