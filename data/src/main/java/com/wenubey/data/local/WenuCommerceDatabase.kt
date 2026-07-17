@@ -9,6 +9,7 @@ import com.wenubey.data.local.converter.RoomTypeConverters
 import com.wenubey.data.local.dao.AddressDao
 import com.wenubey.data.local.dao.CartItemDao
 import com.wenubey.data.local.dao.CategoryDao
+import com.wenubey.data.local.dao.NotificationDao
 import com.wenubey.data.local.dao.OrderDao
 import com.wenubey.data.local.dao.PendingOperationDao
 import com.wenubey.data.local.dao.ProductDao
@@ -19,6 +20,7 @@ import com.wenubey.data.local.dao.WishlistItemDao
 import com.wenubey.data.local.entity.AddressEntity
 import com.wenubey.data.local.entity.CartItemEntity
 import com.wenubey.data.local.entity.CategoryEntity
+import com.wenubey.data.local.entity.NotificationEntity
 import com.wenubey.data.local.entity.OrderEntity
 import com.wenubey.data.local.entity.PendingOperationEntity
 import com.wenubey.data.local.entity.ProductEntity
@@ -38,9 +40,10 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         OrderEntity::class,
         AddressEntity::class,
         SellerOrderEntity::class,
-        ReviewEntity::class
+        ReviewEntity::class,
+        NotificationEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -65,6 +68,8 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
     abstract fun sellerOrderDao(): SellerOrderDao
 
     abstract fun reviewDao(): ReviewDao
+
+    abstract fun notificationDao(): NotificationDao
 
     companion object {
         /**
@@ -331,6 +336,43 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_reviews_reviewerId` " +
                         "ON `reviews` (`reviewerId`)"
+                )
+            }
+        }
+
+        /**
+         * Migration from v9 to v10: Phase 8 — create the `notifications` table
+         * (Room mirror of notifications/{uid}/items) with indices on userId +
+         * createdAt. All-scalar columns (no JSON) — same CREATE TABLE shape as
+         * MIGRATION_8_9. Column NOT NULL DEFAULTs match NotificationEntity
+         * constructor defaults so Room's schema validation passes.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `notifications` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `userId` TEXT NOT NULL DEFAULT '',
+                        `type` TEXT NOT NULL DEFAULT '',
+                        `title` TEXT NOT NULL DEFAULT '',
+                        `body` TEXT NOT NULL DEFAULT '',
+                        `orderId` TEXT NOT NULL DEFAULT '',
+                        `sellerOrderId` TEXT NOT NULL DEFAULT '',
+                        `productId` TEXT NOT NULL DEFAULT '',
+                        `productTitle` TEXT NOT NULL DEFAULT '',
+                        `isRead` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` TEXT NOT NULL DEFAULT ''
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notifications_userId` " +
+                        "ON `notifications` (`userId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notifications_createdAt` " +
+                        "ON `notifications` (`createdAt`)"
                 )
             }
         }
