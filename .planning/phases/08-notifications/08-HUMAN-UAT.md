@@ -14,17 +14,17 @@ updated: "2026-07-17T16:38:16Z"
 
 ### 1. End-to-end push delivery — customer order-status
 expected: Customer receives a system push on the "Order Updates" channel when a seller advances their order status; the row appears in Notification History with correct icon/title/timestamp; tapping it deep-links to CustomerOrderDetail and marks the badge read.
-prereq: deploy `functions:onOrderStatusChange` (08-02 deploy PENDING) + physical API 33+ device
+prereq: `functions:onOrderStatusChange` DEPLOYED 2026-07-17 ✓ · needs physical API 33+ device
 result: [pending]
 
 ### 2. End-to-end push delivery — seller new-order
 expected: Seller receives a push on the "Order Updates" channel when a customer places an order; the notification doc appears in seller Notification History.
-prereq: deploy `functions:onNewSellerOrder` (PENDING) + real FCM device
+prereq: `functions:onNewSellerOrder` DEPLOYED 2026-07-17 ✓ · needs real FCM device
 result: [pending]
 
 ### 3. End-to-end push delivery — seller new-review
 expected: Seller receives a push when a customer posts a review on their product; the row appears in seller Notification History; tapping it opens SellerProductReviews for that product.
-prereq: deploy `functions:onNewReview` (NEW trigger, PENDING) + real FCM device
+prereq: `functions:onNewReview` (NEW trigger) DEPLOYED 2026-07-17 ✓ · needs real FCM device
 result: [pending]
 
 ### 4. POST_NOTIFICATIONS system permission dialog (Android 13+)
@@ -50,14 +50,14 @@ result: [pending]
 
 ### 9. Functions deploy retry (ops prerequisite for 1–3)
 expected: `firebase deploy --only functions:onNewReview,functions:onOrderStatusChange,functions:onNewSellerOrder` exits 0 and all three appear in Firebase Console. (Prior 4 attempts failed on a transient Firebase-side "Internal error" — code is jest 87/87 green; needs GCP recovery.)
-result: [pending]
+result: PASSED — 2026-07-17: deploy exit 0. `onNewReview` created, `onOrderStatusChange` + `onNewSellerOrder` updated (us-central1, Node 20 2nd Gen). "Deploy complete!" Console: https://console.firebase.google.com/project/wenucommerce/overview
 
 ## Summary
 
 total: 9
-passed: 0
+passed: 1
 issues: 0
-pending: 9
+pending: 8
 skipped: 0
 blocked: 0
 

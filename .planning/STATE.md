@@ -27,13 +27,15 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 
 Phase: 08 (notifications) — AUTOMATABLE WORK COMPLETE; human-verify deferred
 Plan: 4 of 4 (all plans complete)
-Status: Phase 08 automatable plans done; awaiting human-verify (device smoke) + functions deploy retry
+Status: Phase 08 automatable plans done + 3 notification Cloud Functions DEPLOYED (2026-07-17); awaiting on-device human-verify only
+
+✅ FUNCTIONS DEPLOY COMPLETE (2026-07-17): `firebase deploy` exit 0 — `onNewReview` created, `onOrderStatusChange` + `onNewSellerOrder` updated (us-central1, Node 20 2nd Gen). The earlier transient GCP "Internal error" cleared. Server side of the notification pipeline is now live.
 
 ⚠️ ONE PENDING ITEM (2026-07-17):
 
-1. FUNCTIONS DEPLOY STILL PENDING — 08-02's `onNewReview` (NEW) + modified `onOrderStatusChange`/`onNewSellerOrder` were NOT deployed: `firebase deploy --only functions:onNewReview,functions:onOrderStatusChange,functions:onNewSellerOrder` failed 4x with a Firebase-side transient "Internal error" (NOT a code problem — code committed + jest 87 green). Retry when GCP recovers.
+1. ON-DEVICE HUMAN-VERIFY — Phase 8 device smoke (Task 3 of 08-04) on a physical API 33+ device: E2E push delivery (now that functions are live), POST_NOTIFICATIONS OS dialog, 3 channels in system settings, tray-tap deep-link, live badge, Room 9→10 connectedDebugAndroidTest. Tracked in 08-HUMAN-UAT.md (1/9 passed: functions deploy).
 
-Next: retry functions deploy, then run Phase 8 human-verify (Task 3 of 08-04) on a physical API 33+ device with deployed functions.
+Next: run Phase 8 human-verify on a physical API 33+ device (functions now deployed), then "approved" to close Phase 8.
 Last activity: 2026-07-17 -- Phase 08 08-04 executed (NotificationHistory UI complete)
 
 Progress: [███████░░░] 67%
