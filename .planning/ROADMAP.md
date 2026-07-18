@@ -175,12 +175,13 @@ Plans:
   2. Customer taps Follow/Unfollow on the seller storefront and the follower count updates immediately
   3. Customer views a dedicated "Followed Sellers" list showing all sellers they follow
   4. Seller sees their own follower count on their seller dashboard (not individual follower identities)
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 09-01: SellerStorefrontScreen — business name, bio, photo, rating, follower count, product grid; follow/unfollow action with optimistic UI
-- [ ] 09-02: FollowedSellersRepository domain interface and impl (Room + Firestore sync); FollowedSellersScreen for customer
-- [ ] 09-03: Seller follower count surface in seller dashboard
+- [ ] 09-01-PLAN.md — Follow data foundation: FollowedSeller model + repository, Room followed_sellers table + migration v10→v11, User.followerCount, DI wiring (FAVS-01/02)
+- [ ] 09-02-PLAN.md — Cloud Function onFollowedSellerWrite (atomic followerCount) + Firestore follow-subcollection rule + Jest test + billable deploy checkpoint (FAVS-01/04)
+- [ ] 09-03-PLAN.md — Storefront extension: Scaffold/header/FollowButton, optimistic follow with auth gate + self-follow guard, weighted rating, seller-name tap on card/detail (FAVS-01/03)
+- [ ] 09-04-PLAN.md — Followed Sellers list + Profile row + FollowedSellers route; seller dashboard/profile follower-count + live rating surfaces (FAVS-02/04)
 
 ### Phase 10: Personalization & Profile
 **Goal**: Users can control their app experience (theme, orientation, notifications) and manage their profile information without needing to contact support
