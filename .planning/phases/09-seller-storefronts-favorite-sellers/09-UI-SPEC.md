@@ -37,9 +37,9 @@ Declared values (multiples of 4 dp — matches 8-point grid at Compose dp):
 
 | Token | Value | Usage in this phase                                                       |
 |-------|-------|---------------------------------------------------------------------------|
-| xs    | 4 dp  | Icon-to-text gaps, star icon gaps, meta-row inline padding                |
+| xs    | 4 dp  | Icon-to-text gaps, star icon gaps, meta-row inline padding, inner Column gap in FollowedSellerRow |
 | sm    | 8 dp  | Between header sub-rows, between product card items in the grid           |
-| md    | 16 dp | Card internal padding, screen horizontal padding, header card padding     |
+| md    | 16 dp | Card internal padding, screen horizontal padding, header card padding, LazyColumn item spacing |
 | lg    | 24 dp | Empty-state icon bottom margin, follower-count stat label margin          |
 | xl    | 32 dp | Empty-state column outer padding (matches WishlistEmptyState pattern)     |
 | 2xl   | 48 dp | Not used in primary layouts this phase                                    |
@@ -64,9 +64,9 @@ Sizes below are M3 defaults as shipped by Compose (not overridden in Type.kt).
 | Role                              | M3 Token          | Size  | Weight       | Line Height |
 |-----------------------------------|-------------------|-------|--------------|-------------|
 | Storefront screen TopAppBar title | `titleLarge`      | 22 sp | Normal (400) | 28 sp       |
-| Seller business name (header)     | `headlineSmall`   | 24 sp | Bold (700)   | 32 sp       |
+| Seller business name (header)     | `titleLarge`      | 22 sp | Bold (700)   | 28 sp       |
 | Seller bio / description          | `bodyMedium`      | 14 sp | Normal (400) | 20 sp       |
-| Aggregate rating value (large)    | `headlineSmall`   | 24 sp | Bold (700)   | 32 sp       |
+| Aggregate rating value (large)    | `titleLarge`      | 22 sp | Bold (700)   | 28 sp       |
 | Aggregate rating review count     | `bodyMedium`      | 14 sp | Normal (400) | 20 sp       |
 | Follower count value              | `titleLarge`      | 22 sp | Bold (700)   | 28 sp       |
 | Follower count label              | `bodySmall`       | 12 sp | Normal (400) | 16 sp       |
@@ -74,19 +74,19 @@ Sizes below are M3 defaults as shipped by Compose (not overridden in Type.kt).
 | Section heading (e.g. "Products") | `titleMedium`     | 16 sp | SemiBold (600)| 24 sp      |
 | Product card title                | `titleMedium`     | 16 sp | Normal (400) | 24 sp       |
 | Product card body / description   | `bodySmall`       | 12 sp | Normal (400) | 16 sp       |
-| Seller-name tap target (on card)  | `labelSmall`      | 11 sp | Normal (400) | 16 sp       |
+| Seller-name tap target (on card)  | `bodySmall`       | 12 sp | Normal (400) | 16 sp       |
 | Followed Sellers row seller name  | `titleSmall`      | 14 sp | SemiBold (600)| 20 sp      |
 | Followed Sellers row subtitle     | `bodySmall`       | 12 sp | Normal (400) | 16 sp       |
-| Empty state heading               | `headlineSmall`   | 24 sp | Normal (400) | 32 sp       |
+| Empty state heading               | `titleLarge`      | 22 sp | Normal (400) | 28 sp       |
 | Empty state body                  | `bodyMedium`      | 14 sp | Normal (400) | 20 sp       |
 | ProfileMenuItem title             | `titleSmall`      | 14 sp | Normal (400) | 20 sp       |
 | ProfileMenuItem subtitle          | `bodySmall`       | 12 sp | Normal (400) | 16 sp       |
 | Seller follower stat label        | `bodySmall`       | 12 sp | Normal (400) | 16 sp       |
 | Seller follower stat value        | `titleLarge`      | 22 sp | Bold (700)   | 28 sp       |
 
-Summary: 4 distinct sizes in active use (12 sp, 14 sp, 16 sp, 22–24 sp). 2 weights: Normal (400) + Bold/SemiBold (600–700). Bold reserved for prominent numeric values (counts, ratings) and the seller business name.
+Summary: 4 distinct sizes in active use (12 sp, 14 sp, 16 sp, 22 sp). 2 weights: Normal (400) + Bold/SemiBold (600–700). Bold reserved for prominent numeric values (counts, ratings) and the seller business name.
 
-Rationale: mirrors Phase 08 precedent (titleSmall for rows, bodyMedium for secondary, bodySmall for timestamps/labels) and the AggregateRatingHeader pattern in CustomerProductDetailScreen (headlineSmall + bold for the large rating number, bodyMedium for count).
+Rationale: mirrors Phase 08 precedent (titleSmall for rows, bodyMedium for secondary, bodySmall for timestamps/labels). All display-level text (seller business name, aggregate rating value, follower count value, empty-state heading, stat card values) uses `titleLarge` (22 sp) — the single largest band. No custom TextStyle; M3 tokens only.
 
 ---
 
@@ -140,7 +140,7 @@ TopAppBar receives `onNavigateBack` callback → `navController.navigateUp()` (m
 LazyColumn(
   modifier = fillMaxSize,
   contentPadding = PaddingValues(horizontal = 16 dp, vertical = 8 dp),
-  verticalArrangement = spacedBy(12 dp)
+  verticalArrangement = spacedBy(16 dp)
 ) {
   item { StorefrontHeaderCard(...) }   // always item 0
   item { "Products" section heading }  // only when populated
@@ -169,7 +169,7 @@ The first `LazyColumn` item. A `Card` with `fillMaxWidth`, elevation 4 dp, inter
 
 ```
 Card(elevation = 4 dp, modifier = fillMaxWidth) {
-  Column(padding = 16 dp, verticalArrangement = spacedBy(12 dp)) {
+  Column(padding = 16 dp, verticalArrangement = spacedBy(16 dp)) {
 
     // Row 1: Photo + name + meta
     Row(verticalAlignment = CenterVertically, horizontalArrangement = spacedBy(16 dp)) {
@@ -185,7 +185,7 @@ Card(elevation = 4 dp, modifier = fillMaxWidth) {
       // }
 
       Column(verticalArrangement = spacedBy(4 dp)) {
-        Text(seller.businessName, headlineSmall, fontWeight = Bold)
+        Text(seller.businessName, titleLarge, fontWeight = Bold)
 
         // Aggregate rating row (CD-04) — shown only when reviewCount > 0
         if (seller.reviewCount > 0) {
@@ -263,7 +263,7 @@ AlertDialog(
   title = { Text("Sign in required") },
   text = { Text("Sign in to follow this seller and get updates.") },
   confirmButton = { TextButton("Sign In") { onNavigateToSignIn() } },
-  dismissButton = { TextButton("Cancel") { dismiss() } }
+  dismissButton = { TextButton("Not Now") { dismiss() } }
 )
 ```
 The Follow button does NOT persist an anonymous follow. No Room write for logged-out users (D-03).
@@ -276,7 +276,7 @@ Reuses `CustomerProductCard` unchanged. The seller-name in each card becomes the
 
 Layout within the `LazyColumn`:
 - Section heading: `Text("Products", titleMedium, padding(vertical=8dp))`
-- One column (`LazyColumn` items), full-width cards, 12 dp vertical spacing (matches existing SellerStorefrontScreen `verticalArrangement = spacedBy(12.dp)`).
+- One column (`LazyColumn` items), full-width cards, 16 dp vertical spacing (matches the declared `md` token and the outer `LazyColumn` `verticalArrangement = spacedBy(16.dp)`).
 - Rationale for single-column (not 2-column grid): `CustomerProductCard` is a wide horizontal card design (image left, text right — 80 dp image + text column); a 2-column grid would require a redesigned compact card. Using the existing card unchanged honors D-05 (extend, do not rewrite) and avoids a new composable.
 
 **Empty products state (`StorefrontEmptyProductsState`):**
@@ -344,7 +344,7 @@ Card(
     // Fallback: Box(48dp, CircleShape, surfaceVariant) { Icon(Store, 24dp) }
 
     // Text block
-    Column(modifier = weight(1f), verticalArrangement = spacedBy(2 dp)) {
+    Column(modifier = weight(1f), verticalArrangement = spacedBy(4 dp)) {
       Text(item.sellerName, titleSmall, fontWeight=SemiBold, maxLines=1, overflow=Ellipsis)
       Text("Followed", bodySmall, color=colorScheme.onSurfaceVariant)
     }
@@ -379,7 +379,7 @@ Box(fillMaxSize, padding=32dp, contentAlignment=Center) {
   Column(horizontalAlignment=CenterHorizontally, verticalArrangement=spacedBy(16dp)) {
     Icon(Icons.Outlined.FavoriteBorder, size=80dp,
          tint=colorScheme.onSurfaceVariant.copy(alpha=0.5f), contentDescription=null)
-    Text("No followed sellers yet", headlineSmall, fontWeight=Medium)
+    Text("No followed sellers yet", titleLarge, fontWeight=Medium)
     Text("Tap a seller's name on any product to visit their storefront and follow them.",
          bodyMedium, color=colorScheme.onSurfaceVariant, textAlign=Center)
   }
@@ -488,7 +488,7 @@ Change to:
 ```kotlin
 Text(
     text = product.sellerName,
-    style = MaterialTheme.typography.labelSmall,
+    style = MaterialTheme.typography.bodySmall,
     color = MaterialTheme.colorScheme.primary,             // accent color signals tappability
     textDecoration = TextDecoration.Underline,              // secondary affordance
     modifier = Modifier
@@ -556,7 +556,7 @@ Row(verticalAlignment = Alignment.CenterVertically) {
 | Auth-gate dialog title (unauthenticated follow) | "Sign in required" |
 | Auth-gate dialog body | "Sign in to follow this seller and get updates." |
 | Auth-gate confirm button | "Sign In" |
-| Auth-gate dismiss button | "Cancel" |
+| Auth-gate dismiss button | "Not Now" |
 | Storefront empty products heading | "No active products" |
 | Storefront empty products body | "This seller hasn't listed any products yet." |
 | Storefront error snackbar | "Couldn't load products. Pull down to retry." |
@@ -612,7 +612,7 @@ No destructive actions in this phase require a confirmation dialog (Unfollow is 
 1. Logged-out customer taps "Follow" (button visible, same appearance as authenticated).
 2. ViewModel detects `currentUser == null` (or `userId.isBlank()`).
 3. Auth-gate `AlertDialog` shown immediately. No Room write, no optimistic state change.
-4. Customer taps "Sign In" → navigate to sign-in screen. Customer taps "Cancel" → dialog dismissed, follow button remains in NOT_FOLLOWING state.
+4. Customer taps "Sign In" → navigate to sign-in screen. Customer taps "Not Now" → dialog dismissed, follow button remains in NOT_FOLLOWING state.
 
 ### Navigate to Followed Sellers List (D-04)
 1. Customer taps "Followed Sellers" row in `CustomerProfileScreen`.
@@ -720,6 +720,7 @@ No new third-party libraries introduced. No new icon packs required. Two new ico
 - Bio empty-state is handled by hiding the section entirely (no "No bio" placeholder).
 - Error states specify the message and the recovery path (pull-to-refresh).
 - No destructive confirmation dialogs required; Unfollow uses button styling to communicate reversibility.
+- Auth-gate dismiss button uses "Not Now" (not the generic "Cancel").
 - Status: READY FOR CHECKER
 
 ### Dimension 2 — Visuals
@@ -741,16 +742,19 @@ No new third-party libraries introduced. No new icon packs required. Two new ico
 - Status: READY FOR CHECKER
 
 ### Dimension 4 — Typography
-- 4 active size bands: 12 sp (bodySmall/labelSmall), 14 sp (titleSmall/bodyMedium/labelLarge), 16 sp (titleMedium), 22–24 sp (titleLarge/headlineSmall).
+- 4 active size bands: 12 sp (`bodySmall`), 14 sp (`bodyMedium`/`titleSmall`/`labelLarge`), 16 sp (`titleMedium`), 22 sp (`titleLarge`).
 - 2 weights in active use: Normal (400) + Bold/SemiBold (600–700). Bold reserved for numeric counts, the seller business name, and button labels.
 - All roles map to existing M3 tokens; no custom TextStyle required.
+- `headlineSmall` (24 sp) removed entirely; all display-level text (business name, aggregate rating value, empty-state heading, follower stat values) uses `titleLarge` (22 sp).
+- Seller-name tap target on product card uses `bodySmall` (12 sp); `colorScheme.primary` + underline signals tappability (D-01). No 11 sp value appears anywhere in this spec.
 - Status: READY FOR CHECKER
 
 ### Dimension 5 — Spacing
 - 8-point grid (4 dp steps) throughout.
-- Card internal padding: 16 dp (md). Row spacing in LazyColumns: 8–12 dp. Empty state outer padding: 32 dp (xl).
+- Card internal padding: 16 dp (md). Row spacing in LazyColumns: 8 dp (sm) for list rows, 16 dp (md) for storefront LazyColumn items and StorefrontHeaderCard internal sections. Empty state outer padding: 32 dp (xl).
 - Seller photo sizes (72 dp header, 48 dp list row) documented as exceptions — both are multiples of 8 and follow existing patterns.
 - All tappable surfaces: minimum 48 dp touch target honored by card structure or explicit constraints.
+- No undeclared spacing values remain: all dp values in the spec are from the declared scale (4/8/16/24/32/48/64) or the documented exceptions (72 dp/48 dp photo sizes, 48 dp touch targets, 16 dp icon size, 28 dp stat icon).
 - Status: READY FOR CHECKER
 
 ### Dimension 6 — Registry Safety
