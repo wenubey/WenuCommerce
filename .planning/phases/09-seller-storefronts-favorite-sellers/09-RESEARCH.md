@@ -622,22 +622,22 @@ match /USERS/{userId} {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`followerCount` field on `User` domain model**
    - What we know: `User.kt` currently has no `followerCount` field [VERIFIED: codebase]. `FirestoreRepository.getUser(sellerId)` returns a `Result<User>`.
    - What's unclear: Should `followerCount` be added to `User.kt` (and `UserEntity.kt` if cached) or read separately? Adding it to `User` means it flows through the existing `getUser()` path cleanly but requires updating the Firestore mapper. A separate read keeps User clean but adds an extra Firestore call in the storefront ViewModel.
-   - Recommendation: Add `followerCount: Int = 0` to `User.kt` and update `UserMapper` to read `followerCount` from Firestore (with `?:0` default). No Room migration needed (UserEntity does not cache `followerCount`). This requires user approval as it is a domain model change.
+   - RESOLVED: Add `followerCount: Int = 0` to `User.kt`; read it via the Firestore `getUser()` path (Firestore `toObject`/mapper defaults to 0). `UserEntity` does NOT cache `followerCount`, so no Room change for this field. Requires user approval (domain model change) — surfaced in the plan-phase summary and handled in 09-01.
 
 2. **Security rules: tightening `USERS` write access**
    - What we know: The current rule `allow read, write: if request.auth != null` on USERS allows any authenticated user to write any field, including `followerCount`. The CONTEXT.md notes this as pre-Phase-6 technical debt.
    - What's unclear: Should Phase 9 tighten the USERS write rules as part of adding the `followed_sellers` subcollection rule? (This is scope creep risk.)
-   - Recommendation: Add ONLY the `followed_sellers` subcollection rule in Phase 9. Document the USERS write tightening as a future housekeeping task.
+   - RESOLVED: Add ONLY the `followed_sellers` subcollection rule in Phase 9 (plus a client-write guard on `followerCount`). Document the broader USERS write tightening as a future housekeeping task — out of scope here.
 
 3. **`SellerDashboardViewModel` and `SellerProfileScreen` follower count data source**
    - What we know: Both screens currently show hardcoded placeholder data. Neither has a clean path to read the seller's `followerCount` from Firestore. The `SellerDashboardViewModel` exists and uses `FirestoreRepository` or `ProfileRepository`.
    - What's unclear: Does the planner need to add a new method to `FirestoreRepository` to read `followerCount`, or does `getUser(sellerId)` already return it (after the `User.kt` update above)?
-   - Recommendation: After adding `followerCount` to `User.kt` and updating the mapper, `getUser(currentUserId)` in `SellerDashboardViewModel` will naturally return the count. No new repository method needed.
+   - RESOLVED: After adding `followerCount` to `User.kt`, `getUser(currentUserId)` in `SellerDashboardViewModel` naturally returns the count. No new repository method needed.
 
 ---
 

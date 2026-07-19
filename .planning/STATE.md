@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: executing
 stopped_at: Phase 09 UI-SPEC approved
-last_updated: "2026-07-18T02:16:18.900Z"
-last_activity: 2026-07-17 -- Phase 08 08-04 executed (NotificationHistory UI complete)
+last_updated: "2026-07-19T18:53:35.893Z"
+last_activity: 2026-07-19 -- Phase 09 planning complete
 progress:
   total_phases: 11
   completed_phases: 8
-  total_plans: 30
+  total_plans: 35
   completed_plans: 30
   percent: 73
 ---
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-02-19)
 
 Phase: 08 (notifications) — AUTOMATABLE WORK COMPLETE; human-verify deferred
 Plan: 4 of 4 (all plans complete)
-Status: Phase 08 automatable plans done + 3 notification Cloud Functions DEPLOYED (2026-07-17); awaiting on-device human-verify only
+Status: Ready to execute
 
 ✅ FUNCTIONS DEPLOY COMPLETE (2026-07-17): `firebase deploy` exit 0 — `onNewReview` created, `onOrderStatusChange` + `onNewSellerOrder` updated (us-central1, Node 20 2nd Gen). The earlier transient GCP "Internal error" cleared. Server side of the notification pipeline is now live.
 
@@ -36,7 +36,7 @@ Status: Phase 08 automatable plans done + 3 notification Cloud Functions DEPLOYE
 1. ON-DEVICE HUMAN-VERIFY — Phase 8 device smoke (Task 3 of 08-04) on a physical API 33+ device: E2E push delivery (now that functions are live), POST_NOTIFICATIONS OS dialog, 3 channels in system settings, tray-tap deep-link, live badge, Room 9→10 connectedDebugAndroidTest. Tracked in 08-HUMAN-UAT.md (1/9 passed: functions deploy).
 
 Next: run Phase 8 human-verify on a physical API 33+ device (functions now deployed), then "approved" to close Phase 8.
-Last activity: 2026-07-17 -- Phase 08 08-04 executed (NotificationHistory UI complete)
+Last activity: 2026-07-19 -- Phase 09 planning complete
 
 Progress: [███████░░░] 67%
 
