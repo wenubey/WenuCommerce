@@ -25,6 +25,7 @@ data class User(
     val signedDevices: List<Device> = listOf(),
     val businessInfo: BusinessInfo? = null,
     val products: List<String> = listOf(),
+    val followerCount: Int = 0,
 ) {
     companion object {
         fun default(): User = User(

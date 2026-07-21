@@ -9,6 +9,7 @@ import com.wenubey.data.local.converter.RoomTypeConverters
 import com.wenubey.data.local.dao.AddressDao
 import com.wenubey.data.local.dao.CartItemDao
 import com.wenubey.data.local.dao.CategoryDao
+import com.wenubey.data.local.dao.FollowedSellerDao
 import com.wenubey.data.local.dao.NotificationDao
 import com.wenubey.data.local.dao.OrderDao
 import com.wenubey.data.local.dao.PendingOperationDao
@@ -20,6 +21,7 @@ import com.wenubey.data.local.dao.WishlistItemDao
 import com.wenubey.data.local.entity.AddressEntity
 import com.wenubey.data.local.entity.CartItemEntity
 import com.wenubey.data.local.entity.CategoryEntity
+import com.wenubey.data.local.entity.FollowedSellerEntity
 import com.wenubey.data.local.entity.NotificationEntity
 import com.wenubey.data.local.entity.OrderEntity
 import com.wenubey.data.local.entity.PendingOperationEntity
@@ -41,9 +43,10 @@ import com.wenubey.data.local.entity.WishlistItemEntity
         AddressEntity::class,
         SellerOrderEntity::class,
         ReviewEntity::class,
-        NotificationEntity::class
+        NotificationEntity::class,
+        FollowedSellerEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -70,6 +73,8 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
     abstract fun reviewDao(): ReviewDao
 
     abstract fun notificationDao(): NotificationDao
+
+    abstract fun followedSellerDao(): FollowedSellerDao
 
     companion object {
         /**
@@ -373,6 +378,35 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_notifications_createdAt` " +
                         "ON `notifications` (`createdAt`)"
+                )
+            }
+        }
+
+        /**
+         * Migration from v10 to v11: Phase 9 — create the `followed_sellers`
+         * table (Room mirror of USERS/{uid}/followed_sellers). Composite PK
+         * (userId, sellerId) matches the entity, and index_followed_sellers_userId
+         * accelerates the observeFollowedSellers query. All-scalar columns; NOT
+         * NULL DEFAULTs mirror FollowedSellerEntity constructor defaults so
+         * Room's schema validation passes.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `followed_sellers` (
+                        `userId` TEXT NOT NULL,
+                        `sellerId` TEXT NOT NULL,
+                        `sellerName` TEXT NOT NULL DEFAULT '',
+                        `sellerLogoUrl` TEXT NOT NULL DEFAULT '',
+                        `followedAt` TEXT NOT NULL DEFAULT '',
+                        PRIMARY KEY(`userId`, `sellerId`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_followed_sellers_userId` " +
+                        "ON `followed_sellers` (`userId`)"
                 )
             }
         }

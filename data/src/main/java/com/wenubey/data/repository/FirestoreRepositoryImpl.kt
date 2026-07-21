@@ -109,7 +109,13 @@ class FirestoreRepositoryImpl(
         val userDoc = firestore.collection(USER_COLLECTION).document(uid).get().await()
         if (userDoc.exists()) {
             try {
-                userDoc.toObject(User::class.java) ?: throw Exception("Failed to parse user data")
+                val user = userDoc.toObject(User::class.java)
+                    ?: throw Exception("Failed to parse user data")
+                // Phase 9 (09-01): surface the live seller follower count. The field
+                // is Admin-SDK-only (Cloud Function) so it's read as a scalar rather
+                // than trusted from the User @Serializable class.
+                val followerCount = (userDoc.getLong("followerCount") ?: 0L).toInt()
+                user.copy(followerCount = followerCount)
             } catch (e: RuntimeException) {
                 Timber.e(e, "Failed to deserialize user document: $uid")
                 throw Exception("Failed to parse user data: ${e.message}")
