@@ -104,6 +104,27 @@ service cloud.firestore {
       match /{document=**} {
         allow read, write: if request.auth != null;
       }
+
+      // ── /USERS/{userId}/followed_sellers/{sellerId} (Phase 9, FAVS-04) ──
+      // A customer can read/create/delete only their OWN follow docs
+      // (request.auth.uid == the {userId} path segment == the owning customer).
+      // Structurally blocks a seller from enumerating or listing who follows
+      // them — the seller only ever reads the aggregate followerCount on their
+      // own USERS doc. Follow docs are immutable (allow update: if false) —
+      // a follow is a create; an unfollow is a delete; no in-place mutation.
+      // followerCount itself is maintained ONLY by the onFollowedSellerWrite
+      // Cloud Function via the Admin SDK (bypasses these rules by design).
+      // NOTE: the broad `allow read, write: if request.auth != null` above +
+      // the recursive {document=**} match still permit follow-doc access for
+      // any authenticated user — tightening those is documented follow-up
+      // debt (Open Question 2), out of Phase 9 scope. The rule below is the
+      // FAVS-04 structural intent that will take effect once the recursive
+      // wildcard is retired.
+      match /followed_sellers/{sellerId} {
+        allow read, create, delete: if request.auth != null
+                                    && request.auth.uid == userId;
+        allow update: if false;
+      }
     }
     match /PRODUCTS/{productId} {
       // Product top-level doc stays client-writable for seller product

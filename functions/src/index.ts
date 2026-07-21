@@ -1520,3 +1520,82 @@ export const onNewReview = onDocumentCreated(
     }
   },
 );
+
+// ─── onFollowedSellerWrite Firestore trigger (Phase 9 — FAVS-04) ───────
+
+/**
+ * Pure helper — maps the post-write existence state to the counter delta.
+ * true  → +1 (a new follow doc materialised).
+ * false → -1 (an existing follow doc was deleted).
+ * Extracted so it can be unit-tested without Firestore (mirrors the
+ * buildNewReviewBody / computeAggregateStatus named-export testability idiom).
+ */
+export function buildFollowedSellerDelta(isNowFollowing: boolean): number {
+  return isNowFollowing ? 1 : -1;
+}
+
+/**
+ * Maintains USERS/{sellerId}.followerCount atomically whenever a customer's
+ * followed_sellers/{sellerId} doc is created or deleted (FAVS-04). The counter
+ * is Admin-SDK-only — clients never write followerCount directly (see the
+ * threat register T-09-05 residual note in 09-02-PLAN.md).
+ *
+ * Idempotency (RESEARCH Pitfall 3): a same-existence-state event (metadata-only
+ * update where the doc existed both before and after) is a no-op — otherwise a
+ * metadata write would double-increment.
+ *
+ * Missing-doc safety (RESEARCH Pitfall 4): the counter write uses
+ * set({...}, { merge: true }) rather than update(), so a follow event that
+ * fires after the seller USERS doc was deleted upserts a stub with just
+ * followerCount instead of throwing NOT_FOUND and crashing the trigger.
+ */
+export const onFollowedSellerWrite = onDocumentWritten(
+  "users/{customerId}/followed_sellers/{sellerId}",
+  async (event) => {
+    const before = event.data?.before;
+    const after = event.data?.after;
+    const wasFollowing = before?.exists ?? false;
+    const isNowFollowing = after?.exists ?? false;
+
+    if (wasFollowing === isNowFollowing) {
+      // No follow/unfollow transition (e.g. metadata-only write). Skip so we
+      // never double-increment the counter.
+      console.log("[followed_seller] no-op — existence unchanged", {
+        customerId: event.params.customerId,
+        sellerId: event.params.sellerId,
+        wasFollowing,
+      });
+      return;
+    }
+
+    const delta = buildFollowedSellerDelta(isNowFollowing);
+    const sellerId = event.params.sellerId;
+    console.log("[followed_seller] applying delta", {
+      customerId: event.params.customerId,
+      sellerId,
+      delta,
+    });
+
+    try {
+      await admin
+        .firestore()
+        .collection("USERS")
+        .doc(sellerId)
+        .set(
+          {
+            followerCount: admin.firestore.FieldValue.increment(delta),
+          },
+          { merge: true },
+        );
+    } catch (err) {
+      // Best-effort: an isolated counter drift is far better than crashing
+      // the trigger (which retries and could double-apply). Matches Phase 8
+      // non-blocking trigger style.
+      console.error(
+        "[followed_seller] counter update FAILED for sellerId",
+        sellerId,
+        err,
+      );
+    }
+  },
+);
