@@ -72,8 +72,11 @@ describe("onFollowedSellerWrite — structural contract (FAVS-04)", () => {
   it("uses set(..., { merge: true }) on USERS — never .update() — (Pitfall 4)", () => {
     // The counter write MUST use merge:true so a missing seller USERS doc
     // upserts instead of throwing NOT_FOUND. Grep the trigger body:
+    // The trigger derives the seller id from event.params.sellerId (either
+    // inline or via a local destructuring) then targets USERS/<sellerId>.set.
+    expect(onFollowedSellerWriteSrc).toMatch(/event\.params\.sellerId/);
     expect(onFollowedSellerWriteSrc).toMatch(
-      /collection\("USERS"\)\s*\.doc\(\s*event\.params\.sellerId\s*\)\s*\.set\(/,
+      /collection\("USERS"\)\s*\.doc\([^)]*sellerId[^)]*\)\s*\.set\(/,
     );
     expect(onFollowedSellerWriteSrc).toMatch(/merge:\s*true/);
     // And explicitly does NOT call .update on the USERS doc for the counter.
