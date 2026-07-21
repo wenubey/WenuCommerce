@@ -20,6 +20,7 @@ import com.wenubey.data.repository.AddressRepositoryImpl
 import com.wenubey.data.repository.AuthRepositoryImpl
 import com.wenubey.data.repository.DiscountRepositoryImpl
 import com.wenubey.data.repository.CartRepositoryImpl
+import com.wenubey.data.repository.FollowedSellersRepositoryImpl
 import com.wenubey.data.repository.WishlistRepositoryImpl
 import com.wenubey.data.repository.CategoryRepositoryImpl
 import com.wenubey.data.repository.DispatcherProviderImpl
@@ -39,6 +40,7 @@ import com.wenubey.domain.repository.AddressRepository
 import com.wenubey.domain.repository.AuthRepository
 import com.wenubey.domain.repository.DiscountRepository
 import com.wenubey.domain.repository.CartRepository
+import com.wenubey.domain.repository.FollowedSellersRepository
 import com.wenubey.domain.repository.WishlistRepository
 import com.wenubey.domain.repository.CategoryRepository
 import com.wenubey.domain.repository.DispatcherProvider
@@ -87,6 +89,7 @@ val repositoryModule = module {
     singleOf(::TagRepositoryImpl).bind<TagRepository>()
     singleOf(::CartRepositoryImpl).bind<CartRepository>()
     singleOf(::WishlistRepositoryImpl).bind<WishlistRepository>()
+    singleOf(::FollowedSellersRepositoryImpl).bind<FollowedSellersRepository>()
     singleOf(::PaymentRepositoryImpl).bind<PaymentRepository>()
     singleOf(::AddressRepositoryImpl).bind<AddressRepository>()
     singleOf(::DiscountRepositoryImpl).bind<DiscountRepository>()
@@ -146,7 +149,8 @@ val databaseModule = module {
             WenuCommerceDatabase.MIGRATION_6_7,
             WenuCommerceDatabase.MIGRATION_7_8,
             WenuCommerceDatabase.MIGRATION_8_9,
-            WenuCommerceDatabase.MIGRATION_9_10
+            WenuCommerceDatabase.MIGRATION_9_10,
+            WenuCommerceDatabase.MIGRATION_10_11
         )
             .apply {
                 if (BuildConfig.DEBUG) {
@@ -165,6 +169,7 @@ val databaseModule = module {
     single { get<WenuCommerceDatabase>().sellerOrderDao() }
     single { get<WenuCommerceDatabase>().reviewDao() }
     single { get<WenuCommerceDatabase>().notificationDao() }
+    single { get<WenuCommerceDatabase>().followedSellerDao() }
 }
 
 val syncModule = module {

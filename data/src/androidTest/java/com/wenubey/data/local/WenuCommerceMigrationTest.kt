@@ -4,9 +4,11 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_10_11
 import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_6_7
 import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_7_8
 import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_8_9
+import com.wenubey.data.local.WenuCommerceDatabase.Companion.MIGRATION_9_10
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -93,6 +95,33 @@ class WenuCommerceMigrationTest {
         helper.createDatabase(dbName, 6).close()
         helper.runMigrationsAndValidate(
             dbName, 9, true, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        ).close()
+    }
+
+    @Test
+    fun migrate10To11_createsFollowedSellersTable() {
+        helper.createDatabase(dbName, 10).close()
+        helper.runMigrationsAndValidate(dbName, 11, true, MIGRATION_10_11).use { db ->
+            db.query(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='followed_sellers'",
+            ).use { c ->
+                assertThat(c.moveToFirst()).isTrue()
+            }
+            db.query(
+                "SELECT name FROM sqlite_master WHERE type='index' " +
+                    "AND name='index_followed_sellers_userId'",
+            ).use { c ->
+                assertThat(c.moveToFirst()).isTrue()
+            }
+        }
+    }
+
+    @Test
+    fun migrate6To11_chainsCleanly() {
+        helper.createDatabase(dbName, 6).close()
+        helper.runMigrationsAndValidate(
+            dbName, 11, true,
+            MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
         ).close()
     }
 }
