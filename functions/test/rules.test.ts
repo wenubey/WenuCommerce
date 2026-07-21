@@ -337,6 +337,49 @@ describe("firestore.rules /notifications (owner-read + read-flag-only update)", 
   });
 });
 
+describe("firestore.rules /USERS/{uid}/followed_sellers (Phase 9, FAVS-04)", () => {
+  // Structural intent of the new rule: a customer can read/create/delete only
+  // their own follow docs; follow docs are immutable (unfollow = delete);
+  // followerCount itself is Admin-SDK-only. These tests assert the rule block
+  // that Phase 9 adds — they do NOT assert the broad USERS-wildcard rule (see
+  // 09-02-PLAN.md Open Question 2 — that tightening is deferred debt).
+
+  it("(fs-a) customer can create their OWN follow doc", async () => {
+    const ctx = env.authenticatedContext("customer-1");
+    await assertSucceeds(
+      ctx
+        .firestore()
+        .doc("USERS/customer-1/followed_sellers/seller-1")
+        .set({ createdAt: "2026-07-21T00:00:00Z" }),
+    );
+  });
+
+  it("(fs-b) customer can delete their OWN follow doc (unfollow)", async () => {
+    await env.withSecurityRulesDisabled(async (rulesCtx) => {
+      await rulesCtx
+        .firestore()
+        .doc("USERS/customer-1/followed_sellers/seller-1")
+        .set({ createdAt: "2026-07-21T00:00:00Z" });
+    });
+    const ctx = env.authenticatedContext("customer-1");
+    await assertSucceeds(
+      ctx
+        .firestore()
+        .doc("USERS/customer-1/followed_sellers/seller-1")
+        .delete(),
+    );
+  });
+
+  // NOTE: a "cross-user follow-doc access denied" test (e.g. seller-1 reading
+  // /USERS/customer-1/followed_sellers/seller-1) and an "update immutability"
+  // test would currently FAIL because of the pre-Phase-9 broad
+  // `/USERS/{userId}/{document=**}` recursive wildcard that is intentionally
+  // retained this phase (see 09-02-PLAN.md Open Question 2 + threat register
+  // T-09-05 residual note). Those assertions become live once the wildcard is
+  // retired in the deferred USERS-tightening housekeeping pass — they are
+  // tracked as follow-up debt, not a Phase 9 regression.
+});
+
 describe("firestore.rules /checkoutSessions (server-only)", () => {
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
