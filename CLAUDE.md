@@ -13,11 +13,21 @@ Two skill collections are used together in this repo. Do not conflate them:
 - **chrisbanes/skills** (`structuring-a-compose-test`, `testing-coroutines-with-runtest`, `wenu-viewmodel-uistate`, `applying-testing-strategies`, `developing-with-compose-previews`, `finding-nodes-by-tag-text-content`, `asserting-node-state-and-text`, `injecting-touch-gestures`, `synchronizing-with-idle`, `testing-flows-with-turbine`, `testing-lazy-lists`, `printing-the-semantics-tree`, `configuring-junit4-on-android`, `picking-test-doubles`, `mocking-with-mockk`, etc.) = **tactics.** When writing code — especially tests and Compose UI — **this is the default source.**
 
 Rules:
+- **Before starting any test work** (deciding what to cover): load `choosing-what-to-test` + `applying-testing-strategies`. Do not write tests without deciding what belongs in the pyramid first.
 - Before writing a **ViewModel test**, load `wenu-viewmodel-uistate` + `testing-coroutines-with-runtest` + (if Flows are involved) `testing-flows-with-turbine`.
-- Before writing a **Compose UI test**, load `structuring-a-compose-test` + `finding-nodes-by-tag-text-content` + `asserting-node-state-and-text`. Add `injecting-touch-gestures` for gestures, `testing-lazy-lists` for LazyColumn, `synchronizing-with-idle` for async recomposition.
-- When building a **new Composable**, load `developing-with-compose-previews` (preview-driven).
+- Before writing a **Compose UI test**, load `choosing-test-rule-vs-runtest` (pick the entry point) + `structuring-a-compose-test` + `finding-nodes-by-tag-text-content` + `asserting-node-state-and-text`.
+  - Gestures → add `injecting-touch-gestures`.
+  - `LazyColumn` / `LazyRow` → add `testing-lazy-lists`.
+  - Async recomposition / awaiting state → add `synchronizing-with-idle`; if manual clock control is needed, `controlling-the-test-clock`.
+  - `TextField` / IME → add `entering-text`.
+  - Robolectric / JVM (host) test path → add `using-robolectric-correctly`.
+- **Auditing / reviewing** an existing Compose test file (before touching it or when it looks flaky) → `auditing-compose-test-suite`.
+- **Debugging a failing Compose test** (mystery node, wrong tree) → `printing-the-semantics-tree`.
+- **Kotlin-test / kotest** style assertions → `writing-tests-with-kotlin-test`.
+- **Compose stability / recomposition perf** concerns → `validating-compose-stability`.
+- When building a **new Composable**, load `developing-with-compose-previews` (preview-driven). For CI preview catalogs → `capturing-preview-screenshots-in-ci`.
 - **Testing-strategy** questions (pyramid, hermetic, Hilt swap) → `applying-testing-strategies`.
-- For a topic not covered by the exact skill name in the listing, search with ToolSearch first; fall back to GSD only when nothing matches.
+- For a topic not covered by an exact skill name in the listing, search with ToolSearch first; fall back to GSD only when nothing matches.
 
 Do not produce Compose test APIs from memory — load the skill and write from there. Loading a skill is cheap; debugging wrong APIs is expensive.
 
