@@ -4,6 +4,22 @@
 > Genel Kotlin/Compose best practices yüklü **Agent Skills**'ten gelir — burada tekrar etme.
 > Workflow: **GSD** (discuss → plan → execute → verify → ship). Atomic commits: bir mantıksal değişiklik = bir commit.
 
+## Skills — iki katman, farklı roller
+
+Bu repoda iki skill koleksiyonu birlikte kullanılır. Karıştırma:
+
+- **GSD skills (`gsd-*`)** = **süreç.** Faz planlama, execute, code-review, verify, milestone. `.planning/phases/…`, atomic commit disiplini, cross-session tracker'lar. Yeni faza başlarken / plan üretirken / phase kapatırken bunu kullan.
+- **chrisbanes/skills** (`structuring-a-compose-test`, `testing-coroutines-with-runtest`, `wenu-viewmodel-uistate`, `applying-testing-strategies`, `developing-with-compose-previews`, `finding-nodes-by-tag-text-content`, `asserting-node-state-and-text`, `injecting-touch-gestures`, `synchronizing-with-idle`, `testing-flows-with-turbine`, `testing-lazy-lists`, `printing-the-semantics-tree`, `configuring-junit4-on-android`, `picking-test-doubles`, `mocking-with-mockk`, vb.) = **taktik.** Kod yazarken — özellikle test yazarken ve Compose UI kurarken — **default kaynak budur.**
+
+Kural:
+- **ViewModel testi** yazmadan önce `wenu-viewmodel-uistate` + `testing-coroutines-with-runtest` + (Flow varsa) `testing-flows-with-turbine` yükle.
+- **Compose UI testi** yazmadan önce `structuring-a-compose-test` + `finding-nodes-by-tag-text-content` + `asserting-node-state-and-text` yükle. Gesture varsa `injecting-touch-gestures`, LazyColumn varsa `testing-lazy-lists`, async recomposition varsa `synchronizing-with-idle` ekle.
+- **Yeni Composable** kurarken `developing-with-compose-previews` (preview-driven).
+- **Test stratejisi** sorusu (piramit, hermetic, Hilt swap) → `applying-testing-strategies`.
+- Skill listesinde tam adı olmayan bir konu için önce ToolSearch ile ara, yoksa GSD'ye düş.
+
+Hafızadan Compose test API'si üretme — skill'i yükle, oradan yaz. Skill yüklemek ucuz; yanlış API ile debug pahalı.
+
 ## Working mode (read first) — **Autonomous test-driven**
 Kullanıcı (developer) sürekli "şu çalışıyor mu?" diye sormak istemiyor. Bu yüzden:
 - **Yeni özellik / değişiklik = test ile gelir.** Test yoksa iş bitmiş sayılmaz.
