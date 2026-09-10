@@ -1,7 +1,0 @@
-**Plans:** 4 plans
-
-Plans:
-- [ ] 09-01-PLAN.md — Follow data foundation: FollowedSeller model + repository, Room followed_sellers table + migration v10→v11, User.followerCount, DI wiring (FAVS-01/02)
-- [ ] 09-02-PLAN.md — Cloud Function onFollowedSellerWrite (atomic followerCount) + Firestore follow-subcollection rule + Jest test + billable deploy checkpoint (FAVS-01/04)
-- [ ] 09-03-PLAN.md — Storefront extension: Scaffold/header/FollowButton, optimistic follow with auth gate + self-follow guard, weighted rating, seller-name tap on card/detail (FAVS-01/03)
-- [ ] 09-04-PLAN.md — Followed Sellers list + Profile row + FollowedSellers route; seller dashboard/profile follower-count + live rating surfaces (FAVS-02/04)

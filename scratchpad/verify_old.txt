@@ -1,1 +1,0 @@
-    <automated>grep -c "followed_sellers" firestore.rules | grep -qv '^0$' && npx --yes firebase-tools firestore:rules:lint firestore.rules 2>/dev/null || grep -q "request.auth.uid == userId" firestore.rules</automated>
