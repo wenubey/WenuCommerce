@@ -59,14 +59,6 @@ fun AdminCategoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item {
-                Text(
-                    text = "Category Management",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
             // Error message
             state.errorMessage?.let { error ->
                 item {

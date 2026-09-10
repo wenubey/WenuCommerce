@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -47,6 +50,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerTabScreen(
     tabIndex: Int,
@@ -141,9 +145,22 @@ fun CustomerTabScreen(
 
     Scaffold(
         topBar = {
-            AnimatedVisibility(visible = emailBannerState.isVisible) {
-                EmailVerificationNotificationBar(
-                    onNavigateToProfile = { /* TODO add navigation to Customer Profile */ },
+            Column {
+                AnimatedVisibility(visible = emailBannerState.isVisible) {
+                    EmailVerificationNotificationBar(
+                        onNavigateToProfile = { /* TODO add navigation to Customer Profile */ },
+                    )
+                }
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(
+                                id = CustomerTabs.entries[currentTabIndex].text
+                            ),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    },
                 )
             }
         },

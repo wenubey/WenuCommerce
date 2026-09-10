@@ -82,14 +82,6 @@ fun AdminProductModerationScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item {
-                        Text(
-                            text = "Product Moderation (${state.pendingProducts.size})",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-
                     state.errorMessage?.let { error ->
                         item {
                             Text(

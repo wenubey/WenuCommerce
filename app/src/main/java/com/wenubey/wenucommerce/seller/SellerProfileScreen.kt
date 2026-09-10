@@ -56,13 +56,6 @@ fun SellerProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Text(
-                text = "Seller Profile",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        }
-
         // Shop info card
         item {
             Card(

@@ -76,14 +76,6 @@ fun SellerDashboardScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                text = "Seller Dashboard",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        item {
             val status = state.user?.businessInfo?.verificationStatus
             status?.let {
                 val bannerVisible = if (!isApproved) true else state.isBannerVisible

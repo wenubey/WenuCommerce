@@ -63,13 +63,6 @@ fun AdminUsersScreen(modifier: Modifier = Modifier) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Text(
-                text = "User Management",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        }
-
         // Search and filters
         item {
             Card(

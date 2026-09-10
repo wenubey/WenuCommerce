@@ -95,11 +95,6 @@ fun SellerProductsScreen(
                             .padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            text = "My Products",
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-
                         WenuSearchBar(
                             query = state.searchQuery,
                             onQueryChange = {

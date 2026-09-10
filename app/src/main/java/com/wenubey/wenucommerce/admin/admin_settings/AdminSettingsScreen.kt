@@ -47,13 +47,6 @@ fun AdminSettingsScreen(modifier: Modifier = Modifier) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Text(
-                text = "Admin Settings",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        }
-
         // Platform Settings
         item {
             SettingsSection(

@@ -55,21 +55,6 @@ fun AdminApprovalScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Header
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Seller Approvals",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
             // Filter Chips
             item {
                 LazyRow(

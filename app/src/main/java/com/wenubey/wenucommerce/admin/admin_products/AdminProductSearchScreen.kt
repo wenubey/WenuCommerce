@@ -72,12 +72,6 @@ fun AdminProductSearchScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "Product Search",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-
         WenuSearchBar(
             query = state.searchQuery,
             onQueryChange = {

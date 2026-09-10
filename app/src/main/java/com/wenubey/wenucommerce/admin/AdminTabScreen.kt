@@ -13,6 +13,8 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
@@ -47,6 +49,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 //TODO Refactor Later for requirements
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminTabScreen(
     tabIndex: Int,
@@ -81,9 +84,7 @@ fun AdminTabScreen(
 
     Scaffold(
         topBar = {
-            // TODO research the TopBar issue and change this
             Column {
-                Text("WenuCommerce")
                 AnimatedVisibility(
                     visible = emailBannerState.isVisible
                 ) {
@@ -91,9 +92,18 @@ fun AdminTabScreen(
                         onNavigateToProfile = { /* TODO add navigation mechanism for Admin Profile Screen */ },
                     )
                 }
-
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(
+                                id = AdminTabs.entries[currentTabIndex].text
+                            ),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    },
+                )
             }
-
         },
         bottomBar = {
             AdminTabRow(

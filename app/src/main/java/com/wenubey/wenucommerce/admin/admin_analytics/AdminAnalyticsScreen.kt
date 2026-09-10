@@ -46,13 +46,6 @@ fun AdminAnalyticsScreen(modifier: Modifier = Modifier) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Text(
-                text = "Analytics Dashboard",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        }
-
         // Time period filter
         item {
             LazyRow(
