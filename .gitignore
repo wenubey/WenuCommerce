@@ -27,3 +27,10 @@ ui-debug.log
 database-debug.log
 storage-debug.log
 pubsub-debug.log
+.kotlin/
+.run/
+CLAUDE.md
+CONTINUATION_NOTES.md
+PHASE-0-TEST-BACKFILL.md
+PRODUCT_BUGS_AND_GAPS.md
+SEARCH_FILTER_SPEC.md
