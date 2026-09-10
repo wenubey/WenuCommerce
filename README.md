@@ -2,6 +2,19 @@
 
 A full-featured Android e-commerce application built with Kotlin and Jetpack Compose. Three user roles (Customer, Seller, Admin), real-time Firebase backend, offline-first caching with Room, and a multi-module Clean Architecture setup.
 
+## Screenshots
+
+<p align="center">
+<img src="screenshots/customer_home.png" width="250" />
+<img src="screenshots/seller_dashboard.png" width="250" />
+<img src="screenshots/seller_orders.png" width="250" />
+</p>
+<p align="center">
+<img src="screenshots/admin_dashboard.png" width="250" />
+<img src="screenshots/admin_analytics.png" width="250" />
+<img src="screenshots/admin_approvals.png" width="250" />
+</p>
+
 ## Architecture
 
 The project follows **Clean Architecture** with a multi-module structure:
