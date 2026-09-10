@@ -382,14 +382,6 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Migration from v10 to v11: Phase 9 — create the `followed_sellers`
-         * table (Room mirror of USERS/{uid}/followed_sellers). Composite PK
-         * (userId, sellerId) matches the entity, and index_followed_sellers_userId
-         * accelerates the observeFollowedSellers query. All-scalar columns; NOT
-         * NULL DEFAULTs mirror FollowedSellerEntity constructor defaults so
-         * Room's schema validation passes.
-         */
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -397,16 +389,12 @@ abstract class WenuCommerceDatabase : RoomDatabase() {
                     CREATE TABLE IF NOT EXISTS `followed_sellers` (
                         `userId` TEXT NOT NULL,
                         `sellerId` TEXT NOT NULL,
-                        `sellerName` TEXT NOT NULL DEFAULT '',
-                        `sellerLogoUrl` TEXT NOT NULL DEFAULT '',
-                        `followedAt` TEXT NOT NULL DEFAULT '',
+                        `sellerName` TEXT NOT NULL,
+                        `sellerLogoUrl` TEXT NOT NULL,
+                        `followedAt` TEXT NOT NULL,
                         PRIMARY KEY(`userId`, `sellerId`)
                     )
                     """.trimIndent()
-                )
-                db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS `index_followed_sellers_userId` " +
-                        "ON `followed_sellers` (`userId`)"
                 )
             }
         }
